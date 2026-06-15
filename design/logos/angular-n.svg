@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 521 501" width="521" height="501" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="nStroke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1E3A8A" stop-opacity="1"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Angular N monogram — single filled path. Live mark; the RN component
+       swaps this static indigo→violet gradient for theme tokens. -->
+  <path
+    fill="url(#nStroke)"
+    d="M158 112 L158 393 L206 347 L207 233 L319 344 L319 198 L337 180 L338 389 L226 278 L225 299 L352 427 L352 146 L304 192 L303 306 L191 195 L191 341 L173 359 L172 151 L284 261 L285 240 Z"
+  />
+</svg>

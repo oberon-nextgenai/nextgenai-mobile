@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="nStroke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1E3A8A" stop-opacity="1"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Hairline circle frame (precision lens) -->
+  <circle cx="40" cy="40" r="32" stroke="#1E3A8A" stroke-width="1.5" fill="none"/>
+
+  <!-- Left vertical (entirely inside the circle) -->
+  <path d="M22 18 L22 62" stroke="url(#nStroke)" stroke-width="8" stroke-linecap="square" fill="none"/>
+
+  <!-- Right vertical (entirely inside the circle) -->
+  <path d="M58 18 L58 62" stroke="url(#nStroke)" stroke-width="8" stroke-linecap="square" fill="none"/>
+
+  <!-- Diagonal beam — exits the circle on both ends -->
+  <path d="M14 10 L66 70" stroke="url(#nStroke)" stroke-width="8" stroke-linecap="square" fill="none"/>
+</svg>

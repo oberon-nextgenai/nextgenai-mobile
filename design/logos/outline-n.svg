@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="nStroke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1E3A8A" stop-opacity="1"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <!--
+    Three SEPARATE hollow shapes overlapping. Where the diagonal's hairlines
+    cross through the verticals' hairlines at the pivot corners, the result is
+    the interlocking chiseled-X detail the reference shows.
+
+    - Left vertical:  hollow rectangle  (18,14) → (29,66)
+    - Right vertical: hollow rectangle  (51,14) → (62,66)
+    - Diagonal:       hollow parallelogram (18,14)(29,14)(62,66)(51,66)
+
+    The diagonal's upper edge passes through the right vertical's interior;
+    the diagonal's lower edge passes through the left vertical's interior.
+    miterlimit=2 auto-bevels the parallelogram's two acute corners.
+  -->
+
+  <rect x="18" y="14" width="11" height="52"
+        fill="none" stroke="url(#nStroke)" stroke-width="3"/>
+
+  <rect x="51" y="14" width="11" height="52"
+        fill="none" stroke="url(#nStroke)" stroke-width="3"/>
+
+  <path d="M 18 14 L 29 14 L 62 66 L 51 66 Z"
+        fill="none" stroke="url(#nStroke)" stroke-width="3"
+        stroke-linejoin="miter" stroke-miterlimit="2"/>
+</svg>

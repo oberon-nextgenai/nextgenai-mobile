@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="nStroke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1E3A8A" stop-opacity="1"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left vertical pair (4px gauge) -->
+  <path d="M16 14 L16 66" stroke="url(#nStroke)" stroke-width="2" stroke-linecap="square" fill="none"/>
+  <path d="M20 14 L20 66" stroke="url(#nStroke)" stroke-width="2" stroke-linecap="square" fill="none"/>
+
+  <!-- Diagonal pair (4px gauge, parallel along the 45° axis) -->
+  <path d="M16 14 L60 66" stroke="url(#nStroke)" stroke-width="2" stroke-linecap="square" fill="none"/>
+  <path d="M20 14 L64 66" stroke="url(#nStroke)" stroke-width="2" stroke-linecap="square" fill="none"/>
+
+  <!-- Right vertical pair (4px gauge) -->
+  <path d="M60 14 L60 66" stroke="url(#nStroke)" stroke-width="2" stroke-linecap="square" fill="none"/>
+  <path d="M64 14 L64 66" stroke="url(#nStroke)" stroke-width="2" stroke-linecap="square" fill="none"/>
+</svg>

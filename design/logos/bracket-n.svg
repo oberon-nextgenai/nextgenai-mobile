@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="nStroke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1E3A8A" stop-opacity="1"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Bold N silhouette -->
+  <path d="M18 14 L18 66" stroke="url(#nStroke)" stroke-width="10" stroke-linecap="square" fill="none"/>
+  <path d="M18 14 L62 66" stroke="url(#nStroke)" stroke-width="10" stroke-linecap="square" fill="none"/>
+  <path d="M62 14 L62 66" stroke="url(#nStroke)" stroke-width="10" stroke-linecap="square" fill="none"/>
+
+  <!-- Top-right corner bracket -->
+  <path d="M66 16 L66 8 L58 8" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="square" fill="none"/>
+
+  <!-- Bottom-left corner bracket -->
+  <path d="M14 64 L14 72 L22 72" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="square" fill="none"/>
+</svg>

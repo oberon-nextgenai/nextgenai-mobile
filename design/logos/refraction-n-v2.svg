@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="nStroke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#1E3A8A" stop-opacity="1"/>
+      <stop offset="1"   stop-color="#7C3AED" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#FFFFFF" stop-opacity="0.4"/>
+      <stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ray" x1="18" y1="14" x2="62" y2="66" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C3AED" stop-opacity="1"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="0.25"/>
+    </linearGradient>
+    <filter id="halo" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.2"/>
+    </filter>
+  </defs>
+
+  <!-- Optional soft halo (works in browser/Figma; replaced by View shadow in the live RN component) -->
+  <g opacity="0.45" filter="url(#halo)">
+    <path d="M18 14 L18 66" stroke="#7C3AED" stroke-width="11" stroke-linecap="square" fill="none"/>
+    <path d="M18 14 L62 66" stroke="#7C3AED" stroke-width="11" stroke-linecap="square" fill="none"/>
+    <path d="M62 14 L62 66" stroke="#7C3AED" stroke-width="11" stroke-linecap="square" fill="none"/>
+  </g>
+
+  <!-- Base letterform -->
+  <path d="M18 14 L18 66" stroke="url(#nStroke)" stroke-width="11" stroke-linecap="square" fill="none"/>
+  <path d="M18 14 L62 66" stroke="url(#nStroke)" stroke-width="11" stroke-linecap="square" fill="none"/>
+  <path d="M62 14 L62 66" stroke="url(#nStroke)" stroke-width="11" stroke-linecap="square" fill="none"/>
+
+  <!-- Gloss overlay -->
+  <path d="M18 14 L18 66" stroke="url(#gloss)" stroke-width="11" stroke-linecap="square" fill="none"/>
+  <path d="M18 14 L62 66" stroke="url(#gloss)" stroke-width="11" stroke-linecap="square" fill="none"/>
+  <path d="M62 14 L62 66" stroke="url(#gloss)" stroke-width="11" stroke-linecap="square" fill="none"/>
+
+  <!-- Refracted ray through diagonal -->
+  <path d="M18 14 L62 66" stroke="url(#ray)" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>
