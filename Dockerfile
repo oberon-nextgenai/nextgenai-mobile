@@ -3,13 +3,21 @@
 # those go through EAS Build. See README / deploy docs.
 
 # -------- Builder Stage --------
-FROM node:20-alpine AS builder
+# Debian-based (glibc), not alpine/musl: lightningcss (used by the CSS pipeline)
+# ships prebuilt linux-x64-gnu binaries; the musl variant isn't in the lockfile.
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Install dependencies first for better layer caching
-COPY package*.json ./
-RUN npm ci
+# Install dependencies first for better layer caching.
+# Copy ONLY package.json (not the lockfile): the committed lockfile is authored on
+# Windows and records only win32 native binaries, so installing against it leaves out
+# the Linux builds of platform-specific deps (e.g. lightningcss). Omitting it lets npm
+# resolve the correct linux-x64-gnu binaries fresh.
+# --legacy-peer-deps: react-native-worklets@0.8.3 declares a peer of RN 0.81-0.85
+# but this project pins RN 0.79.6 (Expo SDK 53), so strict resolution fails.
+COPY package.json ./
+RUN npm install --legacy-peer-deps --no-audit --no-fund
 
 # Copy source
 COPY . .
