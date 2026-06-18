@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import * as authService from '@/api/services/auth';
 import { getApiOrigin } from '@/api/client/http';
 import { PATHS } from '@/api/client/paths';
@@ -12,6 +14,39 @@ import type { LoginRequest, TwoFactorLoginRequest } from '@/api/services/types';
 WebBrowser.maybeCompleteAuthSession();
 
 const MOBILE_SSO_REDIRECT = 'primeai://auth/sso';
+
+/**
+ * Native iOS Sign in with Apple. Generates a random nonce, hashes it (Apple
+ * echoes the SHA-256 in the identity token's `nonce` claim), and posts the raw
+ * nonce to the backend, which re-hashes it to verify. Returns the session.
+ */
+async function appleNativeSignIn() {
+  const rawNonce = Crypto.randomUUID();
+  const hashedNonce = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    rawNonce,
+  );
+  const credential = await AppleAuthentication.signInAsync({
+    requestedScopes: [
+      AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+      AppleAuthentication.AppleAuthenticationScope.EMAIL,
+    ],
+    nonce: hashedNonce,
+  });
+  if (!credential.identityToken) {
+    throw new Error('Apple did not return an identity token');
+  }
+  return authService.appleSignIn({
+    identityToken: credential.identityToken,
+    nonce: rawNonce,
+    fullName: credential.fullName
+      ? {
+          givenName: credential.fullName.givenName ?? undefined,
+          familyName: credential.fullName.familyName ?? undefined,
+        }
+      : undefined,
+  });
+}
 
 export function useLoginMutation() {
   const router = useRouter();
@@ -82,7 +117,11 @@ export function useSSOLoginMutation() {
   const setSession = useAuthStore((s) => s.setSession);
 
   return useMutation({
-    mutationFn: async (provider: 'google' | 'microsoft') => {
+    mutationFn: async (provider: 'google' | 'microsoft' | 'apple') => {
+      if (provider === 'apple') {
+        return appleNativeSignIn();
+      }
+
       const startUrl =
         `${getApiOrigin()}${PATHS.auth.mobileSsoStart(provider)}` +
         `?redirect=${encodeURIComponent(MOBILE_SSO_REDIRECT)}`;

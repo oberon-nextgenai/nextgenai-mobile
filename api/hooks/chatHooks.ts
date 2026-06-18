@@ -22,6 +22,8 @@ export interface ToolCallRecord {
   status: 'pending' | 'success' | 'error';
   result?: unknown;
   error?: unknown;
+  /** OpenAI streaming index — used only to merge fragmented `tool_call` deltas. */
+  streamIndex?: number;
 }
 
 export interface PrimeMessage {
@@ -177,23 +179,61 @@ export function usePrimeChat(orgId: string | null) {
             break;
           }
           case 'tool_call': {
-            const id =
-              (event as { id?: string }).id ?? genId();
-            const name = (event as { name?: string; tool?: string }).name ?? (event as { tool?: string }).tool ?? 'tool';
-            const args = (event as { arguments?: unknown; args?: unknown }).arguments ??
-              (event as { args?: unknown }).args;
+            // OpenAI streams each tool call fragmented across many deltas under
+            // `tool_calls` (keyed by `index`); the backend forwards those deltas
+            // verbatim. Merge by `index` so one call = one record, accumulating
+            // the name as it arrives — instead of appending a bogus "tool" badge
+            // per delta (which produced dozens of unnamed pills).
+            const deltas = (
+              event as {
+                tool_calls?: Array<{
+                  index?: number;
+                  id?: string;
+                  function?: { name?: string; arguments?: string };
+                }>;
+              }
+            ).tool_calls;
+
             setMessages((prev) =>
-              prev.map((m) =>
-                m.id === currentAssistantIdRef.current
-                  ? {
-                      ...m,
-                      toolCalls: [
-                        ...(m.toolCalls ?? []),
-                        { id, name, arguments: args, status: 'pending' },
-                      ],
-                    }
-                  : m,
-              ),
+              prev.map((m) => {
+                if (m.id !== currentAssistantIdRef.current) return m;
+                const existing = m.toolCalls ?? [];
+
+                // Fallback for a simple {name|tool} event shape.
+                if (!deltas || deltas.length === 0) {
+                  const name =
+                    (event as { name?: string; tool?: string }).name ??
+                    (event as { tool?: string }).tool;
+                  if (!name) return m;
+                  const id = (event as { id?: string }).id ?? genId();
+                  return {
+                    ...m,
+                    toolCalls: [...existing, { id, name, status: 'pending' as const }],
+                  };
+                }
+
+                const next = [...existing];
+                for (const d of deltas) {
+                  const idx = d.index ?? 0;
+                  const pos = next.findIndex((tc) => tc.streamIndex === idx);
+                  if (pos === -1) {
+                    next.push({
+                      id: d.id ?? genId(),
+                      name: d.function?.name ?? '',
+                      status: 'pending',
+                      streamIndex: idx,
+                    });
+                  } else {
+                    const cur = next[pos];
+                    next[pos] = {
+                      ...cur,
+                      id: d.id ?? cur.id,
+                      name: (cur.name ?? '') + (d.function?.name ?? ''),
+                    };
+                  }
+                }
+                return { ...m, toolCalls: next };
+              }),
             );
             break;
           }
@@ -280,6 +320,8 @@ export function usePrimeChat(orgId: string | null) {
                       fallbackMarkdown: finalFallbackMarkdown,
                       format: currentFormat,
                       status: 'complete',
+                      // Drop any fragment that never resolved to a real tool name.
+                      toolCalls: (m.toolCalls ?? []).filter((tc) => tc.name.trim() !== ''),
                     }
                   : m,
               ),
@@ -307,6 +349,18 @@ export function usePrimeChat(orgId: string | null) {
             setIsStreaming(false);
             setStreamingContent('');
             closeStream();
+            break;
+          }
+          default: {
+            // Unknown event type — degrade gracefully rather than dropping it
+            // silently, so a newly-added backend SSE event is noticed in dev
+            // instead of vanishing (keeps the streaming contract observable).
+            if (__DEV__) {
+              console.warn(
+                '[Prime] Unhandled stream event type:',
+                (event as { type?: string }).type,
+              );
+            }
             break;
           }
         }

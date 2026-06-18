@@ -47,14 +47,11 @@ export default function AgentsAnalyticsScreen() {
             />
           ) : (
             rows.map((a) => {
-              const avgMinutes =
-                a.averageCallDuration != null
-                  ? a.averageCallDuration / 60
-                  : undefined;
-              const name = a.agentName ?? a.vapiAssistantId ?? 'Unnamed agent';
+              const avgMinutes = a.averageDurationMinutes ?? undefined;
+              const name = a.agentName ?? 'Unnamed agent';
               return (
                 <View
-                  key={a._id}
+                  key={a.agentId}
                   className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3 mb-2"
                 >
                   <View className="flex-row items-center mb-2">

@@ -39,3 +39,19 @@ export async function requestPasswordReset(email: string): Promise<{ message?: s
   );
   return res.data;
 }
+
+/**
+ * Change the authenticated user's password. The backend verifies the current
+ * password, rotates `sessionVersion` (signing out other devices), and returns a
+ * fresh `access_token` for this device.
+ */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ message?: string; access_token: string }> {
+  const res = await http.post<{ message?: string; access_token: string }>(
+    PATHS.security.passwordChange,
+    { currentPassword, newPassword },
+  );
+  return res.data;
+}

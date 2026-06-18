@@ -31,16 +31,11 @@ import {
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { cn } from '@/lib/cn';
 import { fmtNumber, fmtRelative } from '@/lib/formatters';
-import type {
-  AnalyticsChart,
-  NdsPeriod,
-  NdsVolumeTrendPoint,
-} from '@/api/services/types';
+import type { NdsPeriod, NdsVolumeTrendPoint } from '@/api/services/types';
 
 const PERIOD_OPTIONS: { value: NdsPeriod; label: string }[] = [
   { value: '7d', label: 'Last 7 days' },
   { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
 ];
 
 // NDS volume-trend series colors — matched to the web NDS dashboard.
@@ -51,15 +46,8 @@ const NDS_SERIES = {
   denied: '#EF4444', // red
 } as const;
 
-function findChart(
-  charts: AnalyticsChart[] | undefined,
-  keywords: string[],
-): AnalyticsChart | undefined {
-  if (!charts?.length) return undefined;
-  const hay = (c: AnalyticsChart) =>
-    `${c.type ?? ''} ${c.title ?? ''}`.toLowerCase();
-  return charts.find((c) => keywords.some((k) => hay(c).includes(k)));
-}
+// Palette for the per-agent breakdown pie (used when the backend datum omits a color).
+const AGENT_PALETTE = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#6366F1'];
 
 function ndsTrendData(
   trends: NdsVolumeTrendPoint[] | undefined,
@@ -70,6 +58,66 @@ function ndsTrendData(
     value: p[field] ?? 0,
     label: p.date ? p.date.slice(5) : undefined,
   }));
+}
+
+// Titled donut chart with a legend. Renders nothing when there's no data, so it
+// composes cleanly in the core dashboard column.
+function PieCard({
+  title,
+  data,
+  surfaceColor,
+}: {
+  title: string;
+  data: { value: number; text: string; color: string }[];
+  surfaceColor: string;
+}) {
+  if (data.length === 0) return null;
+  const total = data.reduce((s, d) => s + d.value, 0);
+  return (
+    <ChartCard title={title}>
+      <View className="items-center">
+        <PieChart
+          data={data}
+          donut
+          radius={80}
+          innerRadius={50}
+          innerCircleColor={surfaceColor}
+          centerLabelComponent={() => (
+            <View className="items-center">
+              <Text
+                className="text-fg dark:text-fg-dark-DEFAULT text-base"
+                style={{ fontFamily: 'Inter_700Bold' }}
+              >
+                {fmtNumber(total)}
+              </Text>
+              <Text
+                className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
+                style={{ fontFamily: 'Inter_500Medium' }}
+              >
+                Total
+              </Text>
+            </View>
+          )}
+        />
+        <View className="flex-row flex-wrap gap-x-3 gap-y-1 mt-3 justify-center">
+          {data.map((d, i) => (
+            <View key={`${d.text}-${i}`} className="flex-row items-center">
+              <View
+                className="w-2 h-2 rounded-full mr-1.5"
+                style={{ backgroundColor: d.color }}
+              />
+              <Text
+                className="text-fg-muted dark:text-fg-dark-muted text-xs"
+                style={{ fontFamily: 'Inter_500Medium' }}
+              >
+                {d.text}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </ChartCard>
+  );
 }
 
 export default function AnalyticsScreen() {
@@ -87,6 +135,7 @@ export default function AnalyticsScreen() {
     routing.view?.kind === 'core' || routing.view?.kind === 'unknown'
       ? activeOrgId
       : null,
+    period,
   );
   const nds = useNdsDashboard(
     routing.view?.kind === 'nds' ? activeOrgId : null,
@@ -94,21 +143,11 @@ export default function AnalyticsScreen() {
   );
   const mmr = useMmrCampaigns(routing.view?.kind === 'mmr' ? activeOrgId : null);
 
-  // Core analytics charts (when no plugin)
+  // Core analytics charts — read the structured chart arrays the backend
+  // returns (RetellDashboardData.charts) directly, so nothing is dropped.
   const performance = useMemo(() => {
-    const c = findChart(dashboard.data?.charts, [
-      'perform',
-      'over time',
-      'trend',
-      'call',
-      'volume',
-    ]);
-    return (
-      c?.data?.slice(-30).map((d) => ({
-        value: d.y,
-        label: typeof d.x === 'string' ? d.x.slice(5) : String(d.x),
-      })) ?? []
-    );
+    const line = dashboard.data?.charts?.lineData ?? [];
+    return line.slice(-30).map((d) => ({ value: d.calls, label: d.name }));
   }, [dashboard.data]);
 
   const resolution = useMemo(() => {
@@ -120,6 +159,46 @@ export default function AnalyticsScreen() {
       { value: successful, text: 'Resolved', color: colors.success },
       { value: failed, text: 'Escalated', color: colors.danger },
       { value: other, text: 'Other', color: colors.fgMuted },
+    ].filter((d) => d.value > 0);
+  }, [dashboard.data, colors]);
+
+  // Per-agent call distribution (web pieData).
+  const agentBreakdown = useMemo(() => {
+    const pie = dashboard.data?.charts?.pieData ?? [];
+    return pie
+      .filter((p) => p.value > 0)
+      .slice(0, 6)
+      .map((p, i) => ({
+        value: p.value,
+        text: p.name,
+        color: p.color ?? AGENT_PALETTE[i % AGENT_PALETTE.length],
+      }));
+  }, [dashboard.data]);
+
+  // Sentiment split — prefer the backend sentimentData, fall back to the
+  // sentimentBreakdown metric.
+  const sentiment = useMemo(() => {
+    const sd = (dashboard.data?.charts?.sentimentData ?? []).filter((s) => s.value > 0);
+    if (sd.length) {
+      const fallback: Record<string, string> = {
+        positive: colors.success,
+        negative: colors.danger,
+        neutral: colors.fgMuted,
+        unknown: colors.fgSubtle,
+      };
+      return sd.map((s) => ({
+        value: s.value,
+        text: s.name,
+        color: s.color ?? fallback[s.name.toLowerCase()] ?? colors.fgMuted,
+      }));
+    }
+    const b = dashboard.data?.metrics?.sentimentBreakdown;
+    if (!b) return [];
+    return [
+      { value: b.positive, text: 'Positive', color: colors.success },
+      { value: b.negative, text: 'Negative', color: colors.danger },
+      { value: b.neutral, text: 'Neutral', color: colors.fgMuted },
+      { value: b.unknown, text: 'Unknown', color: colors.fgSubtle },
     ].filter((d) => d.value > 0);
   }, [dashboard.data, colors]);
 
@@ -770,51 +849,21 @@ export default function AnalyticsScreen() {
                     </ChartCard>
                   ) : null}
 
-                  {resolution.length > 0 ? (
-                    <ChartCard title="Resolution breakdown">
-                      <View className="items-center">
-                        <PieChart
-                          data={resolution}
-                          donut
-                          radius={80}
-                          innerRadius={50}
-                          innerCircleColor={colors.surface}
-                          centerLabelComponent={() => (
-                            <View className="items-center">
-                              <Text
-                                className="text-fg dark:text-fg-dark-DEFAULT text-base"
-                                style={{ fontFamily: 'Inter_700Bold' }}
-                              >
-                                {resolution.reduce((s, d) => s + d.value, 0)}
-                              </Text>
-                              <Text
-                                className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                                style={{ fontFamily: 'Inter_500Medium' }}
-                              >
-                                Total
-                              </Text>
-                            </View>
-                          )}
-                        />
-                        <View className="flex-row flex-wrap gap-x-3 gap-y-1 mt-3 justify-center">
-                          {resolution.map((d, i) => (
-                            <View key={i} className="flex-row items-center">
-                              <View
-                                className="w-2 h-2 rounded-full mr-1.5"
-                                style={{ backgroundColor: d.color }}
-                              />
-                              <Text
-                                className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                                style={{ fontFamily: 'Inter_500Medium' }}
-                              >
-                                {d.text}
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      </View>
-                    </ChartCard>
-                  ) : null}
+                  <PieCard
+                    title="Resolution breakdown"
+                    data={resolution}
+                    surfaceColor={colors.surface}
+                  />
+                  <PieCard
+                    title="Calls by agent"
+                    data={agentBreakdown}
+                    surfaceColor={colors.surface}
+                  />
+                  <PieCard
+                    title="Sentiment"
+                    data={sentiment}
+                    surfaceColor={colors.surface}
+                  />
                 </>
               )}
             </View>

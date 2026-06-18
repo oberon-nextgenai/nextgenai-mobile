@@ -22,6 +22,7 @@ import {
   useVerifyTwoFactor,
   useDisableTwoFactor,
   useRequestPasswordReset,
+  useChangePassword,
 } from '@/api/hooks/securityHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
@@ -42,11 +43,16 @@ export default function SecurityScreen() {
   const verify = useVerifyTwoFactor();
   const disable = useDisableTwoFactor();
   const passwordReset = useRequestPasswordReset();
+  const changePassword = useChangePassword();
 
   const [pendingSetup, setPendingSetup] = useState<SetupState | null>(null);
   const [otp, setOtp] = useState('');
   const [disableOtp, setDisableOtp] = useState('');
   const [disableMode, setDisableMode] = useState(false);
+  const [changeMode, setChangeMode] = useState(false);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
 
   const onEnable = async () => {
     try {
@@ -90,6 +96,26 @@ export default function SecurityScreen() {
       if (next) await setUser(next);
     } catch {
       // toast handled
+    }
+  };
+
+  const onChangePassword = async () => {
+    if (newPw !== confirmPw) {
+      Alert.alert('Passwords do not match');
+      return;
+    }
+    if (newPw.length < 8) {
+      Alert.alert('Password too short', 'Use at least 8 characters.');
+      return;
+    }
+    try {
+      await changePassword.mutateAsync({ currentPassword: currentPw, newPassword: newPw });
+      setChangeMode(false);
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+    } catch {
+      // toast handled in the hook
     }
   };
 
@@ -286,18 +312,97 @@ export default function SecurityScreen() {
 
         <SectionCard
           label="Password"
-          heading="Reset your password"
-          description="We'll send a secure reset link to your email."
+          heading="Password"
+          description="Change your password, or email yourself a reset link."
         >
-          <Button
-            variant="secondary"
-            fullWidth
-            loading={passwordReset.isPending}
-            leftIcon={<Ionicons name="mail-outline" size={15} color={colors.fg} />}
-            onPress={onPasswordReset}
-          >
-            Send reset email
-          </Button>
+          {changeMode ? (
+            <View className="gap-2.5">
+              <Input
+                label="Current password"
+                value={currentPw}
+                onChangeText={setCurrentPw}
+                placeholder="Current password"
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+              />
+              <Input
+                label="New password"
+                value={newPw}
+                onChangeText={setNewPw}
+                placeholder="New password"
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="newPassword"
+              />
+              <Input
+                label="Confirm new password"
+                value={confirmPw}
+                onChangeText={setConfirmPw}
+                placeholder="Re-enter new password"
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="newPassword"
+              />
+              <Text
+                className="text-fg-muted dark:text-fg-dark-muted text-[11px]"
+                style={{ fontFamily: 'Inter_400Regular' }}
+              >
+                8–128 characters with uppercase, lowercase, number, and special character.
+                Changing it signs out your other devices.
+              </Text>
+              <View className="flex-row gap-2">
+                <View className="flex-1">
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    onPress={() => {
+                      setChangeMode(false);
+                      setCurrentPw('');
+                      setNewPw('');
+                      setConfirmPw('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </View>
+                <View className="flex-1">
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    loading={changePassword.isPending}
+                    disabled={!currentPw || newPw.length < 8 || !confirmPw}
+                    onPress={onChangePassword}
+                  >
+                    Save
+                  </Button>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View className="gap-2.5">
+              <Button
+                variant="primary"
+                fullWidth
+                leftIcon={<Ionicons name="lock-closed-outline" size={15} color="#FFFFFF" />}
+                onPress={() => setChangeMode(true)}
+              >
+                Change password
+              </Button>
+              <Button
+                variant="secondary"
+                fullWidth
+                loading={passwordReset.isPending}
+                leftIcon={<Ionicons name="mail-outline" size={15} color={colors.fg} />}
+                onPress={onPasswordReset}
+              >
+                Send reset email
+              </Button>
+            </View>
+          )}
         </SectionCard>
       </ScrollView>
     </Screen>

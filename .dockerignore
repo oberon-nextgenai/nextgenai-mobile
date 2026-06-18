@@ -1,0 +1,17 @@
+node_modules
+dist
+web-build
+.expo
+.git
+.gitignore
+.idea
+.vscode
+android
+ios
+*.tsbuildinfo
+npm-debug.*
+.DS_Store
+.env
+.env*.local
+Dockerfile
+.dockerignore

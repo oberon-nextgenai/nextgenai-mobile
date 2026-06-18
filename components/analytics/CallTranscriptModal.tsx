@@ -12,12 +12,10 @@ interface Props {
 }
 
 function statusOf(c: AnalyticsCallSummary): { label: string; tone: 'positive' | 'negative' | 'neutral' } {
-  const evaluation = c.analysis?.successEvaluation;
-  if (evaluation === 'true') return { label: 'Successful', tone: 'positive' };
-  if (evaluation === 'false') return { label: 'Unsuccessful', tone: 'negative' };
-  const status = c.metadata?.status;
-  if (status === 'failed') return { label: c.endReason ?? 'failed', tone: 'negative' };
-  return { label: c.endReason ?? status ?? 'ended', tone: 'neutral' };
+  if (c.evalSuccessful === true) return { label: 'Successful', tone: 'positive' };
+  if (c.evalSuccessful === false) return { label: 'Unsuccessful', tone: 'negative' };
+  if (c.status === 'failed') return { label: c.disconnectionReason ?? 'failed', tone: 'negative' };
+  return { label: c.disconnectionReason ?? c.status ?? 'ended', tone: 'neutral' };
 }
 
 const TONE_BG: Record<string, string> = {
@@ -40,8 +38,8 @@ export function CallTranscriptModal({ call, onClose }: Props) {
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
 
-  const recordingUrl = call?.metadata?.recordingUrl;
-  const transcript = call?.metadata?.transcript ?? call?.analysis?.summary;
+  const recordingUrl = call?.recordingUrl;
+  const transcript = call?.transcript ?? call?.summary;
 
   useEffect(() => {
     return () => {
@@ -104,8 +102,8 @@ export function CallTranscriptModal({ call, onClose }: Props) {
   if (!call) return null;
 
   const status = statusOf(call);
-  const startedAt = call.startTime ?? call.createdAt;
-  const minutes = call.duration != null ? call.duration / 60 : undefined;
+  const startedAt = call.startedAt;
+  const minutes = call.durationSec != null ? call.durationSec / 60 : undefined;
   const progress = durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
 
   return (
@@ -174,7 +172,7 @@ export function CallTranscriptModal({ call, onClose }: Props) {
                 style={{ fontFamily: 'Inter_600SemiBold' }}
                 numberOfLines={1}
               >
-                {call.endReason ?? '—'}
+                {call.disconnectionReason ?? '—'}
               </Text>
             </View>
           </View>
@@ -248,7 +246,7 @@ export function CallTranscriptModal({ call, onClose }: Props) {
             </Text>
           )}
 
-          {call.analysis?.summary && call.analysis.summary !== transcript ? (
+          {call.summary && call.summary !== transcript ? (
             <>
               <Text
                 className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mt-4 mb-2"
@@ -260,7 +258,7 @@ export function CallTranscriptModal({ call, onClose }: Props) {
                 className="text-fg dark:text-fg-dark-DEFAULT text-[13px] leading-5"
                 style={{ fontFamily: 'Inter_400Regular' }}
               >
-                {call.analysis.summary}
+                {call.summary}
               </Text>
             </>
           ) : null}

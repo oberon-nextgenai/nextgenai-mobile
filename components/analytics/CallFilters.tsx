@@ -15,7 +15,6 @@ const RANGES: { value: CallDateRange; label: string }[] = [
   { value: 'all', label: 'All time' },
   { value: '7d', label: 'Last 7d' },
   { value: '30d', label: 'Last 30d' },
-  { value: '90d', label: 'Last 90d' },
 ];
 
 const STATUSES: { value: CallStatusFilter; label: string }[] = [
