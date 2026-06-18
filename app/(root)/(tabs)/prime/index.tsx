@@ -1,11 +1,12 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { EmptyState } from '@/components/common/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
+import { Chip } from '@/components/ui/Chip';
 import { Logo } from '@/components/brand/Logo';
 import { ChatList } from '@/components/prime/ChatList';
 import { Composer } from '@/components/prime/Composer';
@@ -14,10 +15,18 @@ import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type { PrimeAction } from '@/lib/primeStructuredSchema';
 
+const SUGGESTED_PROMPTS = [
+  'Summarize what happened overnight',
+  'Which agents need my attention?',
+  'Draft a board update',
+  'Show me the biggest cost drivers',
+];
+
 export default function PrimeScreen() {
   const router = useRouter();
   const { activeOrgId } = useActiveOrg();
   const { colors } = useThemeMode();
+  const { prompt } = useLocalSearchParams<{ prompt?: string }>();
   const {
     messages,
     inputValue,
@@ -32,15 +41,25 @@ export default function PrimeScreen() {
     clearMessages();
   }, [activeOrgId, clearMessages]);
 
+  // Seed the composer from a deep-linked prompt (e.g. "Ask Prime about this agent").
+  const seededPrompt = useRef<string | null>(null);
+  useEffect(() => {
+    if (prompt && seededPrompt.current !== prompt) {
+      seededPrompt.current = prompt;
+      setInputValue(prompt);
+    }
+  }, [prompt, setInputValue]);
+
   const handleAction = useCallback(
     (a: PrimeAction) => {
       if (a.href) {
         router.push(a.href as never);
       } else if (a.prompt) {
-        setInputValue(a.prompt);
+        // Suggestion chips are send-ready replies — send immediately, don't just prefill.
+        void handleSubmit(a.prompt);
       }
     },
-    [router, setInputValue],
+    [router, handleSubmit],
   );
 
   const headerRight = (
@@ -52,7 +71,7 @@ export default function PrimeScreen() {
   );
 
   return (
-    <Screen avoidKeyboard edges={{ top: true, bottom: false }}>
+    <Screen avoidKeyboard background="nebula" edges={{ top: true, bottom: false }}>
       <AppHeader brand right={headerRight} />
       {!activeOrgId ? (
         <EmptyState
@@ -78,6 +97,18 @@ export default function PrimeScreen() {
             Prime can manage agents, campaigns, tasks, knowledge bases, and surface analytics —
             all from chat.
           </Text>
+          <View className="flex-row flex-wrap justify-center gap-2 mt-5 max-w-[340px]">
+            {SUGGESTED_PROMPTS.map((p) => (
+              <Chip
+                key={p}
+                label={p}
+                leftIcon={
+                  <Ionicons name="sparkles-outline" size={13} color={colors.accent2} />
+                }
+                onPress={() => handleSubmit(p)}
+              />
+            ))}
+          </View>
         </View>
       ) : (
         <ChatList

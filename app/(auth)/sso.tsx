@@ -1,18 +1,19 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { Screen } from '@/components/common/Screen';
 import { AppMark } from '@/components/brand/AppMark';
 import { Button } from '@/components/ui/Button';
 import { useSSOLoginMutation } from '@/api/hooks/authHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
-type Provider = 'google' | 'microsoft';
+type Provider = 'google' | 'microsoft' | 'apple';
 
 export default function SSOScreen() {
   const router = useRouter();
-  const { colors } = useThemeMode();
+  const { colors, mode } = useThemeMode();
   const sso = useSSOLoginMutation();
   const [pending, setPending] = useState<Provider | null>(null);
 
@@ -83,6 +84,20 @@ export default function SSOScreen() {
           >
             Continue with Microsoft
           </Button>
+
+          {Platform.OS === 'ios' ? (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={
+                mode === 'dark'
+                  ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                  : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+              }
+              cornerRadius={12}
+              style={{ width: '100%', height: 48 }}
+              onPress={() => start('apple')}
+            />
+          ) : null}
 
           {errorMsg ? (
             <View className="bg-danger-soft border border-danger/40 rounded-lg px-3 py-2">

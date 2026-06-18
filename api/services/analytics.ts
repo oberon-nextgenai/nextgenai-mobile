@@ -10,8 +10,11 @@ import type {
   MmrCampaign,
 } from './types';
 
-export async function fetchDashboard(orgId: string): Promise<AnalyticsDashboard> {
-  const res = await http.get<AnalyticsDashboard>(PATHS.analytics.dashboard(orgId));
+export async function fetchDashboard(
+  orgId: string,
+  params?: { from?: string; to?: string },
+): Promise<AnalyticsDashboard> {
+  const res = await http.get<AnalyticsDashboard>(PATHS.analytics.dashboard(orgId), { params });
   return res.data;
 }
 

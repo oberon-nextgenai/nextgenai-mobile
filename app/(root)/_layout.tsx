@@ -58,6 +58,10 @@ export default function RootAreaLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
+          name="command-search"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
           name="org-switcher"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />

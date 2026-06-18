@@ -1,34 +1,29 @@
 import { View } from 'react-native';
 import { MetricCard } from './MetricCard';
-import { fmtNumber, fmtPct, fmtDuration } from '@/lib/formatters';
-import type { AnalyticsMetric, AnalyticsChart } from '@/api/services/types';
+import { fmtNumber, fmtPct, fmtDuration, fmtCurrency } from '@/lib/formatters';
+import type { AnalyticsMetric, DashboardCharts } from '@/api/services/types';
 
 interface KpiStripProps {
   metrics: AnalyticsMetric;
-  charts?: AnalyticsChart[];
-}
-
-function chartSeries(charts: AnalyticsChart[] | undefined, keywords: string[]): number[] {
-  if (!charts?.length) return [];
-  const hay = (c: AnalyticsChart) =>
-    `${c.type ?? ''} ${c.title ?? ''}`.toLowerCase();
-  const c = charts.find((x) => keywords.some((k) => hay(x).includes(k)));
-  return c?.data?.slice(-14).map((d) => d.y) ?? [];
+  charts?: DashboardCharts;
 }
 
 /**
- * Three-card hero strip mirrors the NDS dashboard hero on web
- * (Active Cases / Approvals Today / Workflow Health). For core analytics
- * we surface the closest equivalents: Total Calls, Success Rate, Live
- * Sessions — each with an inline sparkline if the dashboard payload
- * carries a matching time-series. A compact secondary row covers the
- * remaining KPIs without competing visually.
+ * KPI strip mirroring the web core dashboard. Hero cards (Total Calls, Success
+ * Rate, Live Sessions, Active Agents) carry inline sparklines derived from the
+ * backend `lineData` series; a compact row covers duration/response/utilization
+ * and a final row surfaces Total Cost + eval. Driven entirely by the structured
+ * dashboard payload — no keyword chart-matching.
  */
 export function KpiStrip({ metrics, charts }: KpiStripProps) {
   const successRate = metrics.callSuccessRate ?? 0;
-  const callsSeries = chartSeries(charts, ['call', 'volume', 'time', 'trend']);
-  const successSeries = chartSeries(charts, ['success', 'rate']);
-  const liveSeries = chartSeries(charts, ['live', 'session', 'concurrent']);
+  const line = charts?.lineData ?? [];
+  const callsSeries = line.slice(-14).map((d) => d.calls);
+  const successSeries = line
+    .slice(-14)
+    .map((d) => d.successRate)
+    .filter((v): v is number => v != null);
+  const hasEval = (metrics.evaluatedCalls ?? 0) > 0;
 
   return (
     <View className="gap-2.5">
@@ -54,7 +49,6 @@ export function KpiStrip({ metrics, charts }: KpiStripProps) {
           value={fmtNumber(metrics.liveActiveSessions ?? 0)}
           tone={(metrics.liveActiveSessions ?? 0) > 0 ? 'positive' : 'neutral'}
           icon="radio-outline"
-          sparkline={liveSeries.length > 1 ? liveSeries : undefined}
         />
         <MetricCard
           label="Active Agents"
@@ -91,6 +85,38 @@ export function KpiStrip({ metrics, charts }: KpiStripProps) {
           }
           icon="trending-up-outline"
         />
+      </View>
+
+      {/* Cost + eval row */}
+      <View className="flex-row gap-2.5">
+        <MetricCard
+          variant="compact"
+          label="Total Cost"
+          value={fmtCurrency(metrics.totalCost)}
+          icon="cash-outline"
+        />
+        {hasEval ? (
+          <MetricCard
+            variant="compact"
+            label="Eval Success"
+            value={fmtPct(metrics.evalSuccessRate ?? 0)}
+            tone={
+              (metrics.evalSuccessRate ?? 0) >= 70
+                ? 'positive'
+                : (metrics.evalSuccessRate ?? 0) >= 40
+                  ? 'warning'
+                  : 'negative'
+            }
+            icon="ribbon-outline"
+          />
+        ) : (
+          <MetricCard
+            variant="compact"
+            label="Evaluated"
+            value={fmtNumber(metrics.evaluatedCalls ?? 0)}
+            icon="ribbon-outline"
+          />
+        )}
       </View>
     </View>
   );

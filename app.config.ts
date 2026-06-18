@@ -28,6 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: NAME + nameSuffix[variant],
   slug: 'oberon-nextgenai-mobile',
+  owner: 'fabi0t',
   scheme: SCHEME,
   version: '0.1.0',
   orientation: 'portrait',
@@ -36,6 +37,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: BUNDLE_ID + idSuffix[variant],
+    usesAppleSignIn: true,
     infoPlist: {
       NSFaceIDUsageDescription:
         'Use Face ID to unlock Prime without re-entering your password.',
@@ -55,6 +57,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-secure-store',
     'expo-local-authentication',
     'expo-font',
+    'expo-apple-authentication',
   ],
   experiments: {
     typedRoutes: true,
@@ -63,7 +66,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     variant,
     apiOrigin: apiOriginByVariant[variant],
     eas: {
-      projectId: '',
+      projectId: '4134c6ce-e259-4886-9de7-49462cfcd32a',
     },
   },
 });

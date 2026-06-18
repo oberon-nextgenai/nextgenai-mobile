@@ -33,7 +33,7 @@ function MetricsGrid({ items }: { items: PrimeSectionItem[] }) {
           return (
             <View key={i} className="w-full px-1.5 mb-2">
               <Text
-                className="text-fg dark:text-fg-dark-DEFAULT text-sm leading-5"
+                className="text-fg dark:text-fg-dark-DEFAULT text-[13px] leading-[18px]"
                 style={{ fontFamily: 'Inter_400Regular' }}
               >
                 {m.text}
@@ -76,7 +76,7 @@ function ListSection({ items }: { items: PrimeSectionItem[] }) {
               {hasLabelValue ? (
                 <>
                   <Text
-                    className="text-fg dark:text-fg-dark-DEFAULT text-sm"
+                    className="text-fg dark:text-fg-dark-DEFAULT text-[13px]"
                     style={{ fontFamily: 'Inter_600SemiBold' }}
                   >
                     {it.label}
@@ -90,7 +90,7 @@ function ListSection({ items }: { items: PrimeSectionItem[] }) {
                 </>
               ) : (
                 <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm"
+                  className="text-fg dark:text-fg-dark-DEFAULT text-[13px] leading-[18px]"
                   style={{ fontFamily: 'Inter_400Regular' }}
                 >
                   {it.text ?? it.label ?? it.value}
@@ -131,7 +131,8 @@ export function StructuredCard({
   const borderClass = RESPONSE_BORDER[data.responseType] ?? RESPONSE_BORDER.info;
   const summaryLines = data.summary?.filter(Boolean) ?? [];
   const insightLines = data.insights?.filter(Boolean) ?? [];
-  const actions = data.actions?.filter(Boolean) ?? [];
+  // Cap to the 3 most relevant suggestions to keep the card scannable.
+  const actions = (data.actions?.filter(Boolean) ?? []).slice(0, 3);
 
   return (
     <View
@@ -141,7 +142,7 @@ export function StructuredCard({
       )}
     >
       <Text
-        className="text-fg dark:text-fg-dark-DEFAULT text-base"
+        className="text-fg dark:text-fg-dark-DEFAULT text-[15px]"
         style={{ fontFamily: 'Inter_600SemiBold' }}
       >
         {data.title}
@@ -152,7 +153,7 @@ export function StructuredCard({
           {summaryLines.map((line, i) => (
             <Text
               key={i}
-              className="text-fg-muted dark:text-fg-dark-muted text-sm leading-5"
+              className="text-fg-muted dark:text-fg-dark-muted text-xs leading-[18px]"
               style={{ fontFamily: 'Inter_400Regular' }}
             >
               {line}
@@ -178,7 +179,7 @@ export function StructuredCard({
           {insightLines.map((line, i) => (
             <Text
               key={i}
-              className="text-fg dark:text-fg-dark-DEFAULT text-sm leading-5 mb-1"
+              className="text-fg dark:text-fg-dark-DEFAULT text-xs leading-[18px] mb-1"
               style={{ fontFamily: 'Inter_400Regular' }}
             >
               {line}
@@ -196,7 +197,7 @@ export function StructuredCard({
               className="flex-row items-center bg-accent-soft dark:bg-accent-soft-dark border border-accent/30 dark:border-accent-dark/40 rounded-xl px-3 py-2.5 active:opacity-80"
             >
               <Text
-                className="flex-1 text-accent dark:text-accent-dark text-sm leading-5"
+                className="flex-1 text-accent dark:text-accent-dark text-[13px] leading-[18px]"
                 style={{ fontFamily: 'Inter_500Medium' }}
                 numberOfLines={2}
               >

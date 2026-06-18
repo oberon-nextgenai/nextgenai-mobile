@@ -26,13 +26,15 @@ export default function ForgotPasswordScreen() {
 
   const mutation = useMutation({
     mutationFn: (email: string) => requestPasswordReset(email),
-    onSuccess: () => {
+    onSuccess: (_data, email) => {
       Toast.show({
         type: 'success',
         text1: 'Check your email',
         text2: 'We sent a password reset link.',
       });
-      router.back();
+      // Continue to the confirm screen so the user can paste the token from the
+      // email and set a new password without leaving the app.
+      router.push({ pathname: '/(auth)/reset-password', params: { email } });
     },
   });
 

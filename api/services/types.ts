@@ -430,6 +430,14 @@ export interface StoredPrimeMessage {
   createdAt?: string;
 }
 
+/** Sentiment tally returned by the dashboard (Retell call_analysis). */
+export interface SentimentBreakdown {
+  positive: number;
+  negative: number;
+  neutral: number;
+  unknown: number;
+}
+
 export interface AnalyticsMetric {
   totalCalls?: number;
   successfulCalls?: number;
@@ -441,62 +449,87 @@ export interface AnalyticsMetric {
   agentUtilizationPercent?: number;
   totalCost?: number;
   liveActiveSessions?: number;
+  /** Eval metrics (Retell call_analysis) — present when calls have evaluations. */
+  evaluatedCalls?: number;
+  evalSuccessfulCalls?: number;
+  evalSuccessRate?: number;
+  sentimentBreakdown?: SentimentBreakdown;
 }
 
-export interface AnalyticsChart {
-  type: string;
-  title?: string;
-  data: Array<{ x: string | number; y: number; label?: string }>;
+// Structured dashboard charts — mirrors the backend `RetellDashboardData.charts`
+// (oberon-nextgenai-api/src/modules/analytics/types/retell-analytics.types.ts).
+export interface DashboardBarDatum {
+  name: string;
+  calls: number;
+  successfulCalls?: number;
+  failedCalls?: number;
+  averageDurationMinutes?: number;
+  totalCost?: number;
+}
+export interface DashboardPieDatum {
+  name: string;
+  value: number;
+  assistantId: string;
+  color?: string;
+}
+export interface DashboardLineDatum {
+  name: string;
+  calls: number;
+  successRate?: number;
+}
+export interface DashboardSentimentDatum {
+  name: string;
+  value: number;
+  color?: string;
+}
+export interface DashboardCharts {
+  barData: DashboardBarDatum[];
+  pieData: DashboardPieDatum[];
+  lineData: DashboardLineDatum[];
+  sentimentData: DashboardSentimentDatum[];
 }
 
 export interface AnalyticsDashboard {
   metrics: AnalyticsMetric;
-  charts?: AnalyticsChart[];
+  charts?: DashboardCharts;
 }
 
+/**
+ * A single call from `/api/analytics/calls/:orgId`. Mirrors the backend
+ * `RetellCallListItem`. `startedAt`/`endedAt` arrive as ISO strings over HTTP.
+ */
 export interface AnalyticsCallSummary {
-  _id: string;
-  vapiCallId?: string;
-  organizationId?: string;
+  id: string;
+  retellCallId?: string;
+  agentId?: string;
+  agentName?: string;
+  status?: string;
+  startedAt?: string;
+  endedAt?: string;
   /** Seconds. */
-  duration?: number;
+  durationSec?: number;
   cost?: number;
-  /** Examples: `customer-ended-call`, `assistant-ended-call`, `exceeded-max-duration`. */
-  endReason?: string;
-  startTime?: string;
-  endTime?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  metadata?: {
-    status?: 'ended' | 'in-progress' | 'queued' | 'failed' | string;
-    type?: string;
-    recordingUrl?: string;
-    transcript?: string;
-  };
-  analysis?: {
-    summary?: string;
-    successEvaluation?: string;
-  };
+  disconnectionReason?: string;
+  recordingUrl?: string;
+  transcript?: string;
+  customerNumber?: string;
+  /** Retell eval (`call_analysis`) success evaluation. */
+  evalSuccessful?: boolean;
+  sentiment?: string;
+  summary?: string;
 }
 
+/** Mirrors the backend `RetellAgentMetricRow` from `/api/analytics/agents/:orgId`. */
 export interface AnalyticsAgentRow {
-  _id: string;
-  organizationId?: string;
-  vapiAssistantId?: string;
+  agentId: string;
   agentName?: string;
-  date?: string;
   totalCalls?: number;
   successfulCalls?: number;
-  /** Seconds. */
-  totalDuration?: number;
-  totalCost?: number;
-  /** Seconds. */
-  averageCallDuration?: number;
   /** Already a percentage value (e.g. 61.1). */
   successRate?: number;
-  costPerCall?: number;
-  createdAt?: string;
-  updatedAt?: string;
+  /** Minutes. */
+  averageDurationMinutes?: number;
+  totalCost?: number;
 }
 
 /** Flat shape returned by `/api/analytics/agent-details/:orgId/:assistantId`. */
