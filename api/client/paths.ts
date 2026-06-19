@@ -5,6 +5,7 @@ export const PATHS = {
     mobileSsoStart: (provider: 'google' | 'microsoft') =>
       `/auth/mobile/sso/${provider}`,
     mobileSsoExchange: '/auth/mobile/sso/exchange',
+    mobileSsoApple: '/auth/mobile/sso/apple',
     me: '/auth/me',
     permissions: '/api/auth/permissions',
     logout: '/api/auth/logout',
@@ -48,11 +49,11 @@ export const PATHS = {
     detail: (id: string) => `/api/campaigns/${encodeURIComponent(id)}`,
   },
   security: {
-    twoFactorSetup: '/auth/2fa/setup',
-    twoFactorVerify: '/auth/2fa/verify',
-    twoFactorDisable: '/auth/2fa/disable',
-    twoFactorStatus: '/auth/2fa/status',
-    passwordChange: '/auth/password/change',
+    twoFactorSetup: '/api/auth/2fa/setup',
+    twoFactorVerify: '/api/auth/2fa/verify',
+    twoFactorDisable: '/api/auth/2fa/disable',
+    twoFactorStatus: '/api/auth/2fa/status',
+    passwordChange: '/api/auth/password/change',
   },
   files: {
     upload: '/api/files/upload',

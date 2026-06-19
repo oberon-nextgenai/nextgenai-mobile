@@ -18,15 +18,13 @@ function statusOf(c: AnalyticsCallSummary): {
   tone: 'positive' | 'negative' | 'neutral';
   bucket: CallStatusFilter;
 } {
-  const evaluation = c.analysis?.successEvaluation;
-  if (evaluation === 'true')
+  if (c.evalSuccessful === true)
     return { label: 'Successful', tone: 'positive', bucket: 'successful' };
-  if (evaluation === 'false')
+  if (c.evalSuccessful === false)
     return { label: 'Unsuccessful', tone: 'negative', bucket: 'unsuccessful' };
-  const status = c.metadata?.status;
-  if (status === 'failed')
-    return { label: c.endReason ?? 'failed', tone: 'negative', bucket: 'failed' };
-  return { label: c.endReason ?? status ?? 'ended', tone: 'neutral', bucket: 'all' };
+  if (c.status === 'failed')
+    return { label: c.disconnectionReason ?? 'failed', tone: 'negative', bucket: 'failed' };
+  return { label: c.disconnectionReason ?? c.status ?? 'ended', tone: 'neutral', bucket: 'all' };
 }
 
 const TONE_BG: Record<string, string> = {
@@ -59,7 +57,7 @@ export default function CallsScreen() {
     const list = calls.data ?? [];
     const cutoff = range === 'all' ? null : Date.now() - RANGE_MS[range];
     return list.filter((c) => {
-      const t = (c.startTime ?? c.createdAt) ? Date.parse(String(c.startTime ?? c.createdAt)) : null;
+      const t = c.startedAt ? Date.parse(c.startedAt) : null;
       if (cutoff != null && (t == null || t < cutoff)) return false;
       if (statusFilter !== 'all' && statusOf(c).bucket !== statusFilter) return false;
       return true;
@@ -114,13 +112,13 @@ export default function CallsScreen() {
           ) : (
             filtered.map((c) => {
               const status = statusOf(c);
-              const start = c.startTime ?? c.createdAt;
-              const minutes = c.duration != null ? c.duration / 60 : undefined;
-              const transcriptExcerpt = c.analysis?.summary;
-              const hasRecording = Boolean(c.metadata?.recordingUrl);
+              const start = c.startedAt;
+              const minutes = c.durationSec != null ? c.durationSec / 60 : undefined;
+              const transcriptExcerpt = c.summary;
+              const hasRecording = Boolean(c.recordingUrl);
               return (
                 <Pressable
-                  key={c._id}
+                  key={c.id}
                   onPress={() => setSelected(c)}
                   className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3 mb-2 active:opacity-80"
                 >
@@ -128,8 +126,9 @@ export default function CallsScreen() {
                     <Text
                       className="text-fg dark:text-fg-dark-DEFAULT text-sm"
                       style={{ fontFamily: 'Inter_600SemiBold' }}
+                      numberOfLines={1}
                     >
-                      {fmtDateTime(start)}
+                      {c.agentName ?? fmtDateTime(start)}
                     </Text>
                     <View className={`px-2 py-0.5 rounded-full ${TONE_BG[status.tone]}`}>
                       <Text
@@ -140,7 +139,15 @@ export default function CallsScreen() {
                       </Text>
                     </View>
                   </View>
-                  <View className="flex-row gap-4 mt-1 items-center">
+                  <View className="flex-row gap-4 mt-1 items-center flex-wrap">
+                    {start ? (
+                      <Text
+                        className="text-fg-muted dark:text-fg-dark-muted text-xs"
+                        style={{ fontFamily: 'Inter_400Regular' }}
+                      >
+                        {fmtDateTime(start)}
+                      </Text>
+                    ) : null}
                     <Text
                       className="text-fg-muted dark:text-fg-dark-muted text-xs"
                       style={{ fontFamily: 'Inter_400Regular' }}

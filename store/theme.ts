@@ -13,7 +13,9 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
-  mode: 'system',
+  // Dark-first executive app: default to the nebula dark theme until the user
+  // explicitly chooses otherwise in Settings → Appearance.
+  mode: 'dark',
   hydrated: false,
 
   hydrate: async () => {
@@ -21,7 +23,7 @@ export const useThemeStore = create<ThemeState>((set) => ({
     const mode: AppearanceMode =
       stored === 'light' || stored === 'dark' || stored === 'system'
         ? stored
-        : 'system';
+        : 'dark';
     set({ mode, hydrated: true });
   },
 

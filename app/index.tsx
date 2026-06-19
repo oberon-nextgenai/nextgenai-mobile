@@ -11,7 +11,7 @@ export default function BootRouter() {
 
   useEffect(() => {
     if (token) {
-      router.replace('/(root)/(tabs)/prime');
+      router.replace('/(root)/(tabs)/brief' as never);
     } else {
       router.replace('/(auth)/sign-in');
     }

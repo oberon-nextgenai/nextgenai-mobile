@@ -43,11 +43,21 @@ export function useAnalyticsRouting(orgId: string | null): {
   return { view, isPending: integrations.isPending };
 }
 
-export function useDashboard(orgId: string | null) {
+/** Map an NdsPeriod to a from/to window for the core dashboard endpoint. */
+function rangeForPeriod(period: NdsPeriod): { from: string; to: string } {
+  const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+  const to = new Date();
+  const from = new Date(to.getTime() - days * 86_400_000);
+  return { from: from.toISOString(), to: to.toISOString() };
+}
+
+export function useDashboard(orgId: string | null, period: NdsPeriod = '7d') {
   return useQuery({
-    queryKey: orgId ? QUERY_KEYS.analyticsDashboard(orgId) : ['analytics', 'dashboard', 'none'],
+    queryKey: orgId
+      ? [...QUERY_KEYS.analyticsDashboard(orgId), period]
+      : ['analytics', 'dashboard', 'none'],
     enabled: Boolean(orgId),
-    queryFn: () => analyticsService.fetchDashboard(orgId as string),
+    queryFn: () => analyticsService.fetchDashboard(orgId as string, rangeForPeriod(period)),
     staleTime: 30_000,
   });
 }

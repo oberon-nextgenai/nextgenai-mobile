@@ -45,10 +45,10 @@ export function TopAgentsRow() {
             : '—';
         return (
           <Pressable
-            key={a._id}
+            key={a.agentId}
             onPress={() => {
-              if (a.vapiAssistantId) {
-                router.push(`/(root)/(tabs)/agents/${a._id}` as never);
+              if (a.agentId) {
+                router.push(`/(root)/(tabs)/agents/${a.agentId}` as never);
               }
             }}
             className={
