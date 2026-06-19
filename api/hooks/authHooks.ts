@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -120,6 +121,20 @@ export function useSSOLoginMutation() {
     mutationFn: async (provider: 'google' | 'microsoft' | 'apple') => {
       if (provider === 'apple') {
         return appleNativeSignIn();
+      }
+
+      // Web build: the native deep-link scheme + popup `window.closed` polling
+      // don't work in a browser (COOP blocks the latter). Do a full-page redirect
+      // to a web callback route (/sso-callback) that exchanges the one-time token.
+      // This navigates the tab away, so the promise intentionally never resolves
+      // here — the callback route completes the session after the round-trip.
+      if (Platform.OS === 'web') {
+        const redirect = `${window.location.origin}/sso-callback`;
+        const startUrl =
+          `${getApiOrigin()}${PATHS.auth.mobileSsoStart(provider)}` +
+          `?redirect=${encodeURIComponent(redirect)}`;
+        window.location.assign(startUrl);
+        return new Promise<never>(() => {});
       }
 
       const startUrl =

@@ -79,7 +79,8 @@ Source of truth for the full list (~120 vars) is `oberon-nextgenai-api/.env.exam
 |---|---|
 | `CORS_ORIGIN` | `https://app.<your-domain>` (comma-separated for multiple origins) |
 | `FRONTEND_URL` | web origin — used in password-reset / invite links |
-| `MOBILE_SSO_ALLOWED_REDIRECT_SCHEMES` | `primeai` |
+| `MOBILE_SSO_ALLOWED_REDIRECT_SCHEMES` | `primeai` (native deep-link SSO) |
+| `MOBILE_SSO_ALLOWED_REDIRECT_ORIGINS` | web app origin(s) for **web SSO**, comma-separated, e.g. `https://app.<your-domain>` — required for Google/Microsoft sign-in to work on the web build |
 | `APPLE_BUNDLE_ID` | `ai.oberon.prime` |
 | `ENCRYPTION_KEY` | 32-byte key for at-rest encryption of OAuth tokens / 2FA secrets |
 
