@@ -29,7 +29,11 @@ export async function clearPrimeHistory(organizationId: string): Promise<void> {
  * Transcribe a recorded audio clip to text via the backend (OpenAI Whisper).
  * Sends multipart/form-data; overrides the axios instance's default JSON content type.
  */
-export async function transcribeAudio(organizationId: string, uri: string): Promise<string> {
+export async function transcribeAudio(
+  organizationId: string,
+  uri: string,
+  options?: { signal?: AbortSignal; timeoutMs?: number },
+): Promise<string> {
   const form = new FormData();
   // React Native FormData file shape.
   form.append('file', { uri, name: 'voice.m4a', type: 'audio/m4a' } as unknown as Blob);
@@ -37,6 +41,8 @@ export async function transcribeAudio(organizationId: string, uri: string): Prom
 
   const res = await http.post<{ text: string }>(PATHS.chat.transcribe, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    signal: options?.signal,
+    timeout: options?.timeoutMs ?? 60_000,
   });
   return res.data.text;
 }
@@ -48,12 +54,17 @@ export async function transcribeAudio(organizationId: string, uri: string): Prom
 export async function synthesizeSpeech(
   organizationId: string,
   text: string,
+  options?: { signal?: AbortSignal },
 ): Promise<{ audioBase64: string; mimeType: string }> {
-  const res = await http.post<{ audioBase64: string; mimeType: string }>(PATHS.chat.tts, {
-    text,
-    organizationId,
-    mode: 'base64',
-  });
+  const res = await http.post<{ audioBase64: string; mimeType: string }>(
+    PATHS.chat.tts,
+    {
+      text,
+      organizationId,
+      mode: 'base64',
+    },
+    { signal: options?.signal },
+  );
   return res.data;
 }
 

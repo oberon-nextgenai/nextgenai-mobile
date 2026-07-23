@@ -1,9 +1,10 @@
 import { useRef } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { cn } from '@/lib/cn';
 import { useThemeMode } from '@/hooks/useThemeMode';
+import type { PrimeVoicePhase } from '@/api/hooks/usePrimeVoice';
 
 interface ComposerProps {
   value: string;
@@ -13,13 +14,19 @@ interface ComposerProps {
   disabled?: boolean;
   placeholder?: string;
   onPlusPress?: () => void;
-  /** Voice push-to-talk (mic shown only when these are provided). */
-  showMic?: boolean;
-  isRecording?: boolean;
-  isTranscribing?: boolean;
-  onMicPressIn?: () => void;
-  onMicPressOut?: () => void;
+  /** Hands-free call toggle (shown only when handlers are provided). */
+  showCall?: boolean;
+  callActive?: boolean;
+  callPhase?: PrimeVoicePhase;
+  onToggleCall?: () => void;
 }
+
+const PHASE_LABEL: Record<Exclude<PrimeVoicePhase, 'idle'>, string> = {
+  listening: 'Listening',
+  transcribing: 'Transcribing',
+  thinking: 'Thinking',
+  speaking: 'Speaking',
+};
 
 export function Composer({
   value,
@@ -29,11 +36,10 @@ export function Composer({
   disabled,
   placeholder = 'Ask Prime anything…',
   onPlusPress,
-  showMic,
-  isRecording,
-  isTranscribing,
-  onMicPressIn,
-  onMicPressOut,
+  showCall,
+  callActive,
+  callPhase = 'idle',
+  onToggleCall,
 }: ComposerProps) {
   const inputRef = useRef<TextInput>(null);
   const { colors } = useThemeMode();
@@ -45,13 +51,43 @@ export function Composer({
     onSubmit();
   };
 
-  const handleMicPressIn = () => {
+  const handleToggleCall = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-    onMicPressIn?.();
+    onToggleCall?.();
   };
+
+  const phaseLabel =
+    callActive && callPhase !== 'idle' ? PHASE_LABEL[callPhase] : null;
 
   return (
     <View className="border-t border-border-subtle dark:border-border-dark-subtle bg-bg dark:bg-bg-dark px-3 py-2 pb-3">
+      {phaseLabel ? (
+        <View className="mb-1.5 flex-row items-center justify-center gap-2">
+          <View
+            className={cn(
+              'px-2.5 py-0.5 rounded-full',
+              callPhase === 'listening'
+                ? 'bg-emerald-500/15'
+                : callPhase === 'speaking'
+                  ? 'bg-accent/15 dark:bg-accent-dark/15'
+                  : 'bg-surface-2 dark:bg-surface-2-dark',
+            )}
+          >
+            <Text
+              className="text-[11px] text-fg-muted dark:text-fg-dark-muted"
+              style={{ fontFamily: 'Inter_500Medium' }}
+            >
+              {phaseLabel}
+            </Text>
+          </View>
+          <Text
+            className="text-[11px] text-fg-subtle dark:text-fg-dark-subtle"
+            style={{ fontFamily: 'Inter_400Regular' }}
+          >
+            Headphones recommended
+          </Text>
+        </View>
+      ) : null}
       <View className="flex-row items-center bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl pl-2 pr-2 py-1.5">
         <Pressable
           onPress={onPlusPress}
@@ -78,24 +114,23 @@ export function Composer({
           }}
           editable={!disabled}
         />
-        {showMic && (
+        {showCall && (
           <Pressable
-            onPressIn={handleMicPressIn}
-            onPressOut={onMicPressOut}
-            disabled={disabled || isStreaming || isTranscribing}
-            accessibilityLabel="Hold to talk to Prime"
+            onPress={handleToggleCall}
+            disabled={disabled}
+            accessibilityLabel={callActive ? 'End Prime call' : 'Start Prime call'}
             accessibilityRole="button"
             className={cn(
               'w-9 h-9 rounded-full items-center justify-center mr-1.5',
-              isRecording
+              callActive
                 ? 'bg-red-500'
                 : 'bg-surface-2 dark:bg-surface-2-dark border border-border dark:border-border-dark',
             )}
           >
             <Ionicons
-              name={isTranscribing ? 'hourglass-outline' : 'mic'}
+              name={callActive ? 'call' : 'call-outline'}
               size={18}
-              color={isRecording ? '#FFFFFF' : colors.fgMuted}
+              color={callActive ? '#FFFFFF' : colors.fgMuted}
             />
           </Pressable>
         )}

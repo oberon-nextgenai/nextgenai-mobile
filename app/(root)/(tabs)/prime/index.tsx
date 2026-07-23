@@ -47,11 +47,14 @@ export default function PrimeScreen() {
 
   const voice = usePrimeVoice({
     orgId: activeOrgId,
+    isThinking: isStreaming,
     onTranscript: (text) => {
       void handleSubmit(text);
     },
   });
-  speakRef.current = voice.speak;
+  speakRef.current = (text) => {
+    void voice.speak(text);
+  };
 
   useEffect(() => {
     clearMessages();
@@ -80,12 +83,6 @@ export default function PrimeScreen() {
 
   const headerRight = (
     <View className="flex-row items-center gap-1">
-      <IconButton
-        icon={voice.muted ? 'volume-mute-outline' : 'volume-high-outline'}
-        size={36}
-        onPress={voice.toggleMute}
-        accessibilityLabel={voice.muted ? 'Unmute Prime voice' : 'Mute Prime voice'}
-      />
       <IconButton
         icon="time-outline"
         size={36}
@@ -119,7 +116,7 @@ export default function PrimeScreen() {
             style={{ fontFamily: 'Inter_400Regular' }}
           >
             Prime can manage agents, campaigns, tasks, knowledge bases, and surface analytics —
-            all from chat.
+            all from chat. Tap the phone to start a hands-free call.
           </Text>
           <View className="flex-row flex-wrap justify-center gap-2 mt-5 max-w-[340px]">
             {SUGGESTED_PROMPTS.map((p) => (
@@ -147,11 +144,13 @@ export default function PrimeScreen() {
         onSubmit={() => handleSubmit()}
         isStreaming={isStreaming}
         disabled={!activeOrgId}
-        showMic={Boolean(activeOrgId)}
-        isRecording={voice.isRecording}
-        isTranscribing={voice.isTranscribing}
-        onMicPressIn={() => void voice.startRecording()}
-        onMicPressOut={() => void voice.stopAndSubmit()}
+        showCall={Boolean(activeOrgId)}
+        callActive={voice.callActive}
+        callPhase={voice.phase}
+        onToggleCall={() => {
+          if (voice.callActive) voice.endCall();
+          else void voice.startCall();
+        }}
       />
     </Screen>
   );
