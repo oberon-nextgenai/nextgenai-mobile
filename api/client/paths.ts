@@ -15,6 +15,8 @@ export const PATHS = {
   chat: {
     stream: '/api/chat/stream',
     message: '/api/chat/message',
+    tts: '/api/chat/tts',
+    transcribe: '/api/chat/transcribe',
     toolsAvailable: '/api/chat/tools/available',
     history: (orgId: string) =>
       `/api/chat/get-prime-console-messages/${encodeURIComponent(orgId)}`,

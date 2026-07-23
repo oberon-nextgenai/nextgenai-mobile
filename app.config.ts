@@ -41,10 +41,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       NSFaceIDUsageDescription:
         'Use Face ID to unlock Prime without re-entering your password.',
+      NSMicrophoneUsageDescription:
+        'Prime uses the microphone so you can talk to it and hear it reply.',
     },
   },
   android: {
     package: BUNDLE_ID + idSuffix[variant],
+    permissions: ['RECORD_AUDIO'],
     adaptiveIcon: {
       backgroundColor: '#0B0F19',
     },

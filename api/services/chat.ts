@@ -26,6 +26,38 @@ export async function clearPrimeHistory(organizationId: string): Promise<void> {
 }
 
 /**
+ * Transcribe a recorded audio clip to text via the backend (OpenAI Whisper).
+ * Sends multipart/form-data; overrides the axios instance's default JSON content type.
+ */
+export async function transcribeAudio(organizationId: string, uri: string): Promise<string> {
+  const form = new FormData();
+  // React Native FormData file shape.
+  form.append('file', { uri, name: 'voice.m4a', type: 'audio/m4a' } as unknown as Blob);
+  form.append('organizationId', organizationId);
+
+  const res = await http.post<{ text: string }>(PATHS.chat.transcribe, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data.text;
+}
+
+/**
+ * Synthesize Prime's spoken reply. Requests base64 JSON (mobile cannot stream binary
+ * bytes as conveniently as the web client), returning MP3 audio as base64.
+ */
+export async function synthesizeSpeech(
+  organizationId: string,
+  text: string,
+): Promise<{ audioBase64: string; mimeType: string }> {
+  const res = await http.post<{ audioBase64: string; mimeType: string }>(PATHS.chat.tts, {
+    text,
+    organizationId,
+    mode: 'base64',
+  });
+  return res.data;
+}
+
+/**
  * Save a single Prime message. Only used for client-created welcome/system
  * entries. Do NOT call this on stream completion — backend already persists
  * both user and assistant messages during /api/chat/stream.

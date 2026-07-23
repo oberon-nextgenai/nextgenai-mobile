@@ -13,6 +13,12 @@ interface ComposerProps {
   disabled?: boolean;
   placeholder?: string;
   onPlusPress?: () => void;
+  /** Voice push-to-talk (mic shown only when these are provided). */
+  showMic?: boolean;
+  isRecording?: boolean;
+  isTranscribing?: boolean;
+  onMicPressIn?: () => void;
+  onMicPressOut?: () => void;
 }
 
 export function Composer({
@@ -23,6 +29,11 @@ export function Composer({
   disabled,
   placeholder = 'Ask Prime anything…',
   onPlusPress,
+  showMic,
+  isRecording,
+  isTranscribing,
+  onMicPressIn,
+  onMicPressOut,
 }: ComposerProps) {
   const inputRef = useRef<TextInput>(null);
   const { colors } = useThemeMode();
@@ -32,6 +43,11 @@ export function Composer({
     if (!canSend) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
     onSubmit();
+  };
+
+  const handleMicPressIn = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+    onMicPressIn?.();
   };
 
   return (
@@ -62,6 +78,27 @@ export function Composer({
           }}
           editable={!disabled}
         />
+        {showMic && (
+          <Pressable
+            onPressIn={handleMicPressIn}
+            onPressOut={onMicPressOut}
+            disabled={disabled || isStreaming || isTranscribing}
+            accessibilityLabel="Hold to talk to Prime"
+            accessibilityRole="button"
+            className={cn(
+              'w-9 h-9 rounded-full items-center justify-center mr-1.5',
+              isRecording
+                ? 'bg-red-500'
+                : 'bg-surface-2 dark:bg-surface-2-dark border border-border dark:border-border-dark',
+            )}
+          >
+            <Ionicons
+              name={isTranscribing ? 'hourglass-outline' : 'mic'}
+              size={18}
+              color={isRecording ? '#FFFFFF' : colors.fgMuted}
+            />
+          </Pressable>
+        )}
         <Pressable
           onPress={handleSend}
           disabled={!canSend}

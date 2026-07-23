@@ -11,6 +11,7 @@ import { Logo } from '@/components/brand/Logo';
 import { ChatList } from '@/components/prime/ChatList';
 import { Composer } from '@/components/prime/Composer';
 import { usePrimeChat } from '@/api/hooks/chatHooks';
+import { usePrimeVoice } from '@/api/hooks/usePrimeVoice';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type { PrimeAction } from '@/lib/primeStructuredSchema';
@@ -27,6 +28,11 @@ export default function PrimeScreen() {
   const { activeOrgId } = useActiveOrg();
   const { colors } = useThemeMode();
   const { prompt } = useLocalSearchParams<{ prompt?: string }>();
+
+  // Bridge chat <-> voice: chat speaks replies via the voice hook (created after),
+  // and the voice hook feeds transcripts back into handleSubmit.
+  const speakRef = useRef<((text: string) => void) | null>(null);
+
   const {
     messages,
     inputValue,
@@ -35,7 +41,17 @@ export default function PrimeScreen() {
     streamingContent,
     handleSubmit,
     clearMessages,
-  } = usePrimeChat(activeOrgId);
+  } = usePrimeChat(activeOrgId, {
+    onAssistantComplete: (text) => speakRef.current?.(text),
+  });
+
+  const voice = usePrimeVoice({
+    orgId: activeOrgId,
+    onTranscript: (text) => {
+      void handleSubmit(text);
+    },
+  });
+  speakRef.current = voice.speak;
 
   useEffect(() => {
     clearMessages();
@@ -63,11 +79,19 @@ export default function PrimeScreen() {
   );
 
   const headerRight = (
-    <IconButton
-      icon="time-outline"
-      size={36}
-      onPress={() => router.push('/(root)/(tabs)/prime/history')}
-    />
+    <View className="flex-row items-center gap-1">
+      <IconButton
+        icon={voice.muted ? 'volume-mute-outline' : 'volume-high-outline'}
+        size={36}
+        onPress={voice.toggleMute}
+        accessibilityLabel={voice.muted ? 'Unmute Prime voice' : 'Mute Prime voice'}
+      />
+      <IconButton
+        icon="time-outline"
+        size={36}
+        onPress={() => router.push('/(root)/(tabs)/prime/history')}
+      />
+    </View>
   );
 
   return (
@@ -123,6 +147,11 @@ export default function PrimeScreen() {
         onSubmit={() => handleSubmit()}
         isStreaming={isStreaming}
         disabled={!activeOrgId}
+        showMic={Boolean(activeOrgId)}
+        isRecording={voice.isRecording}
+        isTranscribing={voice.isTranscribing}
+        onMicPressIn={() => void voice.startRecording()}
+        onMicPressOut={() => void voice.stopAndSubmit()}
       />
     </Screen>
   );

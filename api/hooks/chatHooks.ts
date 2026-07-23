@@ -67,10 +67,18 @@ export function usePrimeHistory(orgId: string | null) {
  * (backend already persists both messages), and filters out `system` roles
  * before POSTing (backend DTO rejects them).
  */
-export function usePrimeChat(orgId: string | null) {
+export interface UsePrimeChatOptions {
+  /** Called when an assistant reply completes, with the backend's speakable text (for voice). */
+  onAssistantComplete?: (speakableText: string) => void;
+}
+
+export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions = {}) {
   const qc = useQueryClient();
   const addToolResult = useToolResults((s) => s.add);
   const addNotification = useNotifications((s) => s.add);
+  // Keep the latest completion callback so the async stream fires the current one.
+  const onAssistantCompleteRef = useRef(options.onAssistantComplete);
+  onAssistantCompleteRef.current = options.onAssistantComplete;
   const [messages, setMessages] = useState<PrimeMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -297,8 +305,14 @@ export function usePrimeChat(orgId: string | null) {
             // top level. Use it as a last-chance source if we never saw a
             // standalone `structured` event.
             const completeMsg =
-              (event as { message?: { content?: string; structured?: unknown; fallbackMarkdown?: string | null } })
-                .message;
+              (event as {
+                message?: {
+                  content?: string;
+                  structured?: unknown;
+                  fallbackMarkdown?: string | null;
+                  speakableText?: string;
+                };
+              }).message;
             if (!finalStructured && completeMsg?.structured) {
               const parsed = tryParsePrimeStructured(completeMsg.structured);
               if (parsed) finalStructured = parsed;
@@ -331,6 +345,10 @@ export function usePrimeChat(orgId: string | null) {
             setIsStreaming(false);
             setStreamingContent('');
             closeStream();
+            // Hand the backend-derived speakable text to the voice layer (once).
+            if (completeMsg?.speakableText) {
+              onAssistantCompleteRef.current?.(completeMsg.speakableText);
+            }
             break;
           }
           case 'error': {
