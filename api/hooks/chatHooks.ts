@@ -35,6 +35,12 @@ export interface PrimeMessage {
   /** Markdown fallback rendered when `format === 'structured'` but `structured` is null. */
   fallbackMarkdown?: string | null;
   toolCalls?: ToolCallRecord[];
+  /**
+   * Prime's own narration between tool calls, from the `status` SSE event
+   * ("Executing tools…"). Transient: set while streaming, cleared on `complete`.
+   * Rendered as the trailing in-flight row of `PrimeToolPanel`.
+   */
+  statusMessage?: string;
   timestamp: number;
   status?: 'sending' | 'streaming' | 'complete' | 'error';
 }
@@ -163,9 +169,25 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             }
             break;
           }
-          case 'status':
-            // Optional Prime "thinking" updates — surface as transient hint if desired
+          case 'status': {
+            // Backend shape is `{ type: 'status', message: string }`
+            // (chat.service.ts:255, :397). Park it on the streaming message so
+            // PrimeToolPanel can render it as the trailing in-flight step; the
+            // `complete` handler clears it. Purely additive — it does not touch
+            // content, tool calls or the structured parse.
+            const hint = (event as { message?: unknown }).message;
+            if (typeof hint === 'string' && hint.trim()) {
+              const text = hint.trim();
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === currentAssistantIdRef.current
+                    ? { ...m, statusMessage: text }
+                    : m,
+                ),
+              );
+            }
             break;
+          }
           case 'content': {
             const chunk = (event as { content?: string }).content ?? '';
             aggregatedContent += chunk;
@@ -334,6 +356,8 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
                       fallbackMarkdown: finalFallbackMarkdown,
                       format: currentFormat,
                       status: 'complete',
+                      // The working hint is transient — the turn is done.
+                      statusMessage: undefined,
                       // Drop any fragment that never resolved to a real tool name.
                       toolCalls: (m.toolCalls ?? []).filter((tc) => tc.name.trim() !== ''),
                     }

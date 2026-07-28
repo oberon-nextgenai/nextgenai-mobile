@@ -117,9 +117,11 @@ export default function PluginInstallScreen() {
             <View className="bg-warning-soft border border-warning/40 rounded-xl p-4">
               <View className="flex-row items-start">
                 <Ionicons name="information-circle" size={16} color={colors.warning} />
+                {/* States the constraint without promising a fix. There is no
+                    mobile OAuth work in this repo, so a roadmap claim here would
+                    be one the product has not made. */}
                 <Text variant="body.sm" tone="warning" className="ml-2 flex-1">
-                  This integration uses OAuth and must be set up on the web app for now. We&apos;re
-                  bringing mobile OAuth in a future update.
+                  This integration uses OAuth, which has to be set up on the web app.
                 </Text>
               </View>
               <Button

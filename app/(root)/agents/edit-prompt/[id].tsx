@@ -81,8 +81,10 @@ export default function EditPromptScreen() {
           contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
           keyboardShouldPersistTaps="handled"
         >
+          {/* The save is real; when the agent next picks the change up is not
+              something this screen can know, so it no longer claims it. */}
           <Text variant="body.xs" tone="muted" className="mb-3">
-            Markdown-style headers are supported. Prime re-reads this on the next call.
+            Markdown-style headers are supported. Saved changes apply to this agent.
           </Text>
           <TextArea
             value={prompt}

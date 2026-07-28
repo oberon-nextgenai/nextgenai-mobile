@@ -13,7 +13,9 @@ interface Step {
   color: string;
 }
 
-// Per-row colors mirrored from the web NDS dashboard.
+// Per-row colours mirrored from the web NDS dashboard. Deliberately literal
+// rather than theme tokens: they are categorical identities shared with web for
+// the same funnel, so theming them would break cross-platform parity.
 const CYAN = '#06B6D4';
 const VIOLET = '#8B5CF6';
 const VIOLET_LIGHT = '#A78BFA';

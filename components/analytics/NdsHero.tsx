@@ -16,7 +16,10 @@ interface NdsHeroProps {
   volumeTrends: NdsVolumeTrendPoint[] | undefined;
 }
 
-// Series colors mirrored from the web NDS dashboard.
+// Series colours mirrored from the web NDS dashboard. Deliberately literal
+// rather than `colors.chartSeries`: they are categorical identities shared with
+// web for the same dashboard, so theming them would break cross-platform parity
+// — the same reasoning as `ChannelColors` in constants/Colors.ts.
 const CYAN = '#06B6D4';
 const EMERALD = '#10B981';
 const VIOLET = '#8B5CF6';

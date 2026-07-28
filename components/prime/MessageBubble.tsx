@@ -8,6 +8,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { StructuredCard } from './StructuredCard';
 import { ToolCallBadge } from './ToolCallBadge';
 import { ToolCallSummary } from './ToolCallSummary';
+import { PrimeToolPanel } from './PrimeToolPanel';
 import { StreamingIndicator } from './StreamingIndicator';
 
 interface MessageBubbleProps {
@@ -39,23 +40,36 @@ export function MessageBubble({ message, streamingContent, onAction }: MessageBu
     message.format === 'structured' &&
     !message.structured &&
     !!message.fallbackMarkdown;
-  const showThinking =
-    isStreaming && !displayContent && !hasStructured && !hasFallbackOnly;
 
   // Tool-call rendering:
-  // - While streaming: suppress all tool badges. The "Prime is thinking…"
-  //   StreamingIndicator is the only signal — avoid the wall-of-pills problem
-  //   when the model fans out to many tools.
+  // - While streaming, with tool calls or a status hint: the PRIME · WORKING
+  //   panel. It is the signal — one readable step per tool, so a high-fanout
+  //   turn narrates itself instead of producing a wall of pills.
+  // - While streaming, with neither: fall back to the StreamingIndicator, which
+  //   is the right answer for a model replying from context with no tools.
   // - On complete/error with 3+ tools: render a single collapsed "Used N tools"
   //   summary row, tap to expand into the existing per-tool badges.
   // - With 1-2 tools: keep the current inline badge rendering.
   const tools = message.toolCalls ?? [];
+  const statusMessage = message.statusMessage?.trim() || undefined;
+  const showToolPanel = isStreaming && (tools.length > 0 || Boolean(statusMessage));
   const showTools = !isStreaming && tools.length > 0;
   const shouldCollapse = tools.length >= TOOL_CALL_SUMMARY_THRESHOLD;
 
+  const showThinking =
+    isStreaming &&
+    !showToolPanel &&
+    !displayContent &&
+    !hasStructured &&
+    !hasFallbackOnly;
+
   return (
     <View className={cn('mb-4 px-4', message.status === 'error' && 'opacity-90')}>
-      {showTools ? (
+      {showToolPanel ? (
+        <View className="mb-2">
+          <PrimeToolPanel tools={tools} statusMessage={statusMessage} />
+        </View>
+      ) : showTools ? (
         shouldCollapse ? (
           <ToolCallSummary tools={tools} />
         ) : (
@@ -80,10 +94,15 @@ export function MessageBubble({ message, streamingContent, onAction }: MessageBu
         <Card>
           <MarkdownRenderer source={message.fallbackMarkdown ?? ''} />
         </Card>
-      ) : (
+      ) : displayContent || !isStreaming ? (
         <View className="px-1">
           <MarkdownRenderer source={displayContent || ' '} />
         </View>
+      ) : (
+        // Streaming, tools running, no prose yet — the panel above is the whole
+        // message. An empty markdown block here would add a phantom line of
+        // height under it.
+        null
       )}
     </View>
   );

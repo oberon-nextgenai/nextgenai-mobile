@@ -91,6 +91,12 @@ export default function RootAreaLayout() {
           name="approval-receipt/[id]"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
+        <Stack.Screen
+          name="notification-preferences"
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen name="board-update" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="communications" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="outcomes" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="security" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="campaigns/index" options={{ animation: 'slide_from_right' }} />

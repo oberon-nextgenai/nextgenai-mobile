@@ -167,9 +167,16 @@ export default function SettingsScreen() {
         />
         <Row
           icon="notifications-outline"
-          label="Notifications"
+          label="Notification inbox"
           description="Prime tool results and analytics events"
           onPress={() => router.push('/notifications' as never)}
+        />
+        {/* Separate from the inbox: this is what reaches the lock screen. */}
+        <Row
+          icon="options-outline"
+          label="Notification preferences"
+          description="Types, quiet hours, and this device"
+          onPress={() => router.push('/notification-preferences' as never)}
         />
 
         <View className="h-3" />

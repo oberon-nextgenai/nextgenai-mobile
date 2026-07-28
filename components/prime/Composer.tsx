@@ -36,7 +36,7 @@ export function Composer({
   onSubmit,
   isStreaming,
   disabled,
-  placeholder = 'Ask Prime anything…',
+  placeholder = 'Ask Prime…',
   onPlusPress,
   showCall,
   callActive,
@@ -105,12 +105,12 @@ export function Composer({
           // TextInput is not the Text primitive, so the role is spread directly.
           // lineHeight is pinned after the spread to keep the single-line height.
           style={{
-            ...Type.body.lg,
+            ...Type.body.md,
             color: colors.fg,
             paddingTop: 0,
             paddingBottom: 0,
             minHeight: 36,
-            lineHeight: 20,
+            lineHeight: 18,
           }}
           editable={!disabled}
         />

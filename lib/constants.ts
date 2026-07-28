@@ -48,6 +48,7 @@ export const QUERY_KEYS = {
   escalation: (orgId: string, id: string) =>
     ['escalations', orgId, 'detail', id] as const,
   escalationCounts: (orgId: string) => ['escalations', orgId, 'counts'] as const,
+  conversations: (orgId: string) => ['conversations', orgId] as const,
   auditLog: (orgId: string, filters?: Record<string, unknown>) =>
     ['audit-log', orgId, filters ?? {}] as const,
   devices: ['devices', 'list'] as const,

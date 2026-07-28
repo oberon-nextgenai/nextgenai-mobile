@@ -98,6 +98,10 @@ export const PATHS = {
     approve: (id: string) => `/api/escalations/${encodeURIComponent(id)}/approve`,
     reject: (id: string) => `/api/escalations/${encodeURIComponent(id)}/reject`,
   },
+  conversations: {
+    /** Requires `organizationId` as a query param; returns an unpaginated array. */
+    list: '/api/conversations',
+  },
   auditLog: {
     list: '/api/audit-log',
   },
