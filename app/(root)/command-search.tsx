@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
 import { MoreMenuRow } from '@/components/executive/MoreMenuRow';
+import { Text } from '@/components/ui/Text';
 import { useAgentsList } from '@/api/hooks/agentHooks';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
+import { Type } from '@/constants/Typography';
 
 interface QuickAction {
   icon: keyof typeof Ionicons.glyphMap;
@@ -17,10 +19,7 @@ interface QuickAction {
 
 function GroupLabel({ children }: { children: string }) {
   return (
-    <Text
-      className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-2 mt-5 px-1"
-      style={{ fontFamily: 'Inter_500Medium' }}
-    >
+    <Text variant="mono.label" tone="subtle" className="mb-2 mt-5 px-1">
       {children}
     </Text>
   );
@@ -101,8 +100,9 @@ export default function CommandSearchScreen() {
             placeholder="Search agents, actions…"
             placeholderTextColor={colors.fgSubtle}
             returnKeyType="search"
-            className="flex-1 text-fg dark:text-fg-dark-DEFAULT text-[15px] ml-2"
-            style={{ fontFamily: 'Inter_400Regular' }}
+            className="flex-1 ml-2"
+            // TextInput is not the Text primitive, so the role is spread directly.
+            style={{ ...Type.body.lg, color: colors.fg }}
           />
           {query.length > 0 ? (
             <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityLabel="Clear">
@@ -116,10 +116,7 @@ export default function CommandSearchScreen() {
           accessibilityRole="button"
           accessibilityLabel="Close search"
         >
-          <Text
-            className="text-accent-2 dark:text-accent-2-dark text-[15px]"
-            style={{ fontFamily: 'Inter_600SemiBold' }}
-          >
+          <Text variant="body.semibold" tone="accent">
             Cancel
           </Text>
         </Pressable>

@@ -1,11 +1,16 @@
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
-import { MetricCard } from '@/components/analytics/MetricCard';
+import { ScreenHeading } from '@/components/common/ScreenHeading';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
+import { Tag } from '@/components/ui/Tag';
 import { Button } from '@/components/ui/Button';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { StatTile } from '@/components/executive/StatTile';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { statusMeta, type AgentStatus } from '@/components/executive/AgentHealthRow';
@@ -16,7 +21,15 @@ import { useThemeMode } from '@/hooks/useThemeMode';
 import { fmtCurrency, fmtNumber, fmtPct, fmtDuration } from '@/lib/formatters';
 import type { Agent } from '@/api/services/types';
 
-/** Map an agent's lifecycle state to one of the workforce health statuses. */
+/**
+ * The page assembles in one quick sweep — done inside ~500ms — so that the four
+ * KPI numerals counting up are the thing you actually watch. Reanimated's layout
+ * animations default to `ReduceMotion.System`, so the sweep is skipped entirely
+ * when the OS setting is on.
+ */
+const BEAT = 50;
+const enter = (step: number) => FadeInDown.duration(300).delay(step * BEAT);
+
 function lifecycleStatus(agent?: Agent): AgentStatus | null {
   const lifecycle = (agent?.status ?? '').toLowerCase();
   if (!lifecycle) return null;
@@ -47,159 +60,168 @@ export default function WorkforceAgentScreen() {
   const detailsQuery = useAgentDetails(activeOrgId, agent?.vapiAgentId);
   const details = detailsQuery.data;
 
-  // ── States ────────────────────────────────────────────────────────────────
+  const shell = (children: React.ReactNode) => (
+    <Screen background="nebula" edges={{ top: true, bottom: false }}>
+      <AppHeader title="Agent" showBack showOrgPill={false} />
+      {children}
+    </Screen>
+  );
+
   if (agentQuery.isPending) {
-    return (
-      <Screen background="nebula" edges={{ top: true, bottom: false }}>
-        <AppHeader title="Agent" showBack showOrgPill={false} />
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.accent} />
-        </View>
-      </Screen>
+    return shell(
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator color={colors.accent} />
+      </View>,
     );
   }
 
   if (agentQuery.isError) {
-    return (
-      <Screen background="nebula" edges={{ top: true, bottom: false }}>
-        <AppHeader title="Agent" showBack showOrgPill={false} />
-        <ErrorState
-          message={agentQuery.error instanceof Error ? agentQuery.error.message : undefined}
-          onRetry={agentQuery.refetch}
-        />
-      </Screen>
+    return shell(
+      <ErrorState
+        message={agentQuery.error instanceof Error ? agentQuery.error.message : undefined}
+        onRetry={agentQuery.refetch}
+      />,
     );
   }
 
   if (!agent) {
-    return (
-      <Screen background="nebula" edges={{ top: true, bottom: false }}>
-        <AppHeader title="Agent" showBack showOrgPill={false} />
-        <EmptyState
-          icon={<Ionicons name="help-circle-outline" size={26} color={colors.fgMuted} />}
-          title="Agent not found"
-          description="This agent may have been removed or is no longer available."
-        />
-      </Screen>
+    return shell(
+      <EmptyState
+        icon={<Ionicons name="help-circle-outline" size={26} color={colors.fgMuted} />}
+        title="Agent not found"
+        description="This agent may have been removed or is no longer available."
+      />,
     );
   }
 
   const status = lifecycleStatus(agent);
   const meta = status ? statusMeta(status) : null;
   const role = roleLabel(agent);
+  const paused = status === 'paused';
 
-  return (
-    <Screen background="nebula" edges={{ top: true, bottom: false }}>
-      <AppHeader title="Agent" showBack showOrgPill={false} />
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header block */}
-        <Animated.View entering={FadeInDown.duration(320)} className="mt-1">
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT"
-            style={{ fontFamily: 'Inter_700Bold', fontSize: 24 }}
-          >
-            {agent.name}
-          </Text>
-          <View className="flex-row items-center flex-wrap mt-1.5 gap-x-2">
-            {role ? (
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-[13px]"
-                style={{ fontFamily: 'Inter_400Regular' }}
-              >
-                {role}
-              </Text>
-            ) : null}
-            {role && meta ? (
-              <Text className="text-fg-subtle dark:text-fg-dark-subtle text-[13px]">·</Text>
-            ) : null}
-            {meta ? (
-              <View className="flex-row items-center">
-                <Ionicons
-                  name={meta.icon}
-                  size={13}
-                  color={meta.color(colors)}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  className={`text-[13px] ${meta.colorClassText}`}
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
-                  {meta.label}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-          {agent.description ? (
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-[13px] mt-2"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
-              {agent.description}
-            </Text>
-          ) : null}
+  return shell(
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View className="pt-4">
+        <ScreenHeading
+          eyebrow={[role, agent.departmentId ? 'Assigned' : null].filter(Boolean).join(' · ')}
+          title={agent.name}
+          subtitle={agent.description || undefined}
+        />
+      </View>
+
+      {meta ? (
+        <Animated.View entering={enter(1)} className="mt-3 flex-row flex-wrap gap-2">
+          <Tag
+            label={meta.slaLabel}
+            tone={
+              meta.tone === 'success'
+                ? 'success'
+                : meta.tone === 'warning'
+                  ? 'warning'
+                  : meta.tone === 'danger'
+                    ? 'danger'
+                    : 'neutral'
+            }
+          />
+          {agent.llmModel ? <Tag label={agent.llmModel} /> : null}
         </Animated.View>
+      ) : null}
 
-        {/* KPI grid */}
-        <Animated.View
-          entering={FadeInDown.duration(320).delay(80)}
-          className="flex-row flex-wrap gap-3 mt-5"
-        >
-          <MetricCard
-            variant="compact"
+      {/* Performance — the numbers that decide whether to intervene, so they are
+          the one thing on this screen that moves under its own steam. The details
+          query resolves after mount; each numeral counts once, when its real value
+          arrives, and a later refetch updates it in place without recounting. */}
+      <Animated.View entering={enter(2)} className="mt-5 gap-3">
+        <View className="flex-row gap-3">
+          <StatTile
             label="Success rate"
             value={fmtPct(details?.successRate)}
-            icon="checkmark-circle-outline"
+            count={{ to: details?.successRate, format: fmtPct }}
+            tone="success"
+            index={0}
           />
-          <MetricCard
-            variant="compact"
+          <StatTile
             label="Total calls"
             value={fmtNumber(details?.totalCalls)}
-            icon="call-outline"
+            // Rounded per step: a part-way value would otherwise render as
+            // "1,204.37" and the numeral would jitter in width as it counts.
+            count={{ to: details?.totalCalls, format: n => fmtNumber(Math.round(n)) }}
+            tone="accent"
+            index={1}
           />
-          <MetricCard
-            variant="compact"
+        </View>
+        <View className="flex-row gap-3">
+          <StatTile
             label="Avg duration"
             value={fmtDuration(details?.averageDurationMinutes)}
-            icon="time-outline"
+            count={{ to: details?.averageDurationMinutes, format: fmtDuration }}
+            tone="neutral"
+            index={2}
           />
-          <MetricCard
-            variant="compact"
+          <StatTile
             label="Total cost"
             value={fmtCurrency(details?.totalCost)}
-            icon="cash-outline"
+            count={{ to: details?.totalCost, format: fmtCurrency }}
+            tone="warning"
+            index={3}
           />
-        </Animated.View>
+        </View>
+      </Animated.View>
 
-        {/* Insight CTA */}
-        <Animated.View entering={FadeInDown.duration(320).delay(160)} className="mt-6">
-          <Button
-            variant="primary"
-            fullWidth
-            leftIcon={<Ionicons name="sparkles" size={16} color="#FFFFFF" />}
-            onPress={() =>
-              router.push({
-                pathname: '/(root)/(tabs)/prime',
-                params: {
-                  prompt: `How is ${agent?.name ?? 'this agent'} performing and what should I improve?`,
-                },
-              } as never)
-            }
-          >
-            Ask Prime about this agent
-          </Button>
-
-          {/* Quieter, secondary affordance — placeholder only, no mutation. */}
-          <View className="mt-2.5">
-            <Button variant="ghost" disabled>
-              Pause agent
-            </Button>
+      {/* Configuration, in the audit-record idiom: mono label, mono value. */}
+      <Animated.View entering={enter(3)} className="mt-4">
+        <Card>
+          <Text variant="mono.label" tone="subtle">
+            Configuration
+          </Text>
+          <View className="mt-3 gap-2.5">
+            <DetailRow label="Type" value={agent.type ?? '—'} />
+            <DetailRow label="Model" value={agent.llmModel ?? '—'} />
+            <DetailRow label="Status" value={agent.status ?? '—'} />
           </View>
-        </Animated.View>
-      </ScrollView>
-    </Screen>
+        </Card>
+      </Animated.View>
+
+      <Animated.View entering={enter(4)} className="mt-5 gap-2.5">
+        <GradientButton
+          fullWidth
+          leftIcon={<Ionicons name="sparkles" size={16} color="#FFFFFF" />}
+          onPress={() =>
+            router.push({
+              pathname: '/(root)/(tabs)/prime',
+              params: {
+                prompt: `How is ${agent.name} performing, and what should I change?`,
+              },
+            } as never)
+          }
+        >
+          {`Ask Prime about ${agent.name}`}
+        </GradientButton>
+
+        {/* Pausing an agent takes it off live traffic, so it stays on the web
+            console until the mobile confirm flow exists. */}
+        <Button variant="secondary" fullWidth disabled>
+          {paused ? 'Resume agent — on web' : 'Pause agent — on web'}
+        </Button>
+      </Animated.View>
+    </ScrollView>,
+  );
+}
+
+/** Mono label left, mono value right — the deck's audit-record row. */
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row items-center justify-between">
+      <Text variant="mono.sm" tone="subtle">
+        {label}
+      </Text>
+      <Text variant="mono.value" numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
   );
 }

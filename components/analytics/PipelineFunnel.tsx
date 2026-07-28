@@ -1,5 +1,6 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import type { NdsPipelineFunnel } from '@/api/services/types';
+import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
 interface PipelineFunnelProps {
@@ -45,18 +46,10 @@ export function PipelineFunnel({ data }: PipelineFunnelProps) {
         return (
           <View key={s.label}>
             <View className="flex-row items-center justify-between mb-1">
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-[11px] uppercase tracking-widest"
-                style={{ fontFamily: 'Inter_500Medium' }}
-              >
+              <Text variant="mono.label" tone="muted">
                 {s.label}
               </Text>
-              <Text
-                className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                style={{ fontFamily: 'Inter_600SemiBold' }}
-              >
-                {s.value.toLocaleString()}
-              </Text>
+              <Text variant="display.sm">{s.value.toLocaleString()}</Text>
             </View>
             <View
               className="h-1.5 rounded-full overflow-hidden"

@@ -22,6 +22,8 @@ export const QUERY_KEYS = {
     ['analytics', 'agents', orgId, range ?? 'default'] as const,
   analyticsAgentDetail: (orgId: string, assistantId: string) =>
     ['analytics', 'agent-detail', orgId, assistantId] as const,
+  channelMix: (orgId: string, range?: string) =>
+    ['analytics', 'channel-mix', orgId, range ?? 'default'] as const,
   primeHistory: (orgId: string) => ['prime', 'history', orgId] as const,
   primeTools: (orgId: string) => ['prime', 'tools', orgId] as const,
   pluginsCatalog: (filter?: { category?: string; search?: string }) =>
@@ -41,6 +43,14 @@ export const QUERY_KEYS = {
   campaigns: (orgId: string) => ['campaigns', orgId] as const,
   campaign: (orgId: string, id: string) =>
     ['campaigns', orgId, 'detail', id] as const,
+  escalations: (orgId: string, filters?: Record<string, unknown>) =>
+    ['escalations', orgId, filters ?? {}] as const,
+  escalation: (orgId: string, id: string) =>
+    ['escalations', orgId, 'detail', id] as const,
+  escalationCounts: (orgId: string) => ['escalations', orgId, 'counts'] as const,
+  auditLog: (orgId: string, filters?: Record<string, unknown>) =>
+    ['audit-log', orgId, filters ?? {}] as const,
+  devices: ['devices', 'list'] as const,
   twoFactorStatus: ['security', '2fa', 'status'] as const,
 } as const;
 

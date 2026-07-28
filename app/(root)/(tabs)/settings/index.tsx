@@ -3,7 +3,6 @@ import {
   Pressable,
   ScrollView,
   Switch,
-  Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -15,6 +14,8 @@ import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/store/auth';
 import { useLogoutMutation } from '@/api/hooks/authHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
@@ -47,21 +48,11 @@ function Row({ icon, label, description, right, onPress, destructive }: RowProps
         />
       </View>
       <View className="flex-1">
-        <Text
-          className={cn(
-            'text-sm',
-            destructive ? 'text-danger' : 'text-fg dark:text-fg-dark-DEFAULT',
-          )}
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
+        <Text variant="body.medium" tone={destructive ? 'danger' : 'default'}>
           {label}
         </Text>
         {description ? (
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-            style={{ fontFamily: 'Inter_400Regular' }}
-            numberOfLines={1}
-          >
+          <Text variant="body.xs" tone="muted" className="mt-0.5" numberOfLines={1}>
             {description}
           </Text>
         ) : null}
@@ -76,10 +67,7 @@ function Row({ icon, label, description, right, onPress, destructive }: RowProps
 
 function SectionLabel({ children }: { children: string }) {
   return (
-    <Text
-      className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-2 px-1"
-      style={{ fontFamily: 'Inter_500Medium' }}
-    >
+    <Text variant="mono.label" tone="subtle" className="mb-2 px-1">
       {children}
     </Text>
   );
@@ -89,7 +77,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const logout = useLogoutMutation();
-  const { appearance, mode, setAppearance } = useThemeMode();
+  const { appearance, mode, setAppearance, colors } = useThemeMode();
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [showAppearance, setShowAppearance] = useState(false);
@@ -119,6 +107,9 @@ export default function SettingsScreen() {
     appearance === 'system' ? 'System' : appearance === 'light' ? 'Light' : 'Dark';
   const variant =
     (Constants.expoConfig?.extra as { variant?: string } | undefined)?.variant ?? 'dev';
+  // Read from app config rather than hardcoded, so a release bump is reflected
+  // here without anyone remembering to edit this screen.
+  const appVersion = Constants.expoConfig?.version ?? '—';
 
   const displayName =
     user?.name ??
@@ -131,33 +122,22 @@ export default function SettingsScreen() {
       <AppHeader title="Settings" showOrgPill={false} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {/* Profile card */}
-        <View className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-4 mb-5">
+        <Card gloss className="mb-5">
           <View className="flex-row items-center">
             <Avatar name={displayName} size={56} />
             <View className="flex-1 ml-3">
-              <Text
-                className="text-fg dark:text-fg-dark-DEFAULT text-lg"
-                style={{ fontFamily: 'Inter_700Bold' }}
-              >
-                {displayName}
-              </Text>
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                style={{ fontFamily: 'Inter_400Regular' }}
-              >
+              <Text variant="display.sm">{displayName}</Text>
+              <Text variant="body.xs" tone="muted">
                 {user?.email}
               </Text>
               {user?.role ? (
-                <Text
-                  className="text-fg-subtle dark:text-fg-dark-subtle text-[10px] uppercase tracking-widest mt-1"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="mono.label" tone="subtle" className="mt-1">
                   {user.role.replace('_', ' ')}
                 </Text>
               ) : null}
             </View>
           </View>
-        </View>
+        </Card>
 
         <SectionLabel>Preferences</SectionLabel>
         <Row
@@ -173,9 +153,9 @@ export default function SettingsScreen() {
               value={biometricEnabled}
               onValueChange={toggleBiometric}
               disabled={!biometricSupported}
-              trackColor={{ true: '#1E3A8A', false: '#E5E7EB' }}
+              trackColor={{ true: colors.accent, false: colors.border }}
               thumbColor="#FFFFFF"
-              ios_backgroundColor="#E5E7EB"
+              ios_backgroundColor={colors.border}
             />
           }
         />
@@ -239,11 +219,8 @@ export default function SettingsScreen() {
           Log out
         </Button>
 
-        <Text
-          className="text-fg-subtle dark:text-fg-dark-subtle text-[10px] text-center uppercase tracking-widest mt-6"
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
-          Nextgen AI Prime · v0.1.0 · {variant}
+        <Text variant="mono.label" tone="subtle" className="text-center mt-6">
+          Nextgen AI Prime · v{appVersion} · {variant}
         </Text>
       </ScrollView>
 
@@ -254,10 +231,7 @@ export default function SettingsScreen() {
           className="absolute inset-0 bg-fg/40 dark:bg-bg-dark/60 z-40 justify-end"
         >
           <Pressable className="bg-surface dark:bg-surface-dark border-t border-border dark:border-border-dark rounded-t-3xl p-5">
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-base mb-3"
-              style={{ fontFamily: 'Inter_600SemiBold' }}
-            >
+            <Text variant="display.sm" className="mb-3">
               Appearance
             </Text>
             {(['system', 'light', 'dark'] as const).map((opt) => (
@@ -274,14 +248,11 @@ export default function SettingsScreen() {
                     : 'bg-surface-2 dark:bg-surface-2-dark',
                 )}
               >
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm capitalize"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="body.medium" className="capitalize">
                   {opt}
                 </Text>
                 {appearance === opt ? (
-                  <Ionicons name="checkmark" size={18} color="#1E3A8A" />
+                  <Ionicons name="checkmark" size={18} color={colors.accent} />
                 ) : null}
               </Pressable>
             ))}

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { Input } from '@/components/ui/Input';
 import { Chip } from '@/components/ui/Chip';
 import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
 import { useVoices } from '@/api/hooks/voiceHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { cn } from '@/lib/cn';
@@ -97,12 +98,7 @@ export function VoicePickerSheet({ orgId, selectedVoiceId, onPick, onClose }: Pr
           <View className="w-10 h-1 rounded-full bg-fg-subtle dark:bg-fg-dark-subtle opacity-50" />
         </View>
         <View className="flex-row items-center justify-between mb-3">
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-base"
-            style={{ fontFamily: 'Inter_700Bold' }}
-          >
-            Voice library
-          </Text>
+          <Text variant="display.sm">Voice library</Text>
           <Pressable onPress={onClose} hitSlop={12}>
             <Ionicons name="close" size={20} color={colors.fgSubtle} />
           </Pressable>
@@ -134,18 +130,12 @@ export function VoicePickerSheet({ orgId, selectedVoiceId, onPick, onClose }: Pr
             <ActivityIndicator color={colors.accent} />
           </View>
         ) : voices.isError ? (
-          <Text
-            className="text-danger text-sm py-4"
-            style={{ fontFamily: 'Inter_500Medium' }}
-          >
+          <Text variant="body.sm" tone="danger" className="py-4">
             {(voices.error as Error).message}
           </Text>
         ) : filtered.length === 0 ? (
           <View className="py-8 items-center">
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-sm"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="body.sm" tone="muted">
               No voices match.
             </Text>
           </View>
@@ -153,10 +143,7 @@ export function VoicePickerSheet({ orgId, selectedVoiceId, onPick, onClose }: Pr
           <ScrollView showsVerticalScrollIndicator={false}>
             {grouped.map(([providerName, list]) => (
               <View key={providerName} className="mb-3">
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-1.5 px-1"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="mono.label" tone="muted" className="mb-1.5 px-1">
                   {providerName}
                 </Text>
                 {list.map((v) => {
@@ -174,16 +161,14 @@ export function VoicePickerSheet({ orgId, selectedVoiceId, onPick, onClose }: Pr
                       )}
                     >
                       <View className="flex-1 pr-3">
-                        <Text
-                          className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                          style={{ fontFamily: 'Inter_500Medium' }}
-                          numberOfLines={1}
-                        >
+                        <Text variant="body.medium" numberOfLines={1}>
                           {v.name}
                         </Text>
+                        {/* Traits and voice id are provenance, not prose. */}
                         <Text
-                          className="text-fg-muted dark:text-fg-dark-muted text-[11px] mt-0.5"
-                          style={{ fontFamily: 'Inter_400Regular' }}
+                          variant="mono.sm"
+                          tone="muted"
+                          className="mt-0.5"
                           numberOfLines={1}
                         >
                           {[v.gender, v.age, v.languages?.[0]]

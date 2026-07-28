@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
+import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { TextArea } from '@/components/ui/TextArea';
 import { Button } from '@/components/ui/Button';
@@ -78,27 +79,15 @@ export default function NewAgentScreen() {
     <Screen avoidKeyboard>
       <View className="flex-row items-center justify-between px-4 py-3 bg-bg dark:bg-bg-dark">
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-sm"
-            style={{ fontFamily: 'Inter_500Medium' }}
-          >
+          <Text variant="body.medium" tone="muted">
             Cancel
           </Text>
         </Pressable>
-        <Text
-          className="text-fg dark:text-fg-dark-DEFAULT text-base"
-          style={{ fontFamily: 'Inter_600SemiBold' }}
-        >
+        <Text variant="mono.labelLg" tone="muted">
           New agent
         </Text>
         <Pressable onPress={onSubmit} disabled={!canSubmit || create.isPending} hitSlop={8}>
-          <Text
-            className={cn(
-              'text-sm',
-              canSubmit ? 'text-accent dark:text-accent-dark' : 'text-fg-subtle',
-            )}
-            style={{ fontFamily: 'Inter_600SemiBold' }}
-          >
+          <Text variant="body.semibold" tone={canSubmit ? 'accent' : 'subtle'}>
             {create.isPending ? 'Creating…' : 'Create'}
           </Text>
         </Pressable>
@@ -114,10 +103,7 @@ export default function NewAgentScreen() {
               placeholder="e.g. Inbound support"
             />
             <View className="gap-1.5">
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-xs tracking-wide"
-                style={{ fontFamily: 'Inter_500Medium' }}
-              >
+              <Text variant="body.xs" tone="muted">
                 Type
               </Text>
               <SegmentedControl
@@ -146,17 +132,10 @@ export default function NewAgentScreen() {
               className="flex-row items-center bg-surface-2 dark:bg-surface-2-dark border border-border-subtle dark:border-border-dark-subtle rounded-lg px-3 py-3 active:opacity-80"
             >
               <View className="flex-1">
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="mono.label" tone="muted">
                   Department
                 </Text>
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm mt-0.5"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                  numberOfLines={1}
-                >
+                <Text variant="body.medium" className="mt-0.5" numberOfLines={1}>
                   {selectedDepartment?.name ?? 'Not assigned'}
                 </Text>
               </View>
@@ -173,17 +152,10 @@ export default function NewAgentScreen() {
               )}
             >
               <View className="flex-1">
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="mono.label" tone="muted">
                   Role
                 </Text>
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm mt-0.5"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                  numberOfLines={1}
-                >
+                <Text variant="body.medium" className="mt-0.5" numberOfLines={1}>
                   {selectedRole?.name ??
                     (departmentId ? 'Select role' : 'Pick a department first')}
                 </Text>
@@ -203,10 +175,7 @@ export default function NewAgentScreen() {
                 autoCapitalize="none"
                 onChangeText={setLlmModel}
               />
-              <Text
-                className="text-fg-subtle dark:text-fg-dark-subtle text-[11px] mt-1"
-                style={{ fontFamily: 'Inter_400Regular' }}
-              >
+              <Text variant="body.xs" tone="subtle" className="mt-1">
                 Leave empty to use the organization default.
               </Text>
             </View>
@@ -239,18 +208,12 @@ export default function NewAgentScreen() {
           className="absolute inset-0 bg-fg/40 dark:bg-bg-dark/60 z-40 justify-end"
         >
           <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl pt-4 px-5 pb-6 max-h-[70%]">
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-base mb-3"
-              style={{ fontFamily: 'Inter_600SemiBold' }}
-            >
+            <Text variant="display.sm" className="mb-3">
               Pick a department
             </Text>
             <ScrollView>
               {departmentList.length === 0 ? (
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-sm py-3"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
+                <Text variant="body.sm" tone="muted" className="py-3">
                   No departments configured.
                 </Text>
               ) : (
@@ -263,12 +226,7 @@ export default function NewAgentScreen() {
                     }}
                     className="px-3 py-3 rounded-lg mb-1 bg-surface-2 dark:bg-surface-2-dark"
                   >
-                    <Text
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                      style={{ fontFamily: 'Inter_500Medium' }}
-                    >
-                      No department
-                    </Text>
+                    <Text variant="body.medium">No department</Text>
                   </Pressable>
                   {departmentList.map((d) => {
                     const id = deptIdOf(d);
@@ -288,17 +246,9 @@ export default function NewAgentScreen() {
                             : 'bg-surface-2 dark:bg-surface-2-dark',
                         )}
                       >
-                        <Text
-                          className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                          style={{ fontFamily: 'Inter_500Medium' }}
-                        >
-                          {d.name}
-                        </Text>
+                        <Text variant="body.medium">{d.name}</Text>
                         {d.roles && d.roles.length > 0 ? (
-                          <Text
-                            className="text-fg-muted dark:text-fg-dark-muted text-[11px] mt-0.5"
-                            style={{ fontFamily: 'Inter_400Regular' }}
-                          >
+                          <Text variant="body.xs" tone="muted" className="mt-0.5">
                             {d.roles.length} role{d.roles.length === 1 ? '' : 's'}
                           </Text>
                         ) : null}
@@ -318,10 +268,7 @@ export default function NewAgentScreen() {
           className="absolute inset-0 bg-fg/40 dark:bg-bg-dark/60 z-40 justify-end"
         >
           <Pressable className="bg-surface dark:bg-surface-dark rounded-t-3xl pt-4 px-5 pb-6 max-h-[70%]">
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-base mb-3"
-              style={{ fontFamily: 'Inter_600SemiBold' }}
-            >
+            <Text variant="display.sm" className="mb-3">
               Pick a role
             </Text>
             <ScrollView>
@@ -332,12 +279,7 @@ export default function NewAgentScreen() {
                 }}
                 className="px-3 py-3 rounded-lg mb-1 bg-surface-2 dark:bg-surface-2-dark"
               >
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
-                  No role
-                </Text>
+                <Text variant="body.medium">No role</Text>
               </Pressable>
               {availableRoles.map((r) => {
                 const id = roleIdOf(r);
@@ -356,12 +298,7 @@ export default function NewAgentScreen() {
                         : 'bg-surface-2 dark:bg-surface-2-dark',
                     )}
                   >
-                    <Text
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                      style={{ fontFamily: 'Inter_500Medium' }}
-                    >
-                      {r.name}
-                    </Text>
+                    <Text variant="body.medium">{r.name}</Text>
                   </Pressable>
                 );
               })}

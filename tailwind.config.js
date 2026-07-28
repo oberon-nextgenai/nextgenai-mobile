@@ -9,38 +9,45 @@ module.exports = {
         // Surfaces — nebula: near-black canvas, stepped cards
         bg: {
           DEFAULT: '#FAFAF8', // ivory page background
-          dark: '#03040A', // near-black nebula canvas in dark mode
+          dark: '#08080C', // near-black canvas in dark mode
         },
         'bg-2': {
           DEFAULT: '#F2F1EE', // gradient floor (light)
-          dark: '#070913', // canvas2 — gradient floor under radial orbs
+          dark: '#0B0A12', // canvas2 — gradient floor under radial orbs
         },
         surface: {
           DEFAULT: '#FFFFFF',
-          dark: '#10131C', // nebula card
+          dark: '#0F0F16', // card
         },
         'surface-2': {
           DEFAULT: '#F4F4F1', // refined ivory step — now distinct from bg
-          dark: '#151A27', // nebula card step
+          dark: '#15151E', // card step / secondary button
+        },
+        // Prime-authored cards — violet-tinted surface
+        'surface-prime': {
+          DEFAULT: '#F6F3FF',
+          dark: '#13101F',
         },
         // Glass fills (iOS 26 Liquid Glass) — translucent, set behind expo-blur
         'surface-glass': {
           DEFAULT: 'rgba(255,255,255,0.72)',
-          dark: 'rgba(16,19,28,0.62)',
+          dark: 'rgba(15,15,22,0.62)',
         },
         'glass-strong': {
           DEFAULT: 'rgba(255,255,255,0.85)',
           dark: 'rgba(255,255,255,0.12)',
         },
 
-        // Borders
+        // Borders — opaque hairlines in dark, per the deck
         border: {
           DEFAULT: '#E2E4E9',
           subtle: '#EDEEF1',
-          dark: 'rgba(255,255,255,0.12)',
-          'dark-subtle': 'rgba(255,255,255,0.06)',
+          strong: '#D3D6DD',
+          dark: '#1F1F2A',
+          'dark-subtle': '#191820',
+          'dark-strong': '#2B2B38',
           glass: 'rgba(15,16,20,0.08)',
-          'glass-dark': 'rgba(255,255,255,0.12)',
+          'glass-dark': 'rgba(255,255,255,0.10)',
         },
 
         // Foreground (text)
@@ -49,28 +56,37 @@ module.exports = {
           muted: '#525A66', // slate — AA on bg/surface
           subtle: '#8A93A1',
           inverse: '#FAFAF8',
-          'dark-DEFAULT': '#F7F8FF',
-          'dark-muted': '#A4ADC2',
-          'dark-subtle': '#697188',
+          'dark-DEFAULT': '#FFFFFF',
+          'dark-muted': '#B5B5BB',
+          'dark-subtle': '#6E6E80',
         },
 
         // Brand accent — violet primary (AI / Prime / selected)
         accent: {
           DEFAULT: '#5B21B6', // deep violet (operational, primary)
           soft: '#EDE9FE',
-          dark: '#6E38F7', // deepViolet — primary fills/selected
-          'soft-dark': 'rgba(110,56,247,0.18)',
+          dark: '#9364F3', // primary fills/selected
+          'soft-dark': 'rgba(147,100,243,0.18)',
         },
-        // Secondary accent — AI affordances + violet text on dark (AA-safe)
+        // Secondary accent — AI affordances + violet text on dark
         'accent-2': {
           DEFAULT: '#7C3AED', // violet
           soft: '#F3E8FF',
-          dark: '#9B6CFF', // auraViolet — AA-safe violet text on nebula
-          'soft-dark': 'rgba(155,108,255,0.18)',
+          dark: '#A786FF',
+          'soft-dark': 'rgba(167,134,255,0.18)',
+        },
+        // Filter chips — selected state
+        'chip-selected': {
+          DEFAULT: '#EDE9FE',
+          dark: '#181229',
+        },
+        'chip-selected-border': {
+          DEFAULT: '#C4B5FD',
+          dark: '#382A5C',
         },
         steel: {
           DEFAULT: '#2563EB',
-          dark: '#4CC9F0', // plasmaBlue
+          dark: '#518AD1',
         },
         // Analytics / telemetry / comms
         plasma: {
@@ -79,22 +95,40 @@ module.exports = {
         },
         cyan: {
           DEFAULT: '#0891B2',
-          dark: '#00D4FF',
+          dark: '#1C91A5',
         },
 
-        // Semantic — nebula in dark (mint / amber / critical)
-        success: { DEFAULT: '#15803D', dark: '#36F5A2' },
-        warning: { DEFAULT: '#B45309', dark: '#FFB547' },
-        danger: { DEFAULT: '#B91C1C', dark: '#FF4D6D' },
-        'success-soft': { DEFAULT: '#DCFCE7', dark: 'rgba(54,245,162,0.16)' },
-        'warning-soft': { DEFAULT: '#FEF3C7', dark: 'rgba(255,181,71,0.16)' },
-        'danger-soft': { DEFAULT: '#FEE2E2', dark: 'rgba(255,77,109,0.16)' },
+        // Semantic
+        success: { DEFAULT: '#15803D', dark: '#34C268' },
+        'success-bright': { DEFAULT: '#16A34A', dark: '#4ADD80' },
+        warning: { DEFAULT: '#B45309', dark: '#FBBF24' },
+        danger: { DEFAULT: '#B91C1C', dark: '#F87171' },
+        'success-soft': { DEFAULT: '#DCFCE7', dark: 'rgba(52,194,104,0.16)' },
+        'warning-soft': { DEFAULT: '#FEF3C7', dark: 'rgba(251,191,36,0.16)' },
+        'danger-soft': { DEFAULT: '#FEE2E2', dark: 'rgba(248,113,113,0.16)' },
+
+        // Channel identities (comms mix) — categorical, not semantic
+        channel: {
+          calls: '#8B5CF6',
+          email: '#518AD1',
+          sms: '#3CAC67',
+          whatsapp: '#1C91A5',
+          teams: '#D5A322',
+        },
       },
       fontFamily: {
+        // See constants/Typography.ts — serif = the answer, sans = the
+        // explanation, mono = the provenance.
         sans: ['Inter_400Regular', 'System'],
         medium: ['Inter_500Medium', 'System'],
         semibold: ['Inter_600SemiBold', 'System'],
         bold: ['Inter_700Bold', 'System'],
+        serif: ['Newsreader_400Regular', 'Georgia', 'serif'],
+        'serif-medium': ['Newsreader_500Medium', 'Georgia', 'serif'],
+        'serif-semibold': ['Newsreader_600SemiBold', 'Georgia', 'serif'],
+        'serif-italic': ['Newsreader_400Regular_Italic', 'Georgia', 'serif'],
+        mono: ['JetBrainsMono_400Regular', 'Menlo', 'monospace'],
+        'mono-medium': ['JetBrainsMono_500Medium', 'Menlo', 'monospace'],
       },
       borderRadius: {
         xs: '4px',

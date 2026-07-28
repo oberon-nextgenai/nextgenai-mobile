@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
-import { Pressable, Text } from 'react-native';
+import { Pressable } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
 import { usePressScale } from '@/hooks/usePressScale';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -39,12 +40,9 @@ export function Chip({ label, selected, onPress, leftIcon, className }: ChipProp
     >
       {leftIcon}
       <Text
-        className={cn(
-          'text-xs',
-          selected ? 'text-white' : 'text-fg dark:text-fg-dark-DEFAULT',
-          leftIcon ? 'ml-1.5' : '',
-        )}
-        style={{ fontFamily: 'Inter_500Medium' }}
+        variant="body.sm"
+        tone={selected ? 'onAccent' : 'default'}
+        className={leftIcon ? 'ml-1.5' : undefined}
       >
         {label}
       </Text>

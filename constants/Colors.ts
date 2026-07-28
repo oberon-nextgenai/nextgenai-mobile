@@ -4,12 +4,16 @@
  * NativeWind classNames are preferred for layout/text; this file is for
  * the parts of the API surface that cannot read Tailwind classes.
  *
- * Dark mode = "nebula" — near-black canvas with violet/plasma accents (CEO command app).
+ * Dark mode is the product — near-black canvas with violet accents (CEO command app).
+ * Values are sampled from the Prime Mobile 2026 deck, not chosen by eye.
  * Light mode = clean ivory (secondary), accent nudged into the violet family for brand parity.
  * Glass + elevation scales added for iOS 26 Liquid Glass and platform shadows.
  *
- * Color semantics (enforce in review): violet = AI/Prime/selected · mint = healthy/done ·
- * amber = warning/SLA · critical-red = breach/reject · plasma/cyan = analytics/telemetry.
+ * Color semantics (enforce in review): violet = AI/Prime/selected · green = healthy/done ·
+ * amber = warning/SLA · red = breach/reject · plasma/cyan = analytics/telemetry.
+ *
+ * Primary and approve CTAs are gradients (accentGradient / successGradient), not flat
+ * fills — see components/ui/GradientButton.
  */
 
 import { Platform } from 'react-native';
@@ -21,9 +25,13 @@ export const Colors = {
     bg2: '#F2F1EE', // gradient floor / nebula base in light mode
     surface: '#FFFFFF',
     surface2: '#F4F4F1',
+    surfacePrime: '#F6F3FF', // Prime-authored cards (violet-tinted)
     // Borders
     border: '#E2E4E9',
     borderSubtle: '#EDEEF1',
+    borderStrong: '#D3D6DD',
+    /** Top edge of a card — a lighter hairline reads as a lit edge. See ui/Card. */
+    borderGloss: '#FFFFFF',
     // Foreground (text)
     fg: '#0B0C0F',
     fgMuted: '#525A66',
@@ -34,16 +42,24 @@ export const Colors = {
     accentSoft: '#EDE9FE',
     accent2: '#7C3AED', // violet (AI affordances)
     accent2Soft: '#F3E8FF',
+    /** Left→right fill for primary buttons (expo-linear-gradient). */
+    accentGradient: ['#5B21B6', '#7C3AED'] as const,
+    /** Left→right fill for approve/confirm buttons. */
+    successGradient: ['#15803D', '#22C55E'] as const,
     steel: '#2563EB',
     plasma: '#0E7490', // analytics/telemetry (cyan-700, AA on light)
     cyan: '#0891B2',
     // Semantic
     success: '#15803D',
+    successBright: '#16A34A', // health bars, status dots, "on track"
     warning: '#B45309',
     danger: '#B91C1C',
     successSoft: '#DCFCE7',
     warningSoft: '#FEF3C7',
     dangerSoft: '#FEE2E2',
+    // Filter chips — selected state
+    chipSelectedBg: '#EDE9FE',
+    chipSelectedBorder: '#C4B5FD',
     // Navigation chrome
     tabBarBg: '#FFFFFF',
     tabBarBorder: '#EDEEF1',
@@ -59,49 +75,80 @@ export const Colors = {
     chartSeries: ['#5B21B6', '#0891B2', '#15803D', '#B45309', '#B91C1C', '#7C3AED'],
   },
   dark: {
-    // Surfaces — nebula: near-black canvas, stepped cards
-    bg: '#03040A', // canvas
-    bg2: '#070913', // canvas2 — gradient floor under radial orbs
-    surface: '#10131C', // card
-    surface2: '#151A27', // card step
-    // Borders — hairline whites over the dark canvas
-    border: 'rgba(255,255,255,0.12)',
-    borderSubtle: 'rgba(255,255,255,0.06)',
+    // Surfaces — sampled from the Prime Mobile 2026 deck slides
+    bg: '#08080C', // canvas
+    bg2: '#0B0A12', // canvas2 — gradient floor under radial orbs
+    surface: '#0F0F16', // card
+    surface2: '#15151E', // card step / secondary button
+    surfacePrime: '#13101F', // Prime-authored cards (violet-tinted)
+    // Borders — opaque hairlines, per the deck (not alpha whites)
+    border: '#1F1F2A',
+    borderSubtle: '#191820',
+    borderStrong: '#2B2B38',
+    /**
+     * Top edge of a card. A hairline lighter than the other three sides reads as
+     * a light source above the surface — this is what stops dark cards looking
+     * flat, and it costs nothing extra to render. See ui/Card.
+     */
+    borderGloss: '#31313F',
     // Foreground (text)
-    fg: '#F7F8FF',
-    fgMuted: '#A4ADC2',
-    fgSubtle: '#697188',
-    fgInverse: '#03040A',
-    // Brand accents — violet primary, plasma/cyan for telemetry
-    accent: '#6E38F7', // deepViolet (primary fills/selected; white text ~5.9:1)
-    accentSoft: 'rgba(110,56,247,0.18)',
-    accent2: '#9B6CFF', // auraViolet (AI text affordances; ~5.4:1 on surface)
-    accent2Soft: 'rgba(155,108,255,0.18)',
-    steel: '#4CC9F0', // plasmaBlue
+    fg: '#FFFFFF',
+    fgMuted: '#B5B5BB',
+    fgSubtle: '#6E6E80',
+    fgInverse: '#08080C',
+    // Brand accents — violet primary. Primary CTAs use the accentGradient.
+    accent: '#9364F3', // primary fills/selected; white text ~4.6:1
+    accentSoft: 'rgba(147,100,243,0.18)',
+    accent2: '#A786FF', // violet text affordances on surface
+    accent2Soft: 'rgba(167,134,255,0.18)',
+    /** Left→right fill for primary buttons (expo-linear-gradient). */
+    accentGradient: ['#8347F0', '#A786FF'] as const,
+    /** Left→right fill for approve/confirm buttons. */
+    successGradient: ['#2ABD60', '#47DE7E'] as const,
+    steel: '#518AD1',
     plasma: '#4CC9F0', // analytics/telemetry
-    cyan: '#00D4FF',
-    // Semantic — nebula
-    success: '#36F5A2', // mint
-    warning: '#FFB547', // amber
-    danger: '#FF4D6D', // critical
-    successSoft: 'rgba(54,245,162,0.16)',
-    warningSoft: 'rgba(255,181,71,0.16)',
-    dangerSoft: 'rgba(255,77,109,0.16)',
+    cyan: '#1C91A5',
+    // Semantic
+    success: '#34C268',
+    successBright: '#4ADD80', // health bars, status dots, "on track"
+    warning: '#FBBF24',
+    danger: '#F87171',
+    successSoft: 'rgba(52,194,104,0.16)',
+    warningSoft: 'rgba(251,191,36,0.16)',
+    dangerSoft: 'rgba(248,113,113,0.16)',
+    // Filter chips — selected state
+    chipSelectedBg: '#181229',
+    chipSelectedBorder: '#382A5C',
     // Navigation chrome
-    tabBarBg: '#10131C',
-    tabBarBorder: 'rgba(255,255,255,0.08)',
+    tabBarBg: '#0F0F16',
+    tabBarBorder: '#1F1F2A',
     // Glass (iOS 26 Liquid Glass)
-    surfaceGlass: 'rgba(16,19,28,0.62)',
+    surfaceGlass: 'rgba(15,15,22,0.62)',
     glassStrong: 'rgba(255,255,255,0.12)',
-    glassBorder: 'rgba(255,255,255,0.12)',
-    glassTint: 'rgba(16,19,28,0.50)',
+    glassBorder: 'rgba(255,255,255,0.10)',
+    glassTint: 'rgba(15,15,22,0.50)',
     blurTint: 'dark' as const,
-    // Charts — nebula series
+    // Charts
     chartGrid: 'rgba(255,255,255,0.08)',
-    chartAxis: '#697188',
-    chartSeries: ['#9B6CFF', '#4CC9F0', '#36F5A2', '#FFB547', '#00D4FF', '#A4ADC2'],
+    chartAxis: '#6E6E80',
+    chartSeries: ['#A786FF', '#518AD1', '#4ADD80', '#FBBF24', '#1C91A5', '#B5B5BB'],
   },
 } as const;
+
+/**
+ * Per-channel colours for the comms mix and conversation rows. Held apart from
+ * the theme palette because they are categorical identities, not semantic roles —
+ * a channel keeps its colour regardless of state.
+ */
+export const ChannelColors = {
+  calls: '#8B5CF6',
+  email: '#518AD1',
+  sms: '#3CAC67',
+  whatsapp: '#1C91A5',
+  teams: '#D5A322',
+} as const;
+
+export type ChannelKey = keyof typeof ChannelColors;
 
 /**
  * Platform-aware elevation scale. iOS uses shadow* props; Android uses elevation.

@@ -61,6 +61,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-local-authentication',
     'expo-font',
     'expo-apple-authentication',
+    // Notification channels are created at runtime (lib/push/pushTokens.ts);
+    // the plugin is what wires the native module into the build.
+    'expo-notifications',
   ],
   experiments: {
     typedRoutes: true,

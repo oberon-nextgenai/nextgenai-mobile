@@ -1,7 +1,8 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
 
@@ -47,10 +48,7 @@ export function CommandSearchButton({ onPress, compact = true }: CommandSearchBu
       )}
     >
       <Ionicons name="search" size={18} color={colors.fgMuted} />
-      <Text
-        className="flex-1 text-[15px] text-fg-muted dark:text-fg-dark-muted"
-        style={{ fontFamily: 'Inter_400Regular' }}
-      >
+      <Text variant="body.lg" tone="muted" className="flex-1">
         Search agents, actions…
       </Text>
     </AnimatedPressable>

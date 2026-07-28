@@ -15,6 +15,13 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
+import {
+  Newsreader_400Regular,
+  Newsreader_500Medium,
+  Newsreader_600SemiBold,
+  Newsreader_400Regular_Italic,
+} from '@expo-google-fonts/newsreader';
+import { JetBrainsMono_400Regular, JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono';
 import { useAppInit } from '@/hooks/useAppInit';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { useThemeStore } from '@/store/theme';
@@ -48,11 +55,19 @@ export default function RootLayout() {
   const clearAuth = useAuthStore((s) => s.clear);
   const clearOrg = useOrgStore((s) => s.clear);
 
+  // Three families, three jobs (see constants/Typography.ts):
+  // Newsreader = the answer · Inter = the explanation · JetBrains Mono = the provenance.
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Newsreader_400Regular,
+    Newsreader_500Medium,
+    Newsreader_600SemiBold,
+    Newsreader_400Regular_Italic,
+    JetBrainsMono_400Regular,
+    JetBrainsMono_500Medium,
   });
 
   useEffect(() => {

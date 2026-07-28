@@ -1,6 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
 import { usePressScale } from '@/hooks/usePressScale';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -36,11 +37,8 @@ function Segment({
       )}
     >
       <Text
-        className={cn(
-          'text-sm',
-          selected ? 'text-white' : 'text-fg dark:text-fg-dark-DEFAULT',
-        )}
-        style={{ fontFamily: selected ? 'Inter_600SemiBold' : 'Inter_500Medium' }}
+        variant={selected ? 'body.semibold' : 'body.medium'}
+        tone={selected ? 'onAccent' : 'default'}
       >
         {label}
       </Text>

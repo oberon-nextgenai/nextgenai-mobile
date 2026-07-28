@@ -1,6 +1,6 @@
-import { Text, View } from 'react-native';
-import { cn } from '@/lib/cn';
-import { Elevation } from '@/constants/Colors';
+import { View } from 'react-native';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 
 export interface KpiTile {
   label: string;
@@ -17,36 +17,19 @@ export function KpiStrip({ tiles }: KpiStripProps) {
     <View className="flex-row flex-wrap -mx-1">
       {tiles.map((t, i) => (
         <View key={i} className="w-1/2 px-1 mb-2">
-          <View
-            style={Elevation.sm}
-            className={cn(
-              'bg-surface dark:bg-surface-dark border border-border-subtle dark:border-border-dark-subtle rounded-3xl p-3',
-            )}
-          >
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-              style={{ fontFamily: 'Inter_500Medium' }}
-              numberOfLines={1}
-            >
+          <Card padding="sm">
+            <Text variant="mono.label" tone="muted" numberOfLines={1}>
               {t.label}
             </Text>
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-xl mt-1"
-              style={{ fontFamily: 'Inter_700Bold' }}
-              numberOfLines={1}
-            >
+            <Text variant="display.md" numberOfLines={1} className="mt-1">
               {t.value}
             </Text>
             {t.hint ? (
-              <Text
-                className="text-fg-subtle dark:text-fg-dark-subtle text-[11px] mt-0.5"
-                style={{ fontFamily: 'Inter_400Regular' }}
-                numberOfLines={1}
-              >
+              <Text variant="mono.sm" tone="subtle" numberOfLines={1} className="mt-0.5">
                 {t.hint}
               </Text>
             ) : null}
-          </View>
+          </Card>
         </View>
       ))}
     </View>

@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
-import { Pressable, PressableProps, Text, View } from 'react-native';
+import { Pressable, PressableProps, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
+import { Text, type TextTone } from '@/components/ui/Text';
 import { usePressScale } from '@/hooks/usePressScale';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -29,12 +30,12 @@ const TONE_BG: Record<PillTone, string> = {
   warning: 'bg-warning-soft dark:bg-warning-soft border-warning/40',
   danger: 'bg-danger-soft dark:bg-danger-soft border-danger/40',
 };
-const TONE_FG: Record<PillTone, string> = {
-  neutral: 'text-fg dark:text-fg-dark-DEFAULT',
-  accent: 'text-accent dark:text-accent-dark',
-  success: 'text-success',
-  warning: 'text-warning',
-  danger: 'text-danger',
+const TONE_FG: Record<PillTone, TextTone> = {
+  neutral: 'default',
+  accent: 'accent',
+  success: 'success',
+  warning: 'warning',
+  danger: 'danger',
 };
 
 export function Pill({
@@ -68,13 +69,7 @@ export function Pill({
       )}
     >
       {leftIcon ? <View className="mr-1.5">{leftIcon}</View> : null}
-      <Text
-        className={cn(
-          'text-xs font-medium',
-          selected ? 'text-white' : TONE_FG[tone],
-        )}
-        style={{ fontFamily: 'Inter_500Medium' }}
-      >
+      <Text variant="body.sm" tone={selected ? 'onAccent' : TONE_FG[tone]}>
         {children}
       </Text>
       {rightIcon ? <View className="ml-1.5">{rightIcon}</View> : null}

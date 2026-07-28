@@ -4,7 +4,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -16,7 +15,9 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { Input } from '@/components/ui/Input';
 import { Chip } from '@/components/ui/Chip';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { Pill } from '@/components/ui/Pill';
+import { Card } from '@/components/ui/Card';
+import { Tag, type TagTone } from '@/components/ui/Tag';
+import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import {
   useInstalledIntegrations,
@@ -24,7 +25,6 @@ import {
   usePluginCategories,
 } from '@/api/hooks/pluginHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
-import { cn } from '@/lib/cn';
 import { fmtRelative } from '@/lib/formatters';
 import type { Integration, IntegrationStatus, Plugin } from '@/api/services/types';
 
@@ -37,7 +37,7 @@ const TABS: { value: Tab; label: string }[] = [
 
 function statusTone(s: IntegrationStatus): {
   label: string;
-  tone: 'success' | 'warning' | 'danger' | 'neutral';
+  tone: TagTone;
 } {
   switch (s) {
     case 'active':
@@ -69,10 +69,7 @@ function PluginInitial({ plugin, size = 36 }: { plugin: Pick<Plugin, 'name' | 'i
       }}
       className="items-center justify-center bg-accent-soft dark:bg-accent-soft-dark"
     >
-      <Text
-        className="text-accent dark:text-accent-dark"
-        style={{ fontFamily: 'Inter_700Bold', fontSize: size * 0.42 }}
-      >
+      <Text variant="display.sm" tone="accent" style={{ fontSize: size * 0.42 }}>
         {(plugin.name ?? '?').slice(0, 1).toUpperCase()}
       </Text>
     </View>
@@ -137,34 +134,32 @@ export default function PluginsIndexScreen() {
                 <Pressable
                   key={i._id}
                   onPress={() => router.push(`/plugins/${i._id}` as never)}
-                  className="flex-row items-center bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3 mb-2 active:bg-accent-soft dark:active:bg-accent-soft-dark"
+                  className="mb-2 active:opacity-80"
                 >
-                  <PluginInitial plugin={{ name: i.name, icon: undefined }} size={36} />
-                  <View className="flex-1 mx-3">
-                    <Text
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                      style={{ fontFamily: 'Inter_600SemiBold' }}
-                      numberOfLines={1}
-                    >
-                      {i.name}
-                    </Text>
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                    >
-                      {i.type}
-                      {i.metadata?.last_sync
-                        ? ` · synced ${fmtRelative(i.metadata.last_sync)}`
-                        : ''}
-                    </Text>
-                  </View>
-                  <Pill tone={status.tone}>{status.label}</Pill>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={14}
-                    color={colors.fgSubtle}
-                    style={{ marginLeft: 6 }}
-                  />
+                  {/* No gloss: this renders once per integration in a scrolling list. */}
+                  <Card padding="sm">
+                    <View className="flex-row items-center">
+                      <PluginInitial plugin={{ name: i.name, icon: undefined }} size={36} />
+                      <View className="flex-1 mx-3">
+                        <Text variant="display.sm" numberOfLines={1}>
+                          {i.name}
+                        </Text>
+                        <Text variant="mono.sm" tone="muted" className="mt-0.5">
+                          {i.type}
+                          {i.metadata?.last_sync
+                            ? ` · synced ${fmtRelative(i.metadata.last_sync)}`
+                            : ''}
+                        </Text>
+                      </View>
+                      <Tag label={status.label} tone={status.tone} />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={14}
+                        color={colors.fgSubtle}
+                        style={{ marginLeft: 6 }}
+                      />
+                    </View>
+                  </Card>
                 </Pressable>
               );
             })}
@@ -242,54 +237,38 @@ export default function PluginsIndexScreen() {
                         oauth ? undefined : router.push(`/plugins/install/${p.type}` as never)
                       }
                       disabled={oauth}
-                      className={cn(
-                        'bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-3.5',
-                        oauth && 'opacity-80',
-                      )}
+                      className={oauth ? 'opacity-80' : undefined}
                     >
-                      <View className="flex-row items-center mb-2">
-                        <PluginInitial plugin={p} size={32} />
-                        {oauth ? (
-                          <View className="ml-auto">
-                            <Pill tone="warning">OAuth</Pill>
-                          </View>
-                        ) : (
-                          <View className="ml-auto">
-                            <Pill tone={p.authType === 'none' ? 'success' : 'neutral'}>
-                              {p.authType === 'none' ? 'Ready' : 'API key'}
-                            </Pill>
-                          </View>
-                        )}
-                      </View>
-                      <Text
-                        className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                        style={{ fontFamily: 'Inter_600SemiBold' }}
-                        numberOfLines={1}
-                      >
-                        {p.name}
-                      </Text>
-                      {p.description ? (
-                        <Text
-                          className="text-fg-muted dark:text-fg-dark-muted text-xs mt-1 leading-4"
-                          style={{ fontFamily: 'Inter_400Regular' }}
-                          numberOfLines={2}
-                        >
-                          {p.description}
-                        </Text>
-                      ) : null}
-                      <View className="mt-2.5">
-                        <Text
-                          className={cn(
-                            'text-xs',
-                            oauth
-                              ? 'text-fg-subtle dark:text-fg-dark-subtle'
-                              : 'text-accent dark:text-accent-dark',
+                      <Card padding="md">
+                        <View className="flex-row items-center mb-2">
+                          <PluginInitial plugin={p} size={32} />
+                          {oauth ? (
+                            <View className="ml-auto">
+                              <Tag label="OAuth" tone="warning" />
+                            </View>
+                          ) : (
+                            <View className="ml-auto">
+                              <Tag
+                                label={p.authType === 'none' ? 'Ready' : 'API key'}
+                                tone={p.authType === 'none' ? 'success' : 'neutral'}
+                              />
+                            </View>
                           )}
-                          style={{ fontFamily: 'Inter_600SemiBold' }}
-                        >
-                          {oauth ? 'Configure on web' : 'Install →'}
+                        </View>
+                        <Text variant="display.sm" numberOfLines={1}>
+                          {p.name}
                         </Text>
-                      </View>
+                        {p.description ? (
+                          <Text variant="body.xs" tone="muted" className="mt-1" numberOfLines={2}>
+                            {p.description}
+                          </Text>
+                        ) : null}
+                        <View className="mt-2.5">
+                          <Text variant="body.semibold" tone={oauth ? 'subtle' : 'accent'}>
+                            {oauth ? 'Configure on web' : 'Install →'}
+                          </Text>
+                        </View>
+                      </Card>
                     </Pressable>
                   </View>
                 );

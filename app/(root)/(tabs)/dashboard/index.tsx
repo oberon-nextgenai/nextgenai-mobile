@@ -1,7 +1,9 @@
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -44,17 +46,11 @@ export default function DashboardScreen() {
             />
           }
         >
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-2xl mb-1"
-            style={{ fontFamily: 'Inter_700Bold' }}
-          >
+          <Text variant="display.lg" className="mb-1">
             Overview
           </Text>
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-sm mb-4"
-            style={{ fontFamily: 'Inter_400Regular' }}
-          >
-            What's happening across this org right now.
+          <Text variant="body.sm" tone="muted" className="mb-4">
+            What&apos;s happening across this org right now.
           </Text>
 
           <KpiStrip
@@ -87,10 +83,7 @@ export default function DashboardScreen() {
           />
 
           <View className="mt-4 gap-2">
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-1.5 px-1"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
+            <Text variant="mono.label" tone="muted" className="mb-1.5 px-1">
               Shortcuts
             </Text>
             <View className="flex-row flex-wrap -mx-1">
@@ -117,27 +110,22 @@ export default function DashboardScreen() {
                 },
               ].map((s) => (
                 <View key={s.label} className="w-1/2 px-1 mb-2">
-                  <View className="bg-surface dark:bg-surface-dark border border-border-subtle dark:border-border-dark-subtle rounded-xl p-3 flex-row items-center">
-                    <View className="w-9 h-9 rounded-lg bg-accent-soft dark:bg-accent-soft-dark items-center justify-center mr-2">
-                      <Ionicons name={s.icon} size={16} color={colors.accent} />
+                  <Card padding="sm">
+                    <View className="flex-row items-center">
+                      <View className="w-9 h-9 rounded-lg bg-accent-soft dark:bg-accent-soft-dark items-center justify-center mr-2">
+                        <Ionicons name={s.icon} size={16} color={colors.accent} />
+                      </View>
+                      <Text variant="body.medium" onPress={s.onPress}>
+                        {s.label}
+                      </Text>
                     </View>
-                    <Text
-                      onPress={s.onPress}
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                      style={{ fontFamily: 'Inter_500Medium' }}
-                    >
-                      {s.label}
-                    </Text>
-                  </View>
+                  </Card>
                 </View>
               ))}
             </View>
           </View>
 
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mt-3 mb-2 px-1"
-            style={{ fontFamily: 'Inter_500Medium' }}
-          >
+          <Text variant="mono.label" tone="muted" className="mt-3 mb-2 px-1">
             Recent activity
           </Text>
           <RecentActivity />

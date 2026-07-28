@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/common/AppHeader';
 import { EmptyState } from '@/components/common/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
 import { Chip } from '@/components/ui/Chip';
+import { Text } from '@/components/ui/Text';
 import { Logo } from '@/components/brand/Logo';
 import { ChatList } from '@/components/prime/ChatList';
 import { Composer } from '@/components/prime/Composer';
@@ -105,16 +106,11 @@ export default function PrimeScreen() {
           <View className="opacity-60 mb-4">
             <Logo size={56} />
           </View>
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-base text-center"
-            style={{ fontFamily: 'Inter_600SemiBold' }}
-          >
+          {/* The empty state is the screen's headline — serif carries it. */}
+          <Text variant="display.lg" className="text-center">
             Ask Prime anything
           </Text>
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-sm text-center mt-1.5 max-w-[300px]"
-            style={{ fontFamily: 'Inter_400Regular' }}
-          >
+          <Text variant="body.md" tone="muted" className="text-center mt-1.5 max-w-[300px]">
             Prime can manage agents, campaigns, tasks, knowledge bases, and surface analytics —
             all from chat. Tap the phone to start a hands-free call.
           </Text>

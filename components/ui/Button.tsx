@@ -1,11 +1,5 @@
 import { ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  PressableProps,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, PressableProps, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -13,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { PRESS_SPRING } from '@/hooks/usePressScale';
 
@@ -41,24 +36,20 @@ const CONTAINER: Record<Variant, string> = {
     'bg-surface dark:bg-surface-dark border border-danger',
 };
 
-const TEXT: Record<Variant, string> = {
-  primary: 'text-white',
-  secondary: 'text-fg dark:text-fg-dark-DEFAULT',
-  ghost: 'text-fg dark:text-fg-dark-DEFAULT',
-  'outline-danger': 'text-danger',
-};
+const TEXT_TONE = {
+  primary: 'onAccent',
+  secondary: 'default',
+  ghost: 'default',
+  'outline-danger': 'danger',
+} as const;
 
 const SIZE: Record<Size, string> = {
   sm: 'px-3 py-2 rounded-xl',
   md: 'px-4 py-3 rounded-2xl',
-  lg: 'px-5 py-4 rounded-3xl',
+  lg: 'px-5 py-4 rounded-2xl',
 };
 
-const TEXT_SIZE: Record<Size, string> = {
-  sm: 'text-sm font-medium',
-  md: 'text-[15px] font-semibold',
-  lg: 'text-base font-semibold',
-};
+const TEXT_SIZE: Record<Size, number> = { sm: 13, md: 15, lg: 16 };
 
 export function Button({
   children,
@@ -132,10 +123,7 @@ export function Button({
       ) : (
         <View className="flex-row items-center gap-2">
           {leftIcon}
-          <Text
-            className={cn(TEXT[variant], TEXT_SIZE[size])}
-            style={{ fontFamily: 'Inter_600SemiBold' }}
-          >
+          <Text variant="body.semibold" tone={TEXT_TONE[variant]} style={{ fontSize: TEXT_SIZE[size] }}>
             {children}
           </Text>
           {rightIcon}

@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
-import { Text, View } from 'react-native';
-import { Elevation } from '@/constants/Colors';
+import { View } from 'react-native';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 
 interface ChartCardProps {
   title: string;
@@ -11,23 +12,12 @@ interface ChartCardProps {
 
 export function ChartCard({ title, subtitle, right, children }: ChartCardProps) {
   return (
-    <View
-      style={Elevation.sm}
-      className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-3xl p-4"
-    >
+    <Card padding="md">
       <View className="flex-row items-center justify-between mb-3">
         <View>
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-            style={{ fontFamily: 'Inter_600SemiBold' }}
-          >
-            {title}
-          </Text>
+          <Text variant="display.sm">{title}</Text>
           {subtitle ? (
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="body.sm" tone="muted" className="mt-0.5">
               {subtitle}
             </Text>
           ) : null}
@@ -35,6 +25,6 @@ export function ChartCard({ title, subtitle, right, children }: ChartCardProps) 
         {right}
       </View>
       <View>{children}</View>
-    </View>
+    </Card>
   );
 }

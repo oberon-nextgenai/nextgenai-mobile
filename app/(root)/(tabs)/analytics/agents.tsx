@@ -1,9 +1,11 @@
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Avatar } from '@/components/ui/Avatar';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import { useAgentsAnalytics } from '@/api/hooks/analyticsHooks';
 import { fmtNumber, fmtPct, fmtDuration, fmtCurrency } from '@/lib/formatters';
@@ -50,46 +52,28 @@ export default function AgentsAnalyticsScreen() {
               const avgMinutes = a.averageDurationMinutes ?? undefined;
               const name = a.agentName ?? 'Unnamed agent';
               return (
-                <View
-                  key={a.agentId}
-                  className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3 mb-2"
-                >
+                <Card key={a.agentId} padding="sm" className="mb-2">
                   <View className="flex-row items-center mb-2">
                     <Avatar name={name} size={28} />
-                    <Text
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm ml-2.5"
-                      style={{ fontFamily: 'Inter_600SemiBold' }}
-                    >
+                    <Text variant="body.semibold" className="ml-2.5">
                       {name}
                     </Text>
                   </View>
                   <View className="flex-row flex-wrap gap-x-4 gap-y-1">
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                    >
+                    <Text variant="mono.sm" tone="muted">
                       Calls · {fmtNumber(a.totalCalls ?? 0)}
                     </Text>
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                    >
+                    <Text variant="mono.sm" tone="muted">
                       Success · {fmtPct(a.successRate)}
                     </Text>
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                    >
+                    <Text variant="mono.sm" tone="muted">
                       Avg dur · {fmtDuration(avgMinutes)}
                     </Text>
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                    >
+                    <Text variant="mono.sm" tone="muted">
                       Cost · {fmtCurrency(a.totalCost)}
                     </Text>
                   </View>
-                </View>
+                </Card>
               );
             })
           )}

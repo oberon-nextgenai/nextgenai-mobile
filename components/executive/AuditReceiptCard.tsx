@@ -1,16 +1,24 @@
 import { Fragment } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Elevation } from '@/constants/Colors';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
 interface AuditReceiptCardProps {
   action: string;
   reference?: string;
-  approvedBy: string;
+  /**
+   * What was decided. Drives the accent, the icon and the actor row's label —
+   * a rejected decision must not read "Approved by".
+   */
+  decision?: 'approved' | 'rejected';
+  /** Omitted from the record when absent, rather than rendered blank. */
+  decidedBy?: string;
   authMethod?: string;
   tenant?: string;
-  timestamp: string;
+  /** Omitted when absent. A placeholder in an audit row reads as a value. */
+  timestamp?: string;
   policy?: string;
   auditId?: string;
   followUps?: string[];
@@ -21,10 +29,22 @@ interface Row {
   value: string;
 }
 
+/**
+ * The immutable record of a decision.
+ *
+ * The verdict is serif and centred — it is the one thing being asserted. Below
+ * it, every field is mono on both sides of a hairline: who decided, by what
+ * method, under which policy, at what time. Mono is what makes this read as a
+ * record rather than a caption, and it is what a screenshot of it has to prove.
+ *
+ * A field with no value is left out entirely. Rendering an em-dash or a blank
+ * would put something in a record that looks like data and isn't.
+ */
 export function AuditReceiptCard({
   action,
   reference,
-  approvedBy,
+  decision = 'approved',
+  decidedBy,
   authMethod,
   tenant,
   timestamp,
@@ -34,78 +54,67 @@ export function AuditReceiptCard({
 }: AuditReceiptCardProps) {
   const { colors } = useThemeMode();
 
+  const rejected = decision === 'rejected';
+  const accent = rejected ? colors.danger : colors.success;
+
   const rows: Row[] = [
-    { label: 'Approved by', value: approvedBy },
+    ...(decidedBy ? [{ label: rejected ? 'Rejected by' : 'Approved by', value: decidedBy }] : []),
     ...(authMethod ? [{ label: 'Auth method', value: authMethod }] : []),
     ...(tenant ? [{ label: 'Tenant', value: tenant }] : []),
-    { label: 'Time', value: timestamp },
+    ...(timestamp ? [{ label: 'Time', value: timestamp }] : []),
     ...(policy ? [{ label: 'Policy', value: policy }] : []),
     ...(auditId ? [{ label: 'Audit ID', value: auditId }] : []),
   ];
 
   return (
-    <View
-      style={Elevation.sm}
-      className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-4xl overflow-hidden"
+    <Card
+      padding="none"
       accessibilityRole="summary"
       accessibilityLabel={`Audit receipt: ${action}${reference ? `, ${reference}` : ''}`}
     >
-      {/* Thin mint confirmation accent at the top */}
-      <View style={{ height: 3, backgroundColor: colors.success }} />
+      {/* Confirmation accent — mint for approved, red for rejected. */}
+      <View style={{ height: 3, backgroundColor: accent }} />
 
       <View className="p-5">
-        {/* Centered success header */}
         <View className="items-center">
-          <Ionicons name="shield-checkmark" size={34} color={colors.success} />
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-[16px] text-center mt-2"
-            style={{ fontFamily: 'Inter_600SemiBold' }}
-          >
+          <Ionicons
+            name={rejected ? 'close-circle' : 'shield-checkmark'}
+            size={34}
+            color={accent}
+          />
+          <Text variant="display.sm" className="text-center mt-2">
             {action}
           </Text>
           {reference ? (
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-[13px] text-center mt-0.5"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="mono.value" tone="muted" className="text-center mt-1">
               {reference}
             </Text>
           ) : null}
         </View>
 
-        {/* Key / value list */}
-        <View className="mt-5">
-          {rows.map((row, i) => (
-            <Fragment key={row.label}>
-              {i > 0 ? (
-                <View className="h-px bg-border-subtle dark:bg-border-dark-subtle" />
-              ) : null}
-              <View className="flex-row items-center justify-between py-2.5">
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest pr-3"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
-                  {row.label}
-                </Text>
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-[13px] flex-1 text-right"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                  numberOfLines={2}
-                >
-                  {row.value}
-                </Text>
-              </View>
-            </Fragment>
-          ))}
-        </View>
+        {rows.length > 0 ? (
+          <View className="mt-5">
+            {rows.map((row, i) => (
+              <Fragment key={row.label}>
+                {i > 0 ? (
+                  <View className="h-px bg-border-subtle dark:bg-border-dark-subtle" />
+                ) : null}
+                <View className="flex-row items-start justify-between py-2.5">
+                  <Text variant="mono.sm" tone="subtle" className="pr-3">
+                    {row.label}
+                  </Text>
+                  <Text variant="mono.value" className="flex-1 text-right" numberOfLines={2}>
+                    {row.value}
+                  </Text>
+                </View>
+              </Fragment>
+            ))}
+          </View>
+        ) : null}
 
-        {/* Follow-ups */}
         {followUps?.length ? (
           <View className="mt-4 pt-4 border-t border-border-subtle dark:border-border-dark-subtle">
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-2"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
+            <Text variant="mono.label" tone="subtle" className="mb-2">
               Follow-ups
             </Text>
             {followUps.map((item, i) => (
@@ -116,10 +125,7 @@ export function AuditReceiptCard({
                   color={colors.fgSubtle}
                   style={{ marginTop: 1 }}
                 />
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-[13px] ml-2 flex-1"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
+                <Text variant="body.sm" className="ml-2 flex-1">
                   {item}
                 </Text>
               </View>
@@ -127,7 +133,7 @@ export function AuditReceiptCard({
           </View>
         ) : null}
       </View>
-    </View>
+    </Card>
   );
 }
 

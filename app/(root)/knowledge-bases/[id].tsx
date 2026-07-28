@@ -1,14 +1,15 @@
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { Tag } from '@/components/ui/Tag';
+import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import { useKnowledgeBases } from '@/api/hooks/agentHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
-import { fmtDateTime } from '@/lib/formatters';
 
 function fmtBytes(n?: number): string {
   if (n == null) return '—';
@@ -37,11 +38,7 @@ export default function KnowledgeBaseDetailScreen() {
         <EmptyState title="Knowledge base not found" />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-2xl mb-3"
-            style={{ fontFamily: 'Inter_700Bold' }}
-            numberOfLines={2}
-          >
+          <Text variant="display.lg" className="mb-3" numberOfLines={2}>
             {kb.name}
           </Text>
 
@@ -50,7 +47,7 @@ export default function KnowledgeBaseDetailScreen() {
               <Row label="Status" value={kb.status ?? '—'} />
               <Row label="Type" value={kb.type ?? '—'} />
               <Row label="Size" value={fmtBytes(kb.size)} />
-              {kb.knowledgeBaseId ? <Row label="KB ID" value={kb.knowledgeBaseId} mono /> : null}
+              {kb.knowledgeBaseId ? <Row label="KB ID" value={kb.knowledgeBaseId} /> : null}
             </View>
           </SectionCard>
 
@@ -58,26 +55,13 @@ export default function KnowledgeBaseDetailScreen() {
             <SectionCard label="Tags">
               <View className="flex-row flex-wrap gap-2">
                 {kb.tags.map((t) => (
-                  <View
-                    key={t}
-                    className="bg-accent-soft dark:bg-accent-soft-dark rounded-full px-2.5 py-1"
-                  >
-                    <Text
-                      className="text-accent dark:text-accent-dark text-xs"
-                      style={{ fontFamily: 'Inter_500Medium' }}
-                    >
-                      {t}
-                    </Text>
-                  </View>
+                  <Tag key={t} label={t} tone="accent" />
                 ))}
               </View>
             </SectionCard>
           ) : null}
 
-          <Text
-            className="text-fg-subtle dark:text-fg-dark-subtle text-[11px] text-center mt-2"
-            style={{ fontFamily: 'Inter_400Regular' }}
-          >
+          <Text variant="body.xs" tone="subtle" className="text-center mt-2">
             Upload and manage documents on the web platform.
           </Text>
         </ScrollView>
@@ -86,20 +70,14 @@ export default function KnowledgeBaseDetailScreen() {
   );
 }
 
-function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+/** Mono label left, mono value right — the audit-record row. */
+function Row({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-start">
-      <Text
-        className="text-fg-muted dark:text-fg-dark-muted text-[11px] uppercase tracking-widest w-20"
-        style={{ fontFamily: 'Inter_500Medium' }}
-      >
+      <Text variant="mono.label" tone="muted" className="w-20">
         {label}
       </Text>
-      <Text
-        className="text-fg dark:text-fg-dark-DEFAULT text-sm flex-1"
-        style={{ fontFamily: mono ? 'Menlo' : 'Inter_500Medium' }}
-        numberOfLines={2}
-      >
+      <Text variant="mono.value" className="flex-1" numberOfLines={2}>
         {value}
       </Text>
     </View>

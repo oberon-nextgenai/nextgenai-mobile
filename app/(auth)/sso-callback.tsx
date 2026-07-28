@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { Screen } from '@/components/common/Screen';
+import { Text } from '@/components/ui/Text';
 import { AppMark } from '@/components/brand/AppMark';
 import { exchangeMobileSso } from '@/api/services/auth';
 import { useAuthStore } from '@/store/auth';
@@ -51,13 +52,10 @@ export default function SsoCallbackScreen() {
   }, [token, error, router, setSession]);
 
   return (
-    <Screen className="items-center justify-center px-6">
+    <Screen background="nebula" className="items-center justify-center px-6">
       <AppMark size={44} variant="full" />
       <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
-      <Text
-        className="text-fg-muted dark:text-fg-dark-muted text-sm mt-3"
-        style={{ fontFamily: 'Inter_400Regular' }}
-      >
+      <Text variant="body.sm" tone="muted" className="mt-3">
         Completing sign-in…
       </Text>
     </Screen>

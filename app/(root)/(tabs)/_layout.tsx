@@ -1,4 +1,4 @@
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -6,21 +6,30 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { GlassSurface } from '@/components/ui/GlassSurface';
+import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
+import { useEscalationCounts } from '@/api/hooks/escalationHooks';
+import { useActiveOrg } from '@/store/org';
 
 /**
- * The CEO command app exposes four calm destinations. Admin surfaces
+ * The CEO command app exposes five calm destinations. Admin surfaces
  * (dashboard, analytics, agents, settings) stay registered so every deep link
  * keeps working, but are hidden from the bar and reached via the More tab.
- * A fifth slot is reserved for Approvals when its backend lands.
  *
- * The bar renders from this static list (not `state.routes`) so the four tabs
+ * The bar renders from this static list (not `state.routes`) so the tabs
  * always appear and navigate by name, regardless of navigator state timing.
  */
-const TABS: { name: string; title: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const TABS: {
+  name: string;
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  /** Renders the live count of items waiting on a decision. */
+  badge?: boolean;
+}[] = [
   { name: 'brief', title: 'Brief', icon: 'today-outline' },
   { name: 'workforce', title: 'Workforce', icon: 'people-outline' },
   { name: 'prime', title: 'Prime', icon: 'sparkles-outline' },
+  { name: 'approvals', title: 'Approvals', icon: 'checkmark-circle-outline', badge: true },
   { name: 'more', title: 'More', icon: 'apps-outline' },
 ];
 
@@ -28,6 +37,10 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const { colors } = useThemeMode();
   const insets = useSafeAreaInsets();
   const activeName = state.routes[state.index]?.name;
+  const { activeOrgId } = useActiveOrg();
+  // Cached ~20s server-side and client-side, so this is cheap despite living on
+  // every screen. It is the one number the app is always showing you.
+  const { data: counts } = useEscalationCounts(activeOrgId);
 
   return (
     <GlassSurface border="top" radius={0} elevation="lg" intensity={40}>
@@ -73,15 +86,21 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                   size={18}
                   color={focused ? colors.accent2 : colors.fgMuted}
                 />
+                {tab.badge && counts && counts.total > 0 ? (
+                  <View
+                    className="absolute -right-0.5 -top-0.5 min-w-[16px] items-center justify-center rounded-full px-1"
+                    style={{ backgroundColor: colors.danger, height: 16 }}
+                  >
+                    <Text variant="mono.label" tone="onAccent">
+                      {counts.total > 9 ? '9+' : String(counts.total)}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
               <Text
-                className={cn(
-                  'text-[10px] uppercase tracking-widest mt-1',
-                  focused
-                    ? 'text-accent-2 dark:text-accent-2-dark'
-                    : 'text-fg-muted dark:text-fg-dark-muted',
-                )}
-                style={{ fontFamily: 'Inter_500Medium' }}
+                variant="mono.label"
+                tone={focused ? 'accent' : 'muted'}
+                className="mt-1"
                 numberOfLines={1}
               >
                 {tab.title}
@@ -104,6 +123,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="brief" options={{ title: 'Brief' }} />
       <Tabs.Screen name="workforce" options={{ title: 'Workforce' }} />
       <Tabs.Screen name="prime" options={{ title: 'Prime' }} />
+      <Tabs.Screen name="approvals" options={{ title: 'Approvals' }} />
       <Tabs.Screen name="more" options={{ title: 'More' }} />
       {/* Registered but hidden — reachable from More, deep links preserved */}
       <Tabs.Screen name="dashboard" options={{ title: 'Home' }} />

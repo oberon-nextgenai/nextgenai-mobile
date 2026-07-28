@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Screen } from '@/components/common/Screen';
 import { AppMark } from '@/components/brand/AppMark';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { useSSOLoginMutation } from '@/api/hooks/authHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
@@ -31,36 +33,27 @@ export default function SSOScreen() {
       ?.response?.data?.message ?? (sso.error as Error | undefined)?.message;
 
   return (
-    <Screen className="px-6">
+    <Screen background="nebula" className="px-6">
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 32 }}
       >
         <Pressable onPress={() => router.back()} className="mb-6 self-start flex-row items-center">
           <Ionicons name="chevron-back" size={18} color={colors.fg} />
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-sm ml-1"
-            style={{ fontFamily: 'Inter_500Medium' }}
-          >
+          <Text variant="body.medium" className="ml-1">
             Back
           </Text>
         </Pressable>
 
-        <View className="mb-10 items-start">
+        {/* Brand block — centred, matching the migrated sign-in screen. */}
+        <View className="items-center mb-9">
           <AppMark size={44} variant="full" />
+          <Text variant="display.lg" className="mt-6 text-center">
+            Single sign-on
+          </Text>
+          <Text variant="body.sm" tone="muted" className="mt-2 text-center">
+            Continue with your work identity provider
+          </Text>
         </View>
-
-        <Text
-          className="text-fg dark:text-fg-dark-DEFAULT text-3xl tracking-tight"
-          style={{ fontFamily: 'Inter_700Bold' }}
-        >
-          Single sign-on
-        </Text>
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-sm mt-1 mb-6"
-          style={{ fontFamily: 'Inter_400Regular' }}
-        >
-          Continue with your work identity provider
-        </Text>
 
         <View className="gap-3">
           <Button
@@ -100,11 +93,11 @@ export default function SSOScreen() {
           ) : null}
 
           {errorMsg ? (
-            <View className="bg-danger-soft border border-danger/40 rounded-lg px-3 py-2">
-              <Text className="text-danger text-sm" style={{ fontFamily: 'Inter_500Medium' }}>
+            <Card variant="plain" padding="sm" style={{ backgroundColor: colors.dangerSoft }}>
+              <Text variant="body.sm" tone="danger">
                 {errorMsg}
               </Text>
-            </View>
+            </Card>
           ) : null}
 
           <View className="flex-row items-start mt-4 opacity-80">
@@ -114,12 +107,9 @@ export default function SSOScreen() {
               color={colors.fgMuted}
               style={{ marginTop: 2 }}
             />
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-xs ml-1.5 flex-1 leading-4"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
-              You will be redirected to your provider. After authenticating, you'll be returned to
-              Prime automatically.
+            <Text variant="body.xs" tone="muted" className="ml-1.5 flex-1">
+              You will be redirected to your provider. After authenticating, you&apos;ll be returned
+              to Prime automatically.
             </Text>
           </View>
         </View>

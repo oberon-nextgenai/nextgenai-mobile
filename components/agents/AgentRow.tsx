@@ -1,8 +1,9 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/ui/Avatar';
 import { StatusDot } from '@/components/ui/StatusDot';
 import { ProviderChip } from '@/components/ui/ProviderChip';
+import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type { Agent } from '@/api/services/types';
 
@@ -42,18 +43,10 @@ export function AgentRow({ agent, onPress }: AgentRowProps) {
     >
       <Avatar name={agent.name} size={36} />
       <View className="flex-1 mx-3">
-        <Text
-          className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-          style={{ fontFamily: 'Inter_600SemiBold' }}
-          numberOfLines={1}
-        >
+        <Text variant="body.semibold" numberOfLines={1}>
           {agent.name}
         </Text>
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-          style={{ fontFamily: 'Inter_400Regular' }}
-          numberOfLines={1}
-        >
+        <Text variant="body.xs" tone="muted" numberOfLines={1} className="mt-0.5">
           {describe(agent)}
         </Text>
       </View>
@@ -61,10 +54,8 @@ export function AgentRow({ agent, onPress }: AgentRowProps) {
         <ProviderChip provider={agent.provider ?? agent.agentType} />
         <View className="flex-row items-center">
           <StatusDot status={agent.status} />
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-wider ml-1.5"
-            style={{ fontFamily: 'Inter_500Medium' }}
-          >
+          {/* Status is a machine fact about the agent, so it reads as mono. */}
+          <Text variant="mono.label" tone="muted" className="ml-1.5">
             {statusLabel(agent)}
           </Text>
         </View>

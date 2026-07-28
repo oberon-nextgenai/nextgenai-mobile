@@ -1,9 +1,11 @@
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { useToolResults } from '@/store/toolResults';
 import { fmtDateTime } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
@@ -36,46 +38,32 @@ export default function ToolResultScreen() {
           <View
             className={`w-2 h-2 rounded-full mr-2 ${isError ? 'bg-danger' : 'bg-success'}`}
           />
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-            style={{ fontFamily: 'Inter_600SemiBold' }}
-          >
+          <Text variant="mono.label" tone={isError ? 'danger' : 'success'}>
             {isError ? 'Failed' : 'Success'}
           </Text>
-          <Text
-            className="text-fg-subtle dark:text-fg-dark-subtle text-[10px] ml-auto"
-            style={{ fontFamily: 'Inter_400Regular' }}
-          >
+          <Text variant="mono.sm" tone="subtle" className="ml-auto">
             {fmtDateTime(record.createdAt)}
           </Text>
         </View>
 
         {record.arguments != null ? (
           <View className="mb-3">
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-1.5"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
+            <Text variant="mono.label" tone="muted" className="mb-1.5">
               Arguments
             </Text>
-            <View className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3">
-              <Text className="text-fg dark:text-fg-dark-DEFAULT text-xs" style={{ fontFamily: 'Menlo' }}>
-                {JSON.stringify(record.arguments, null, 2)}
-              </Text>
-            </View>
+            <Card padding="sm">
+              <Text variant="mono.code">{JSON.stringify(record.arguments, null, 2)}</Text>
+            </Card>
           </View>
         ) : null}
 
         {record.error != null ? (
           <View className="mb-3">
-            <Text
-              className="text-danger text-[10px] uppercase tracking-widest mb-1.5"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
+            <Text variant="mono.label" tone="danger" className="mb-1.5">
               Error
             </Text>
             <View className="bg-danger-soft border border-danger/40 rounded-xl p-3">
-              <Text className="text-danger text-xs" style={{ fontFamily: 'Menlo' }}>
+              <Text variant="mono.code" tone="danger">
                 {typeof record.error === 'string'
                   ? record.error
                   : JSON.stringify(record.error, null, 2)}
@@ -86,19 +74,16 @@ export default function ToolResultScreen() {
 
         {record.result != null ? (
           <View className="mb-3">
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-1.5"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
+            <Text variant="mono.label" tone="muted" className="mb-1.5">
               Result
             </Text>
-            <View className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3">
-              <Text className="text-fg dark:text-fg-dark-DEFAULT text-xs" style={{ fontFamily: 'Menlo' }}>
+            <Card padding="sm">
+              <Text variant="mono.code">
                 {typeof record.result === 'string'
                   ? record.result
                   : JSON.stringify(record.result, null, 2)}
               </Text>
-            </View>
+            </Card>
           </View>
         ) : null}
       </ScrollView>

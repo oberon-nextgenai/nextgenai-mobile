@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Alert, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, View } from 'react-native';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
@@ -7,6 +7,8 @@ import { AppHeader } from '@/components/common/AppHeader';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { IconButton } from '@/components/ui/IconButton';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { MarkdownRenderer } from '@/components/prime/MarkdownRenderer';
 import { usePrimeHistory } from '@/api/hooks/chatHooks';
 import { clearPrimeHistory } from '@/api/services/chat';
@@ -132,39 +134,32 @@ export default function PrimeHistoryScreen() {
                   : 'bg-fg-subtle';
             const preview = buildPreview(m);
             return (
-              <View
+              <Card
                 key={m._id ?? m.id ?? `${m.timestamp}-${m.role}`}
-                className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3 mb-2"
+                padding="sm"
+                className="mb-2"
               >
                 <View className="flex-row items-center mb-2">
                   <View className={`w-1.5 h-1.5 rounded-full mr-2 ${roleColor}`} />
-                  <Text
-                    className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                    style={{ fontFamily: 'Inter_500Medium' }}
-                  >
+                  {/* Who said it and when — both audit fields, both mono. */}
+                  <Text variant="mono.label" tone="muted">
                     {m.role}
                   </Text>
-                  <Text
-                    className="text-fg-subtle dark:text-fg-dark-subtle text-[10px] ml-auto"
-                    style={{ fontFamily: 'Inter_400Regular' }}
-                  >
+                  <Text variant="mono.sm" tone="subtle" className="ml-auto">
                     {fmtRelative(m.timestamp ?? m.createdAt)}
                   </Text>
                 </View>
 
                 {preview.kind === 'structured' ? (
                   <>
-                    <Text
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                      style={{ fontFamily: 'Inter_600SemiBold' }}
-                      numberOfLines={2}
-                    >
+                    <Text variant="display.sm" numberOfLines={2}>
                       {preview.title}
                     </Text>
                     {preview.body ? (
                       <Text
-                        className="text-fg-muted dark:text-fg-dark-muted text-xs mt-1 leading-5"
-                        style={{ fontFamily: 'Inter_400Regular' }}
+                        variant="body.sm"
+                        tone="muted"
+                        className="mt-1"
                         numberOfLines={3}
                       >
                         {preview.body}
@@ -174,15 +169,11 @@ export default function PrimeHistoryScreen() {
                 ) : preview.kind === 'markdown' ? (
                   <MarkdownRenderer source={preview.body} />
                 ) : (
-                  <Text
-                    className="text-fg dark:text-fg-dark-DEFAULT text-sm leading-5"
-                    style={{ fontFamily: 'Inter_400Regular' }}
-                    numberOfLines={6}
-                  >
+                  <Text variant="body.md" numberOfLines={6}>
                     {preview.body}
                   </Text>
                 )}
-              </View>
+              </Card>
             );
           })}
         </ScrollView>

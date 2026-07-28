@@ -1,11 +1,13 @@
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
-import { Button } from '@/components/ui/Button';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { AppMark } from '@/components/brand/AppMark';
 import { useTwoFactorLoginMutation } from '@/api/hooks/authHooks';
@@ -36,29 +38,23 @@ export default function TwoFactorScreen() {
       ?.response?.data?.message ?? (verify.error as Error | undefined)?.message;
 
   return (
-    <Screen avoidKeyboard className="px-6">
+    <Screen background="nebula" avoidKeyboard className="px-6">
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 32 }}
       >
-        <View className="mb-10 items-start">
+        {/* Brand block — centred, matching the migrated sign-in screen. */}
+        <View className="items-center mb-9">
           <AppMark size={44} variant="full" />
+          <Text variant="display.lg" className="mt-6 text-center">
+            Two-factor
+          </Text>
+          <Text variant="mono.value" tone="muted" className="mt-2 text-center">
+            {email
+              ? `Enter the 6-digit code for ${email}`
+              : 'Enter the 6-digit code from your authenticator app'}
+          </Text>
         </View>
-
-        <Text
-          className="text-fg dark:text-fg-dark-DEFAULT text-3xl tracking-tight"
-          style={{ fontFamily: 'Inter_700Bold' }}
-        >
-          Two-factor
-        </Text>
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-sm mt-1 mb-6"
-          style={{ fontFamily: 'Inter_400Regular' }}
-        >
-          {email
-            ? `Enter the 6-digit code for ${email}`
-            : 'Enter the 6-digit code from your authenticator app'}
-        </Text>
 
         <View className="gap-3">
           <Controller
@@ -82,16 +78,16 @@ export default function TwoFactorScreen() {
           />
 
           {errorMsg ? (
-            <View className="bg-danger-soft border border-danger/40 rounded-lg px-3 py-2">
-              <Text className="text-danger text-sm" style={{ fontFamily: 'Inter_500Medium' }}>
+            <Card variant="plain" padding="sm" style={{ backgroundColor: colors.dangerSoft }}>
+              <Text variant="body.sm" tone="danger">
                 {errorMsg}
               </Text>
-            </View>
+            </Card>
           ) : null}
 
-          <Button onPress={onSubmit} loading={verify.isPending} fullWidth className="mt-2">
+          <GradientButton onPress={onSubmit} loading={verify.isPending} fullWidth className="mt-2">
             Verify
-          </Button>
+          </GradientButton>
         </View>
       </ScrollView>
     </Screen>

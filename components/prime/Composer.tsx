@@ -1,8 +1,10 @@
 import { useRef } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
+import { Type } from '@/constants/Typography';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type { PrimeVoicePhase } from '@/api/hooks/usePrimeVoice';
 
@@ -73,17 +75,12 @@ export function Composer({
                   : 'bg-surface-2 dark:bg-surface-2-dark',
             )}
           >
-            <Text
-              className="text-[11px] text-fg-muted dark:text-fg-dark-muted"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
+            {/* Call phase is a machine state, not prose — mono, sentence case. */}
+            <Text variant="mono.sm" tone="muted">
               {phaseLabel}
             </Text>
           </View>
-          <Text
-            className="text-[11px] text-fg-subtle dark:text-fg-dark-subtle"
-            style={{ fontFamily: 'Inter_400Regular' }}
-          >
+          <Text variant="body.xs" tone="subtle">
             Headphones recommended
           </Text>
         </View>
@@ -104,9 +101,12 @@ export function Composer({
           placeholderTextColor={colors.fgSubtle}
           multiline
           textAlignVertical="center"
-          className="flex-1 text-fg dark:text-fg-dark-DEFAULT text-[15px] max-h-32 mr-2"
+          className="flex-1 max-h-32 mr-2"
+          // TextInput is not the Text primitive, so the role is spread directly.
+          // lineHeight is pinned after the spread to keep the single-line height.
           style={{
-            fontFamily: 'Inter_400Regular',
+            ...Type.body.lg,
+            color: colors.fg,
             paddingTop: 0,
             paddingBottom: 0,
             minHeight: 36,

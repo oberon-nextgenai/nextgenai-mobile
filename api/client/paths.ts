@@ -84,9 +84,28 @@ export const PATHS = {
     agentDetails: (orgId: string, assistantId: string) =>
       `/api/analytics/agent-details/${encodeURIComponent(orgId)}/${encodeURIComponent(assistantId)}`,
     stream: (orgId: string) => `/api/analytics/stream/${encodeURIComponent(orgId)}`,
+    channelMix: (orgId: string) =>
+      `/api/analytics/channel-mix/${encodeURIComponent(orgId)}`,
     ndsBackgroundChecks: (orgId: string) =>
       `/api/agent-analytics/nds-background-checks/${encodeURIComponent(orgId)}`,
     mmrCampaigns: '/api/campaigns',
+  },
+  escalations: {
+    list: '/api/escalations',
+    counts: '/api/escalations/counts',
+    detail: (id: string) => `/api/escalations/${encodeURIComponent(id)}`,
+    assign: (id: string) => `/api/escalations/${encodeURIComponent(id)}/assign`,
+    approve: (id: string) => `/api/escalations/${encodeURIComponent(id)}/approve`,
+    reject: (id: string) => `/api/escalations/${encodeURIComponent(id)}/reject`,
+  },
+  auditLog: {
+    list: '/api/audit-log',
+  },
+  devices: {
+    register: '/api/devices/register',
+    list: '/api/devices',
+    preferences: '/api/devices/preferences',
+    unregister: (token: string) => `/api/devices/${encodeURIComponent(token)}`,
   },
   orgs: {
     list: '/api/orgs',

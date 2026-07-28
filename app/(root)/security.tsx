@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   Switch,
-  Text,
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -14,7 +13,9 @@ import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/store/auth';
 import { useMeQuery } from '@/api/hooks/authHooks';
 import {
@@ -150,30 +151,26 @@ export default function SecurityScreen() {
         >
           {pendingSetup ? (
             <View className="gap-3">
-              <View className="items-center bg-surface-2 dark:bg-surface-2-dark border border-border-subtle dark:border-border-dark-subtle rounded-xl p-4">
-                <Image
-                  source={{ uri: pendingSetup.qrCode }}
-                  style={{ width: 180, height: 180 }}
-                  resizeMode="contain"
-                />
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-[11px] mt-3 text-center"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
-                  Scan with Google Authenticator, 1Password, or Authy.
-                </Text>
-                <Pressable
-                  onPress={() => void Clipboard.setStringAsync(pendingSetup.secret)}
-                  className="mt-2 px-3 py-1.5 rounded-full bg-accent-soft dark:bg-accent-soft-dark"
-                >
-                  <Text
-                    className="text-accent dark:text-accent-dark text-[11px]"
-                    style={{ fontFamily: 'Inter_500Medium' }}
-                  >
-                    Copy setup key
+              <Card variant="raised">
+                <View className="items-center">
+                  <Image
+                    source={{ uri: pendingSetup.qrCode }}
+                    style={{ width: 180, height: 180 }}
+                    resizeMode="contain"
+                  />
+                  <Text variant="body.xs" tone="muted" className="mt-3 text-center">
+                    Scan with Google Authenticator, 1Password, or Authy.
                   </Text>
-                </Pressable>
-              </View>
+                  <Pressable
+                    onPress={() => void Clipboard.setStringAsync(pendingSetup.secret)}
+                    className="mt-2 px-3 py-1.5 rounded-full bg-accent-soft dark:bg-accent-soft-dark"
+                  >
+                    <Text variant="body.xs" tone="accent">
+                      Copy setup key
+                    </Text>
+                  </Pressable>
+                </View>
+              </Card>
               <Input
                 label="6-digit code"
                 value={otp}
@@ -185,19 +182,12 @@ export default function SecurityScreen() {
               />
               {pendingSetup.backupCodes.length > 0 ? (
                 <View className="bg-warning-soft dark:bg-warning-soft rounded-xl p-3">
-                  <Text
-                    className="text-fg dark:text-fg-dark-DEFAULT text-[12px] mb-2"
-                    style={{ fontFamily: 'Inter_600SemiBold' }}
-                  >
+                  <Text variant="body.semibold" className="mb-2">
                     Save your backup codes
                   </Text>
                   <View className="flex-row flex-wrap">
                     {pendingSetup.backupCodes.map((c) => (
-                      <Text
-                        key={c}
-                        className="text-fg dark:text-fg-dark-DEFAULT text-[12px] w-1/2 py-0.5"
-                        style={{ fontFamily: 'Menlo' }}
-                      >
+                      <Text key={c} variant="mono.value" className="w-1/2 py-0.5">
                         {c}
                       </Text>
                     ))}
@@ -208,10 +198,7 @@ export default function SecurityScreen() {
                     }
                     className="mt-2"
                   >
-                    <Text
-                      className="text-accent dark:text-accent-dark text-[11px]"
-                      style={{ fontFamily: 'Inter_500Medium' }}
-                    >
+                    <Text variant="body.xs" tone="accent">
                       Copy all
                     </Text>
                   </Pressable>
@@ -246,12 +233,7 @@ export default function SecurityScreen() {
           ) : enabled ? (
             <View className="gap-3">
               <View className="flex-row items-center justify-between">
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
-                  Enabled
-                </Text>
+                <Text variant="body.medium">Enabled</Text>
                 <Switch
                   value={true}
                   onValueChange={() => setDisableMode((v) => !v)}
@@ -347,10 +329,7 @@ export default function SecurityScreen() {
                 autoCorrect={false}
                 textContentType="newPassword"
               />
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-[11px]"
-                style={{ fontFamily: 'Inter_400Regular' }}
-              >
+              <Text variant="body.xs" tone="muted">
                 8–128 characters with uppercase, lowercase, number, and special character.
                 Changing it signs out your other devices.
               </Text>

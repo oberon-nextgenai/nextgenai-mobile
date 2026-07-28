@@ -22,6 +22,15 @@ export interface WorkforceAgent {
   status: WorkforceStatus;
   performancePct?: number;
   costPerRun?: number;
+  /**
+   * Per-agent performance series for the row sparkline.
+   *
+   * Deliberately left unpopulated: `/api/analytics/agents/:orgId` returns
+   * aggregates only (`AnalyticsAgentRow` has no time dimension), and the org-wide
+   * `charts.lineData` is *not* this agent's history — rendering it here would
+   * make the row assert something untrue. `AgentHealthRow` reserves the space so
+   * the layout does not shift once a real per-agent series endpoint exists.
+   */
   trend?: number[];
 }
 
@@ -134,11 +143,15 @@ export interface BriefPriority {
 }
 
 export interface DailyBrief {
+  /** First serif line — "Good morning, Sara." */
   greeting: string;
+  /** Second serif line — the one-sentence verdict on the night. */
+  headline: string;
   /** Generated from live numbers until a `/api/prime/brief` endpoint exists. */
   summary: string;
   metrics: {
     activeAgents: number;
+    totalAgents: number;
     tasksResolved: number;
     attention: number;
     spendToday: number;
@@ -150,7 +163,19 @@ function greetingForNow(name?: string): string {
   const h = new Date().getHours();
   const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
   const first = name?.trim().split(' ')[0];
-  return first ? `${part}, ${first}` : part;
+  return first ? `${part}, ${first}.` : `${part}.`;
+}
+
+/**
+ * The verdict line. States what happened rather than selling it, and names the
+ * problem when there is one — an executive scanning this needs to know in one
+ * line whether to keep reading.
+ */
+function headlineFor(attention: number, hasPriority: boolean): string {
+  if (attention === 0 && !hasPriority) return 'Your workforce ran clean overnight.';
+  if (attention === 1) return 'One agent needs your attention.';
+  if (attention > 1) return `${attention} agents need your attention.`;
+  return 'One item is waiting on you.';
 }
 
 export function useDailyBrief(orgId: string | null) {
@@ -207,8 +232,15 @@ export function useDailyBrief(orgId: string | null) {
 
     return {
       greeting: greetingForNow(user?.name),
+      headline: headlineFor(attention, !!topPriority),
       summary,
-      metrics: { activeAgents, tasksResolved, attention, spendToday },
+      metrics: {
+        activeAgents,
+        totalAgents: rows.length || activeAgents,
+        tasksResolved,
+        attention,
+        spendToday,
+      },
       topPriority,
     };
   }, [dashboard.data, analytics.data, unread, user?.name]);

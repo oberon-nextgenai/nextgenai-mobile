@@ -1,4 +1,4 @@
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
@@ -7,7 +7,8 @@ import { z } from 'zod';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
-import { Button } from '@/components/ui/Button';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { AppMark } from '@/components/brand/AppMark';
 import { requestPasswordReset } from '@/api/services/auth';
@@ -41,27 +42,21 @@ export default function ForgotPasswordScreen() {
   const onSubmit = handleSubmit(({ email }) => mutation.mutate(email));
 
   return (
-    <Screen avoidKeyboard className="px-6">
+    <Screen background="nebula" avoidKeyboard className="px-6">
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 32 }}
       >
-        <View className="mb-10 items-start">
+        {/* Brand block — centred, matching the migrated sign-in screen. */}
+        <View className="items-center mb-9">
           <AppMark size={44} variant="full" />
+          <Text variant="display.lg" className="mt-6 text-center">
+            Reset password
+          </Text>
+          <Text variant="body.sm" tone="muted" className="mt-2 text-center">
+            Enter your account email and we&apos;ll send you a reset link.
+          </Text>
         </View>
-
-        <Text
-          className="text-fg dark:text-fg-dark-DEFAULT text-3xl tracking-tight"
-          style={{ fontFamily: 'Inter_700Bold' }}
-        >
-          Reset password
-        </Text>
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-sm mt-1 mb-6"
-          style={{ fontFamily: 'Inter_400Regular' }}
-        >
-          Enter your account email and we&apos;ll send you a reset link.
-        </Text>
 
         <View className="gap-3">
           <Controller
@@ -83,9 +78,9 @@ export default function ForgotPasswordScreen() {
             )}
           />
 
-          <Button onPress={onSubmit} loading={mutation.isPending} fullWidth className="mt-2">
+          <GradientButton onPress={onSubmit} loading={mutation.isPending} fullWidth className="mt-2">
             Send reset link
-          </Button>
+          </GradientButton>
         </View>
       </ScrollView>
     </Screen>

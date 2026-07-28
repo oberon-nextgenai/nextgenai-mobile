@@ -4,7 +4,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -15,6 +14,8 @@ import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Pill } from '@/components/ui/Pill';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { IconButton } from '@/components/ui/IconButton';
 import { KpiStrip } from '@/components/analytics/KpiStrip';
 import { ChartCard } from '@/components/analytics/ChartCard';
@@ -84,16 +85,8 @@ function PieCard({
           innerCircleColor={surfaceColor}
           centerLabelComponent={() => (
             <View className="items-center">
-              <Text
-                className="text-fg dark:text-fg-dark-DEFAULT text-base"
-                style={{ fontFamily: 'Inter_700Bold' }}
-              >
-                {fmtNumber(total)}
-              </Text>
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                style={{ fontFamily: 'Inter_500Medium' }}
-              >
+              <Text variant="display.sm">{fmtNumber(total)}</Text>
+              <Text variant="mono.label" tone="muted">
                 Total
               </Text>
             </View>
@@ -106,10 +99,7 @@ function PieCard({
                 className="w-2 h-2 rounded-full mr-1.5"
                 style={{ backgroundColor: d.color }}
               />
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                style={{ fontFamily: 'Inter_500Medium' }}
-              >
+              <Text variant="mono.sm" tone="muted">
                 {d.text}
               </Text>
             </View>
@@ -333,10 +323,7 @@ export default function AnalyticsScreen() {
                               marginRight: 6,
                             }}
                           />
-                          <Text
-                            className="text-fg-muted dark:text-fg-dark-muted text-[11px]"
-                            style={{ fontFamily: 'Inter_500Medium' }}
-                          >
+                          <Text variant="mono.sm" tone="muted">
                             {label}
                           </Text>
                         </View>
@@ -359,16 +346,8 @@ export default function AnalyticsScreen() {
                           key={q.name}
                           className="flex-row items-center bg-surface-2 dark:bg-surface-2-dark border border-border dark:border-border-dark rounded-full px-3 py-1.5"
                         >
-                          <Text
-                            className="text-fg dark:text-fg-dark-DEFAULT text-xs"
-                            style={{ fontFamily: 'Inter_500Medium' }}
-                          >
-                            {q.label}
-                          </Text>
-                          <Text
-                            className="text-fg-muted dark:text-fg-dark-muted text-xs ml-2"
-                            style={{ fontFamily: 'Inter_600SemiBold' }}
-                          >
+                          <Text variant="body.xs">{q.label}</Text>
+                          <Text variant="mono.value" tone="muted" className="ml-2">
                             {q.count}
                           </Text>
                         </View>
@@ -381,10 +360,7 @@ export default function AnalyticsScreen() {
                   onPress={() => setShowOperational((v) => !v)}
                   className="flex-row items-center justify-between bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl px-4 py-3"
                 >
-                  <Text
-                    className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                    style={{ fontFamily: 'Inter_600SemiBold' }}
-                  >
+                  <Text variant="body.semibold">
                     {showOperational ? 'Hide operational details' : 'View operational details'}
                   </Text>
                   <Ionicons
@@ -408,16 +384,10 @@ export default function AnalyticsScreen() {
                             ] as const
                           ).map(([k, v]) => (
                             <View key={k} className="w-1/4 px-1 mb-2">
-                              <Text
-                                className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                                style={{ fontFamily: 'Inter_500Medium' }}
-                              >
+                              <Text variant="mono.label" tone="muted">
                                 {k}
                               </Text>
-                              <Text
-                                className="text-fg dark:text-fg-dark-DEFAULT text-lg mt-0.5"
-                                style={{ fontFamily: 'Inter_700Bold' }}
-                              >
+                              <Text variant="display.md" className="mt-0.5">
                                 {v != null ? v.toFixed(1) : '—'}
                               </Text>
                             </View>
@@ -460,17 +430,14 @@ export default function AnalyticsScreen() {
                                         }}
                                       />
                                     ) : null}
-                                    <Text
-                                      className="text-fg dark:text-fg-dark-DEFAULT text-sm flex-1"
-                                      style={{ fontFamily: 'Inter_600SemiBold' }}
-                                      numberOfLines={1}
-                                    >
+                                    <Text variant="body.semibold" className="flex-1" numberOfLines={1}>
                                       {m.fullName ?? '—'}
                                     </Text>
                                   </View>
                                   <Text
-                                    className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                                    style={{ fontFamily: 'Inter_500Medium' }}
+                                    variant="mono.sm"
+                                    tone="muted"
+                                    className="mt-0.5"
                                     numberOfLines={1}
                                   >
                                     {stats.join(' · ')}
@@ -490,18 +457,13 @@ export default function AnalyticsScreen() {
                             ['Unprocessed', nds.data.integrations.webhooks?.unprocessed ?? 0, 'warning'],
                           ].map(([label, value, tone]) => (
                             <View key={String(label)} className="flex-1">
-                              <Text
-                                className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                                style={{ fontFamily: 'Inter_500Medium' }}
-                              >
+                              <Text variant="mono.label" tone="muted">
                                 {label}
                               </Text>
                               <Text
-                                className={cn(
-                                  'text-lg mt-0.5',
-                                  tone === 'positive' ? 'text-success' : 'text-warning',
-                                )}
-                                style={{ fontFamily: 'Inter_700Bold' }}
+                                variant="display.md"
+                                tone={tone === 'positive' ? 'success' : 'warning'}
+                                className="mt-0.5"
                               >
                                 {fmtNumber(Number(value))}
                               </Text>
@@ -512,20 +474,17 @@ export default function AnalyticsScreen() {
                           <View className="gap-1.5 pt-3 border-t border-border-subtle dark:border-border-dark-subtle">
                             {(nds.data.integrations.notifications ?? []).slice(0, 4).map((n, i) => (
                               <View key={`${n.type}-${i}`} className="flex-row items-center justify-between">
-                                <Text
-                                  className="text-fg dark:text-fg-dark-DEFAULT text-xs flex-1 pr-2"
-                                  style={{ fontFamily: 'Inter_500Medium' }}
-                                  numberOfLines={1}
-                                >
+                                <Text variant="mono.sm" className="flex-1 pr-2" numberOfLines={1}>
                                   {n.type ?? '—'}
                                 </Text>
-                                <Text
-                                  className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                                  style={{ fontFamily: 'Inter_500Medium' }}
-                                >
-                                  <Text className="text-success">{n.successCount ?? 0}</Text>
+                                <Text variant="mono.sm" tone="muted">
+                                  <Text variant="mono.sm" tone="success">
+                                    {n.successCount ?? 0}
+                                  </Text>
                                   {' / '}
-                                  <Text className="text-danger">{n.failureCount ?? 0}</Text>
+                                  <Text variant="mono.sm" tone="danger">
+                                    {n.failureCount ?? 0}
+                                  </Text>
                                 </Text>
                               </View>
                             ))}
@@ -540,10 +499,7 @@ export default function AnalyticsScreen() {
                       <ChartCard title="Coverage">
                         {(nds.data.coverage.byManager ?? []).length > 0 ? (
                           <View className="mb-3">
-                            <Text
-                              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-1.5"
-                              style={{ fontFamily: 'Inter_500Medium' }}
-                            >
+                            <Text variant="mono.label" tone="muted" className="mb-1.5">
                               By manager
                             </Text>
                             {(nds.data.coverage.byManager ?? []).slice(0, 5).map((c) => (
@@ -552,16 +508,13 @@ export default function AnalyticsScreen() {
                                 className="flex-row items-center justify-between py-1"
                               >
                                 <Text
-                                  className="text-fg dark:text-fg-dark-DEFAULT text-sm flex-1 pr-2"
-                                  style={{ fontFamily: 'Inter_500Medium' }}
+                                  variant="body.medium"
+                                  className="flex-1 pr-2"
                                   numberOfLines={1}
                                 >
                                   {c.label ?? c.key}
                                 </Text>
-                                <Text
-                                  className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                                  style={{ fontFamily: 'Inter_500Medium' }}
-                                >
+                                <Text variant="mono.sm" tone="muted">
                                   {fmtNumber(c.count)}
                                 </Text>
                               </View>
@@ -570,10 +523,7 @@ export default function AnalyticsScreen() {
                         ) : null}
                         {(nds.data.coverage.byLocation ?? []).length > 0 ? (
                           <View>
-                            <Text
-                              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-1.5"
-                              style={{ fontFamily: 'Inter_500Medium' }}
-                            >
+                            <Text variant="mono.label" tone="muted" className="mb-1.5">
                               By location
                             </Text>
                             {(nds.data.coverage.byLocation ?? []).slice(0, 5).map((c) => (
@@ -582,16 +532,13 @@ export default function AnalyticsScreen() {
                                 className="flex-row items-center justify-between py-1"
                               >
                                 <Text
-                                  className="text-fg dark:text-fg-dark-DEFAULT text-sm flex-1 pr-2"
-                                  style={{ fontFamily: 'Inter_500Medium' }}
+                                  variant="body.medium"
+                                  className="flex-1 pr-2"
                                   numberOfLines={1}
                                 >
                                   {c.label ?? c.key}
                                 </Text>
-                                <Text
-                                  className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                                  style={{ fontFamily: 'Inter_500Medium' }}
-                                >
+                                <Text variant="mono.sm" tone="muted">
                                   {fmtNumber(c.count)}
                                 </Text>
                               </View>
@@ -616,16 +563,10 @@ export default function AnalyticsScreen() {
                               key={b.status}
                               className="flex-row items-center justify-between"
                             >
-                              <Text
-                                className="text-fg dark:text-fg-dark-DEFAULT text-sm capitalize flex-1 pr-2"
-                                style={{ fontFamily: 'Inter_500Medium' }}
-                              >
+                              <Text variant="body.medium" className="capitalize flex-1 pr-2">
                                 {b.status.replace(/_/g, ' ')}
                               </Text>
-                              <Text
-                                className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                                style={{ fontFamily: 'Inter_500Medium' }}
-                              >
+                              <Text variant="mono.sm" tone="muted">
                                 {fmtNumber(b.count)}
                               </Text>
                             </View>
@@ -640,30 +581,18 @@ export default function AnalyticsScreen() {
                       <ChartCard title="Data quality">
                         <View className="flex-row gap-4 mb-3">
                           <View className="flex-1">
-                            <Text
-                              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                              style={{ fontFamily: 'Inter_500Medium' }}
-                            >
+                            <Text variant="mono.label" tone="muted">
                               Issues
                             </Text>
-                            <Text
-                              className="text-warning text-lg mt-0.5"
-                              style={{ fontFamily: 'Inter_700Bold' }}
-                            >
+                            <Text variant="display.md" tone="warning" className="mt-0.5">
                               {fmtNumber(nds.data.dataQuality.totalIssues)}
                             </Text>
                           </View>
                           <View className="flex-1">
-                            <Text
-                              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                              style={{ fontFamily: 'Inter_500Medium' }}
-                            >
+                            <Text variant="mono.label" tone="muted">
                               Candidates
                             </Text>
-                            <Text
-                              className="text-fg dark:text-fg-dark-DEFAULT text-lg mt-0.5"
-                              style={{ fontFamily: 'Inter_700Bold' }}
-                            >
+                            <Text variant="display.md" className="mt-0.5">
                               {fmtNumber(nds.data.dataQuality.totalCandidates)}
                             </Text>
                           </View>
@@ -675,17 +604,10 @@ export default function AnalyticsScreen() {
                                 key={b.type}
                                 className="flex-row items-center justify-between"
                               >
-                                <Text
-                                  className="text-fg dark:text-fg-dark-DEFAULT text-xs flex-1 pr-2"
-                                  style={{ fontFamily: 'Inter_400Regular' }}
-                                  numberOfLines={1}
-                                >
+                                <Text variant="mono.sm" className="flex-1 pr-2" numberOfLines={1}>
                                   {b.type}
                                 </Text>
-                                <Text
-                                  className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                                  style={{ fontFamily: 'Inter_500Medium' }}
-                                >
+                                <Text variant="mono.sm" tone="muted">
                                   {fmtNumber(b.count)}
                                 </Text>
                               </View>
@@ -723,37 +645,24 @@ export default function AnalyticsScreen() {
                         ? 'danger'
                         : 'neutral';
                   return (
-                    <View
-                      key={c._id}
-                      className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3"
-                    >
+                    <Card key={c._id} padding="sm">
                       <View className="flex-row items-center justify-between mb-1">
-                        <Text
-                          className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                          style={{ fontFamily: 'Inter_600SemiBold' }}
-                          numberOfLines={1}
-                        >
+                        <Text variant="body.semibold" numberOfLines={1}>
                           {c.name ?? c._id}
                         </Text>
                         <Pill tone={statusTone}>{c.status ?? 'unknown'}</Pill>
                       </View>
                       <View className="flex-row gap-4 mt-1">
-                        <Text
-                          className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                          style={{ fontFamily: 'Inter_400Regular' }}
-                        >
+                        <Text variant="mono.sm" tone="muted">
                           {fmtNumber(c.deviceCount)} devices
                         </Text>
                         {c.updatedAt ? (
-                          <Text
-                            className="text-fg-subtle dark:text-fg-dark-subtle text-xs"
-                            style={{ fontFamily: 'Inter_400Regular' }}
-                          >
+                          <Text variant="mono.sm" tone="subtle">
                             updated {fmtRelative(c.updatedAt)}
                           </Text>
                         ) : null}
                       </View>
-                    </View>
+                    </Card>
                   );
                 })}
               </View>
@@ -771,10 +680,7 @@ export default function AnalyticsScreen() {
                   className="flex-row items-center bg-accent-soft dark:bg-accent-soft-dark border border-accent/30 dark:border-accent-dark/40 rounded-xl px-3 py-2.5"
                 >
                   <Ionicons name="sparkles-outline" size={14} color={colors.accent} />
-                  <Text
-                    className="text-accent dark:text-accent-dark text-xs ml-2 flex-1"
-                    style={{ fontFamily: 'Inter_500Medium' }}
-                  >
+                  <Text variant="body.xs" tone="accent" className="ml-2 flex-1">
                     Install Agent Analytics Dashboard for richer insights
                   </Text>
                   <Ionicons name="chevron-forward" size={12} color={colors.accent} />
@@ -803,10 +709,7 @@ export default function AnalyticsScreen() {
                       className="flex-1 flex-row items-center justify-center bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl py-3"
                     >
                       <Ionicons name="call-outline" size={14} color={colors.fg} />
-                      <Text
-                        className="text-fg dark:text-fg-dark-DEFAULT text-sm ml-2"
-                        style={{ fontFamily: 'Inter_500Medium' }}
-                      >
+                      <Text variant="body.medium" className="ml-2">
                         Calls
                       </Text>
                     </Pressable>
@@ -815,10 +718,7 @@ export default function AnalyticsScreen() {
                       className="flex-1 flex-row items-center justify-center bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl py-3"
                     >
                       <Ionicons name="people-outline" size={14} color={colors.fg} />
-                      <Text
-                        className="text-fg dark:text-fg-dark-DEFAULT text-sm ml-2"
-                        style={{ fontFamily: 'Inter_500Medium' }}
-                      >
+                      <Text variant="body.medium" className="ml-2">
                         Agents
                       </Text>
                     </Pressable>
@@ -878,10 +778,7 @@ export default function AnalyticsScreen() {
           className="absolute inset-0 bg-fg/40 dark:bg-bg-dark/60 z-40 justify-end"
         >
           <Pressable className="bg-surface dark:bg-surface-dark border-t border-border dark:border-border-dark rounded-t-3xl p-5">
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-base mb-3"
-              style={{ fontFamily: 'Inter_600SemiBold' }}
-            >
+            <Text variant="display.sm" className="mb-3">
               Period
             </Text>
             {PERIOD_OPTIONS.map((opt) => (
@@ -898,12 +795,7 @@ export default function AnalyticsScreen() {
                     : 'bg-surface-2 dark:bg-surface-2-dark',
                 )}
               >
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
-                  {opt.label}
-                </Text>
+                <Text variant="body.medium">{opt.label}</Text>
                 {period === opt.value ? (
                   <Ionicons name="checkmark" size={18} color={colors.accent} />
                 ) : null}

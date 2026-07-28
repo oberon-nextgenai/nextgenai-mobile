@@ -1,7 +1,9 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { Ionicons } from '@expo/vector-icons';
 import { cn } from '@/lib/cn';
+import { Card } from '@/components/ui/Card';
+import { Text, type TextTone } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type {
   NdsActionKpis,
@@ -96,14 +98,12 @@ function TrendPill({ trend }: TrendPillProps) {
   const positive = (trend ?? 0) > 0;
   const negative = (trend ?? 0) < 0;
   const tone = positive ? colors.success : negative ? colors.danger : colors.fgMuted;
+  const textTone: TextTone = positive ? 'success' : negative ? 'danger' : 'muted';
   const icon = positive ? 'trending-up' : negative ? 'trending-down' : 'remove';
   return (
     <View className="flex-row items-center">
       <Ionicons name={icon} size={10} color={tone} />
-      <Text
-        className="text-[10px] ml-0.5"
-        style={{ fontFamily: 'Inter_500Medium', color: tone }}
-      >
+      <Text variant="mono.sm" tone={textTone} className="ml-0.5">
         {label}
       </Text>
     </View>
@@ -117,29 +117,21 @@ interface HeroCardProps {
 }
 
 function HeroCard({ spec, item, spark }: HeroCardProps) {
-  const { colors } = useThemeMode();
   const value = item?.value;
   const trend = item?.trend ?? null;
   return (
     <View className="w-1/2 px-1 mb-2">
-      <View className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3">
+      <Card padding="sm">
         <View className="flex-row items-center justify-between mb-1">
           <View className="flex-row items-center flex-1 pr-2">
             <Ionicons name={spec.icon} size={11} color={spec.color} style={{ marginRight: 5 }} />
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-              style={{ fontFamily: 'Inter_500Medium' }}
-              numberOfLines={1}
-            >
+            <Text variant="mono.label" tone="muted" numberOfLines={1}>
               {spec.label}
             </Text>
           </View>
         </View>
         <View className="flex-row items-baseline justify-between">
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-2xl"
-            style={{ fontFamily: 'Inter_700Bold' }}
-          >
+          <Text variant="display.md">
             {value != null ? `${value}${spec.suffix ?? ''}` : '—'}
           </Text>
           <TrendPill trend={trend} />
@@ -174,7 +166,7 @@ function HeroCard({ spec, item, spark }: HeroCardProps) {
         ) : (
           <View style={{ height: 36 }} />
         )}
-      </View>
+      </Card>
     </View>
   );
 }
@@ -189,27 +181,18 @@ function CompactCard({ spec, item }: CompactCardProps) {
   const value = item?.value;
   return (
     <View className="w-1/2 px-1 mb-2">
-      <View className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3">
+      <Card padding="sm">
         <View className="flex-row items-center mb-1">
           <Ionicons name={spec.icon} size={11} color={colors.fgMuted} style={{ marginRight: 5 }} />
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest flex-1"
-            style={{ fontFamily: 'Inter_500Medium' }}
-            numberOfLines={1}
-          >
+          <Text variant="mono.label" tone="muted" className="flex-1" numberOfLines={1}>
             {spec.label}
           </Text>
         </View>
         <View className="flex-row items-baseline justify-between">
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-xl"
-            style={{ fontFamily: 'Inter_700Bold' }}
-          >
-            {value != null ? value : '—'}
-          </Text>
+          <Text variant="display.sm">{value != null ? value : '—'}</Text>
           <TrendPill trend={item?.trend ?? null} />
         </View>
-      </View>
+      </Card>
     </View>
   );
 }

@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { useNotifications } from '@/store/notifications';
 import { fmtRelative } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
@@ -17,20 +19,17 @@ export function RecentActivity({ limit = 6 }: { limit?: number }) {
 
   if (items.length === 0) {
     return (
-      <View className="bg-surface dark:bg-surface-dark border border-border-subtle dark:border-border-dark-subtle rounded-xl p-4 items-center">
+      <Card padding="md" className="items-center">
         <Ionicons name="sparkles-outline" size={18} color={colors.fgSubtle} />
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-[13px] mt-2 text-center"
-          style={{ fontFamily: 'Inter_400Regular' }}
-        >
+        <Text variant="body.sm" tone="muted" className="mt-2 text-center">
           No recent activity yet. Prime tool results show up here.
         </Text>
-      </View>
+      </Card>
     );
   }
 
   return (
-    <View className="bg-surface dark:bg-surface-dark border border-border-subtle dark:border-border-dark-subtle rounded-xl overflow-hidden">
+    <Card padding="none">
       {items.map((n, idx) => (
         <Pressable
           key={n.id}
@@ -59,26 +58,15 @@ export function RecentActivity({ limit = 6 }: { limit?: number }) {
             />
           </View>
           <View className="flex-1">
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-              style={{ fontFamily: 'Inter_500Medium' }}
-              numberOfLines={1}
-            >
+            <Text variant="body.medium" numberOfLines={1}>
               {n.title}
             </Text>
             {n.body ? (
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                style={{ fontFamily: 'Inter_400Regular' }}
-                numberOfLines={2}
-              >
+              <Text variant="body.xs" tone="muted" numberOfLines={2} className="mt-0.5">
                 {n.body}
               </Text>
             ) : null}
-            <Text
-              className="text-fg-subtle dark:text-fg-dark-subtle text-[11px] mt-1"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="mono.sm" tone="subtle" className="mt-1">
               {fmtRelative(new Date(n.timestamp).toISOString())}
             </Text>
           </View>
@@ -87,6 +75,6 @@ export function RecentActivity({ limit = 6 }: { limit?: number }) {
           ) : null}
         </Pressable>
       ))}
-    </View>
+    </Card>
   );
 }

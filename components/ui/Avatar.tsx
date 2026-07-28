@@ -1,5 +1,6 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
 
 interface AvatarProps {
   name?: string | null;
@@ -7,7 +8,11 @@ interface AvatarProps {
   className?: string;
 }
 
-// Deterministic but muted palette so avatars feel consistent and serious.
+/**
+ * Deterministic but muted palette so avatars feel consistent and serious.
+ * These are categorical identities (like ChannelColors), not theme roles — an
+ * avatar keeps its colour in both light and dark, so they stay literal here.
+ */
 const PALETTE = [
   '#1E3A8A', // indigo
   '#2563EB', // steel blue
@@ -36,13 +41,14 @@ function initials(name?: string | null): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-const TEXT_SIZE: Record<number, string> = {
-  24: 'text-[10px]',
-  28: 'text-[11px]',
-  32: 'text-xs',
-  36: 'text-sm',
-  44: 'text-base',
-  56: 'text-lg',
+/** Initial size tracks the circle, so the role is spread and the size pinned. */
+const TEXT_SIZE: Record<number, number> = {
+  24: 10,
+  28: 11,
+  32: 12,
+  36: 14,
+  44: 16,
+  56: 18,
 };
 
 export function Avatar({ name, size = 36, className }: AvatarProps) {
@@ -52,10 +58,7 @@ export function Avatar({ name, size = 36, className }: AvatarProps) {
       className={cn('rounded-full items-center justify-center', className)}
       style={{ width: size, height: size, backgroundColor: bg }}
     >
-      <Text
-        className={cn('text-white font-semibold', TEXT_SIZE[size] ?? 'text-sm')}
-        style={{ fontFamily: 'Inter_600SemiBold' }}
-      >
+      <Text variant="body.semibold" tone="onAccent" style={{ fontSize: TEXT_SIZE[size] ?? 14 }}>
         {initials(name)}
       </Text>
     </View>

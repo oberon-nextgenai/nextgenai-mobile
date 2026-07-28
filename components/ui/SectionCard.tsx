@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { cn } from '@/lib/cn';
-import { Elevation } from '@/constants/Colors';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 
 interface SectionCardProps {
   /** Uppercase tracked caption above the card (10px). */
@@ -39,20 +40,11 @@ export function SectionCard({
   return (
     <View className={cn('mb-4', className)}>
       {label ? (
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-2 px-1"
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
+        <Text variant="mono.label" tone="subtle" className="mb-2 px-1">
           {label}
         </Text>
       ) : null}
-      <View
-        style={Elevation.sm}
-        className={cn(
-          'bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-3xl',
-          dense ? 'p-3' : 'p-4',
-        )}
-      >
+      <Card padding={dense ? 'sm' : 'md'}>
         {effectiveHeading || right ? (
           <View
             className={cn(
@@ -62,17 +54,9 @@ export function SectionCard({
           >
             {effectiveHeading ? (
               <View className="flex-1 pr-3">
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-[15px]"
-                  style={{ fontFamily: 'Inter_600SemiBold' }}
-                >
-                  {effectiveHeading}
-                </Text>
+                <Text variant="body.semibold">{effectiveHeading}</Text>
                 {description ? (
-                  <Text
-                    className="text-fg-muted dark:text-fg-dark-muted text-[13px] mt-1"
-                    style={{ fontFamily: 'Inter_400Regular' }}
-                  >
+                  <Text variant="body.sm" tone="muted" className="mt-1">
                     {description}
                   </Text>
                 ) : null}
@@ -84,7 +68,7 @@ export function SectionCard({
           </View>
         ) : null}
         {children}
-      </View>
+      </Card>
     </View>
   );
 }

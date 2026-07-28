@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { ToolCallBadge } from './ToolCallBadge';
 import type { ToolCallRecord } from '@/api/hooks/chatHooks';
@@ -27,8 +28,7 @@ export function ToolCallSummary({ tools }: ToolCallSummaryProps) {
     tone === 'danger'
       ? 'bg-danger-soft border-danger/40'
       : 'bg-success-soft border-success/40';
-  const textColor =
-    tone === 'danger' ? 'text-danger' : 'text-success';
+  const textTone = tone === 'danger' ? 'danger' : 'success';
 
   return (
     <View className="mb-1.5">
@@ -44,13 +44,7 @@ export function ToolCallSummary({ tools }: ToolCallSummaryProps) {
           size={12}
           color={iconColor}
         />
-        <Text
-          className={cn(
-            'text-[11px] ml-1.5 uppercase tracking-wider',
-            textColor,
-          )}
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
+        <Text variant="mono.label" tone={textTone} className="ml-1.5">
           Used {tools.length} tools
         </Text>
         <Ionicons

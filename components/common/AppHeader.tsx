@@ -1,10 +1,11 @@
 import { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Logo } from '@/components/brand/Logo';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { GlassSurface } from '@/components/ui/GlassSurface';
+import { Text } from '@/components/ui/Text';
 import { OrgPill } from './OrgPill';
 import { NotificationBell } from './NotificationBell';
 import { useThemeMode } from '@/hooks/useThemeMode';
@@ -52,11 +53,7 @@ export function AppHeader({
             <Wordmark variant="compact" />
           </View>
         ) : title ? (
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-lg"
-            style={{ fontFamily: 'Inter_600SemiBold' }}
-            numberOfLines={1}
-          >
+          <Text variant="mono.labelLg" tone="muted" numberOfLines={1}>
             {title}
           </Text>
         ) : null}

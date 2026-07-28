@@ -1,5 +1,6 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
 
 interface ProviderChipProps {
   provider?: string | null;
@@ -28,10 +29,8 @@ export function ProviderChip({ provider, className }: ProviderChipProps) {
         className,
       )}
     >
-      <Text
-        className="text-[10px] uppercase tracking-wider text-fg-muted dark:text-fg-dark-muted"
-        style={{ fontFamily: 'Inter_500Medium' }}
-      >
+      {/* Which engine is behind the agent is provenance, so it reads as mono. */}
+      <Text variant="mono.label" tone="muted">
         {label}
       </Text>
     </View>

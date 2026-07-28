@@ -1,4 +1,4 @@
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
@@ -9,12 +9,25 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { CommandSearchButton } from '@/components/executive/CommandSearchButton';
 import { PriorityCard } from '@/components/executive/PriorityCard';
-import { MetricCard } from '@/components/analytics/MetricCard';
+import { StatTile } from '@/components/executive/StatTile';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
+import { GradientButton } from '@/components/ui/GradientButton';
 import { useDailyBrief } from '@/api/hooks/executiveHooks';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { fmtCurrency } from '@/lib/formatters';
-import { Elevation } from '@/constants/Colors';
+
+/**
+ * The brief's one moment: the screen assembles top-to-bottom in a single sweep
+ * that is over inside ~450ms, and then the stat numerals count up. Four blocks a
+ * beat apart — not four independent animations that happen to be near each other.
+ *
+ * Reanimated's layout animations default to `ReduceMotion.System`, so this whole
+ * sequence is skipped when the OS setting is on; `CountUp` opts out separately.
+ */
+const BEAT = 50;
+const enter = (step: number) => FadeInDown.duration(300).delay(step * BEAT);
 
 export default function BriefScreen() {
   const { activeOrgId } = useActiveOrg();
@@ -24,180 +37,158 @@ export default function BriefScreen() {
   const header = (
     <AppHeader
       brand
-      right={
-        <CommandSearchButton
-          onPress={() => router.push('/(root)/command-search' as never)}
-        />
-      }
+      right={<CommandSearchButton onPress={() => router.push('/(root)/command-search' as never)} />}
     />
   );
 
-  if (!activeOrgId) {
-    return (
-      <Screen background="nebula" edges={{ top: true, bottom: false }}>
-        {header}
-        <EmptyState title="Choose an organization" />
-      </Screen>
-    );
-  }
+  const shell = (children: React.ReactNode) => (
+    <Screen background="nebula" edges={{ top: true, bottom: false }}>
+      {header}
+      {children}
+    </Screen>
+  );
+
+  if (!activeOrgId) return shell(<EmptyState title="Choose an organization" />);
 
   if (isPending) {
-    return (
-      <Screen background="nebula" edges={{ top: true, bottom: false }}>
-        {header}
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.accent} />
-        </View>
-      </Screen>
+    return shell(
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator color={colors.accent} />
+      </View>,
     );
   }
 
   if (isError) {
-    return (
-      <Screen background="nebula" edges={{ top: true, bottom: false }}>
-        {header}
-        <ErrorState
-          message={(error as Error)?.message ?? 'Could not load your brief'}
-          onRetry={refetch}
-        />
-      </Screen>
+    return shell(
+      <ErrorState
+        message={(error as Error)?.message ?? 'Could not load your brief'}
+        onRetry={refetch}
+      />,
     );
   }
 
-  const { greeting, summary, metrics, topPriority } = brief;
+  const { greeting, headline, summary, metrics, topPriority } = brief;
 
   const onPressPriority = () => {
-    if (topPriority?.agentId) {
-      router.push(`/(root)/(tabs)/workforce/${topPriority.agentId}` as never);
-    } else {
-      router.push('/(root)/(tabs)/workforce' as never);
-    }
+    router.push(
+      topPriority?.agentId
+        ? (`/(root)/(tabs)/workforce/${topPriority.agentId}` as never)
+        : ('/(root)/(tabs)/workforce' as never),
+    );
   };
 
-  return (
-    <Screen background="nebula" edges={{ top: true, bottom: false }}>
-      {header}
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching}
-            onRefresh={refetch}
-            tintColor={colors.accent}
-          />
-        }
-      >
-        {/* Greeting */}
-        <View className="mb-5">
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT"
-            style={{ fontFamily: 'Inter_700Bold', fontSize: 28 }}
-          >
-            {greeting}
-          </Text>
-          <Text
-            className="mt-1 text-fg-muted dark:text-fg-dark-muted"
-            style={{ fontFamily: 'Inter_400Regular', fontSize: 13 }}
-          >
-            {format(new Date(), 'EEEE, MMMM d')}
-          </Text>
-        </View>
+  return shell(
+    <ScrollView
+      contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={colors.accent} />
+      }
+    >
+      {/* The greeting is the one place the app speaks in the first person, so it
+          gets the serif and a mono timestamp for provenance. */}
+      <Animated.View entering={enter(0)}>
+        <Text variant="mono.label" tone="subtle">
+          {format(new Date(), 'EEE · MMM d, yyyy · HH:mm')}
+        </Text>
+        <Text variant="display.lg" className="mt-2">
+          {greeting}
+        </Text>
+        <Text variant="display.lg" tone="muted">
+          {headline}
+        </Text>
+      </Animated.View>
 
-        {/* Overnight narrative */}
-        <Animated.View entering={FadeInDown.duration(360).delay(60)}>
-          <View
-            className="rounded-4xl bg-surface dark:bg-surface-dark p-4"
-            style={Elevation.sm}
-          >
-            <Text
-              className="text-accent-2 dark:text-accent-2-dark uppercase"
-              style={{ fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1 }}
-            >
-              Overnight Brief
+      {/* Prime's overnight read — the hero surface, so it gets the sheen. */}
+      <Animated.View entering={enter(1)} className="mt-5">
+        <Card variant="prime" gloss>
+          <View className="flex-row items-center justify-between">
+            <Text variant="mono.label" tone="accent">
+              Prime · Morning brief
             </Text>
-            <Text
-              className="mt-2 text-fg dark:text-fg-dark-DEFAULT"
-              style={{ fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 23 }}
-            >
-              {summary}
-            </Text>
-          </View>
-        </Animated.View>
-
-        {/* Top priority / All clear */}
-        <Animated.View entering={FadeInDown.duration(360).delay(120)} className="mt-4">
-          {topPriority ? (
-            <PriorityCard
-              severity={topPriority.severity}
-              eyebrow="NEEDS ATTENTION"
-              title={topPriority.title}
-              detail={topPriority.detail}
-              recommendation={topPriority.recommendation}
-              ctaLabel="Review workforce"
-              onPressCta={onPressPriority}
-              onPress={onPressPriority}
-            />
-          ) : (
-            <View
-              className="flex-row items-center gap-3 rounded-4xl bg-surface dark:bg-surface-dark p-4"
-              style={Elevation.sm}
-            >
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-accent-soft dark:bg-accent-soft-dark">
-                <Ionicons name="checkmark-circle" size={22} color={colors.success} />
-              </View>
-              <View className="flex-1">
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT"
-                  style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15 }}
-                >
-                  All clear
-                </Text>
-                <Text
-                  className="mt-0.5 text-fg-muted dark:text-fg-dark-muted"
-                  style={{ fontFamily: 'Inter_400Regular', fontSize: 13 }}
-                >
-                  Nothing needs your attention right now.
-                </Text>
-              </View>
+            <View className="flex-row items-center">
+              <View
+                className="h-1.5 w-1.5 rounded-full mr-1.5"
+                style={{ backgroundColor: colors.successBright }}
+              />
+              <Text variant="mono.label" tone="success">
+                Live
+              </Text>
             </View>
-          )}
-        </Animated.View>
+          </View>
 
-        {/* Metrics 2x2 grid */}
-        <Animated.View entering={FadeInDown.duration(360).delay(180)} className="mt-4">
-          <View className="flex-row gap-3">
-            <MetricCard
-              variant="compact"
-              label="Active agents"
-              value={String(metrics.activeAgents)}
-              icon="people"
-            />
-            <MetricCard
-              variant="compact"
-              label="Tasks resolved"
-              value={String(metrics.tasksResolved)}
-              icon="checkmark-done"
-              tone="positive"
-            />
+          <Text variant="body.lg" className="mt-3">
+            {summary}
+          </Text>
+
+          <View className="mt-4">
+            <GradientButton
+              onPress={() => router.push('/(root)/(tabs)/prime' as never)}
+              rightIcon={<Ionicons name="arrow-forward" size={16} color="#FFFFFF" />}
+            >
+              Ask Prime
+            </GradientButton>
           </View>
-          <View className="mt-3 flex-row gap-3">
-            <MetricCard
-              variant="compact"
-              label="Needs attention"
-              value={String(metrics.attention)}
-              icon="alert-circle"
-              tone={metrics.attention > 0 ? 'warning' : 'neutral'}
-            />
-            <MetricCard
-              variant="compact"
-              label="Spend today"
-              value={fmtCurrency(metrics.spendToday)}
-              icon="card"
-            />
-          </View>
+        </Card>
+      </Animated.View>
+
+      {topPriority ? (
+        <Animated.View entering={enter(2)} className="mt-4">
+          <PriorityCard
+            severity={topPriority.severity}
+            eyebrow="Needs attention"
+            title={topPriority.title}
+            detail={topPriority.detail}
+            recommendation={topPriority.recommendation}
+            ctaLabel="Review workforce"
+            onPressCta={onPressPriority}
+            onPress={onPressPriority}
+          />
         </Animated.View>
-      </ScrollView>
-    </Screen>
+      ) : null}
+
+      {/* 2×2 instrumentation. The sweep lands here and hands off to the numerals,
+          which count up from zero once — the screen's one deliberate moment. */}
+      <Animated.View entering={enter(3)} className="mt-4 gap-3">
+        <View className="flex-row gap-3">
+          <StatTile
+            label="Agents active"
+            value={String(metrics.activeAgents)}
+            count={{ to: metrics.activeAgents }}
+            caption={metrics.totalAgents ? `of ${metrics.totalAgents}` : undefined}
+            tone="success"
+            index={0}
+            onPress={() => router.push('/(root)/(tabs)/workforce' as never)}
+          />
+          <StatTile
+            label="Tasks resolved"
+            value={String(metrics.tasksResolved)}
+            count={{ to: metrics.tasksResolved }}
+            caption="today"
+            tone="accent"
+            index={1}
+          />
+        </View>
+        <View className="flex-row gap-3">
+          <StatTile
+            label="Needs attention"
+            value={String(metrics.attention)}
+            count={{ to: metrics.attention }}
+            caption="pending review"
+            tone={metrics.attention > 0 ? 'warning' : 'neutral'}
+            dot={metrics.attention > 0}
+            index={2}
+            onPress={() => router.push('/(root)/(tabs)/workforce' as never)}
+          />
+          <StatTile
+            label="Spend today"
+            value={fmtCurrency(metrics.spendToday)}
+            count={{ to: metrics.spendToday, format: fmtCurrency }}
+            tone="neutral"
+            index={3}
+          />
+        </View>
+      </Animated.View>
+    </ScrollView>,
   );
 }

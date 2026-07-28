@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Card } from '@/components/ui/Card';
+import { Tag, type TagTone } from '@/components/ui/Tag';
+import { Text } from '@/components/ui/Text';
 import { CallFilters, type CallDateRange, type CallStatusFilter } from '@/components/analytics/CallFilters';
 import { CallTranscriptModal } from '@/components/analytics/CallTranscriptModal';
 import { useActiveOrg } from '@/store/org';
@@ -27,15 +30,10 @@ function statusOf(c: AnalyticsCallSummary): {
   return { label: c.disconnectionReason ?? c.status ?? 'ended', tone: 'neutral', bucket: 'all' };
 }
 
-const TONE_BG: Record<string, string> = {
-  positive: 'bg-success-soft',
-  negative: 'bg-danger-soft',
-  neutral: 'bg-surface-2 dark:bg-surface-2-dark',
-};
-const TONE_FG: Record<string, string> = {
-  positive: 'text-success',
-  negative: 'text-danger',
-  neutral: 'text-fg-muted dark:text-fg-dark-muted',
+const TONE_TAG: Record<string, TagTone> = {
+  positive: 'success',
+  negative: 'danger',
+  neutral: 'neutral',
 };
 
 const RANGE_MS: Record<Exclude<CallDateRange, 'all'>, number> = {
@@ -120,67 +118,43 @@ export default function CallsScreen() {
                 <Pressable
                   key={c.id}
                   onPress={() => setSelected(c)}
-                  className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3 mb-2 active:opacity-80"
+                  className="mb-2 active:opacity-80"
                 >
-                  <View className="flex-row items-center justify-between mb-1">
-                    <Text
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                      style={{ fontFamily: 'Inter_600SemiBold' }}
-                      numberOfLines={1}
-                    >
-                      {c.agentName ?? fmtDateTime(start)}
-                    </Text>
-                    <View className={`px-2 py-0.5 rounded-full ${TONE_BG[status.tone]}`}>
-                      <Text
-                        className={`text-[10px] uppercase tracking-wider ${TONE_FG[status.tone]}`}
-                        style={{ fontFamily: 'Inter_500Medium' }}
-                      >
-                        {status.label}
+                  {/* No gloss: this renders once per call in a scrolling list. */}
+                  <Card padding="sm">
+                    <View className="flex-row items-center justify-between mb-1">
+                      <Text variant="body.semibold" numberOfLines={1}>
+                        {c.agentName ?? fmtDateTime(start)}
                       </Text>
+                      <Tag label={status.label} tone={TONE_TAG[status.tone]} />
                     </View>
-                  </View>
-                  <View className="flex-row gap-4 mt-1 items-center flex-wrap">
-                    {start ? (
-                      <Text
-                        className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                        style={{ fontFamily: 'Inter_400Regular' }}
-                      >
-                        {fmtDateTime(start)}
+                    <View className="flex-row gap-4 mt-1 items-center flex-wrap">
+                      {start ? (
+                        <Text variant="mono.sm" tone="muted">
+                          {fmtDateTime(start)}
+                        </Text>
+                      ) : null}
+                      <Text variant="mono.sm" tone="muted">
+                        Duration · {fmtDuration(minutes)}
+                      </Text>
+                      <Text variant="mono.sm" tone="muted">
+                        Cost · {fmtCurrency(c.cost)}
+                      </Text>
+                      {hasRecording ? (
+                        <View className="flex-row items-center">
+                          <Ionicons name="play-circle-outline" size={12} color={colors.accent} />
+                          <Text variant="body.xs" tone="accent" className="ml-1">
+                            Recording
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    {transcriptExcerpt ? (
+                      <Text variant="body.sm" tone="muted" className="mt-2" numberOfLines={2}>
+                        {transcriptExcerpt}
                       </Text>
                     ) : null}
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                    >
-                      Duration · {fmtDuration(minutes)}
-                    </Text>
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                    >
-                      Cost · {fmtCurrency(c.cost)}
-                    </Text>
-                    {hasRecording ? (
-                      <View className="flex-row items-center">
-                        <Ionicons name="play-circle-outline" size={12} color={colors.accent} />
-                        <Text
-                          className="text-accent dark:text-accent-dark text-xs ml-1"
-                          style={{ fontFamily: 'Inter_500Medium' }}
-                        >
-                          Recording
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  {transcriptExcerpt ? (
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs mt-2"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                      numberOfLines={2}
-                    >
-                      {transcriptExcerpt}
-                    </Text>
-                  ) : null}
+                  </Card>
                 </Pressable>
               );
             })

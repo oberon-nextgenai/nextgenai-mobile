@@ -1,5 +1,7 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { cn } from '@/lib/cn';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import type { PrimeMessage } from '@/api/hooks/chatHooks';
 import type { PrimeAction } from '@/lib/primeStructuredSchema';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -21,12 +23,9 @@ export function MessageBubble({ message, streamingContent, onAction }: MessageBu
     return (
       <View className="items-end mb-4 px-4">
         <View className="bg-accent-soft dark:bg-accent-soft-dark border border-accent/20 dark:border-accent-dark/30 rounded-2xl rounded-br-md px-4 py-2.5 max-w-[88%]">
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-[15px] leading-5"
-            style={{ fontFamily: 'Inter_400Regular' }}
-          >
-            {message.content}
-          </Text>
+          {/* Same role as the markdown `body` opposite, so both sides of the
+              thread read at one size. */}
+          <Text variant="body.md">{message.content}</Text>
         </View>
       </View>
     );
@@ -77,9 +76,10 @@ export function MessageBubble({ message, streamingContent, onAction }: MessageBu
           onActionTap={onAction}
         />
       ) : hasFallbackOnly ? (
-        <View className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl px-4 py-3">
+        // A message row, never a hero surface — no gloss.
+        <Card>
           <MarkdownRenderer source={message.fallbackMarkdown ?? ''} />
-        </View>
+        </Card>
       ) : (
         <View className="px-1">
           <MarkdownRenderer source={displayContent || ' '} />

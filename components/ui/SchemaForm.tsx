@@ -1,8 +1,9 @@
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from './Input';
 import { TextArea } from './TextArea';
+import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type { PluginConfigField } from '@/api/services/types';
@@ -40,10 +41,7 @@ export function SchemaForm({ schema, values, onChange, errors }: SchemaFormProps
   const entries = Object.entries(schema);
   if (entries.length === 0) {
     return (
-      <Text
-        className="text-fg-muted dark:text-fg-dark-muted text-sm"
-        style={{ fontFamily: 'Inter_400Regular' }}
-      >
+      <Text variant="body.sm" tone="muted">
         This integration has no configurable fields.
       </Text>
     );
@@ -63,20 +61,16 @@ export function SchemaForm({ schema, values, onChange, errors }: SchemaFormProps
               className="flex-row items-center justify-between bg-surface-2 dark:bg-surface-2-dark border border-border dark:border-border-dark rounded-lg px-3 py-3"
             >
               <View className="flex-1 pr-3">
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="body.medium">
                   {field.label}
                   {required ? (
-                    <Text className="text-danger"> *</Text>
+                    <Text variant="body.medium" tone="danger">
+                      {' *'}
+                    </Text>
                   ) : null}
                 </Text>
                 {field.description ? (
-                  <Text
-                    className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                    style={{ fontFamily: 'Inter_400Regular' }}
-                  >
+                  <Text variant="body.xs" tone="muted" className="mt-0.5">
                     {field.description}
                   </Text>
                 ) : null}
@@ -97,18 +91,16 @@ export function SchemaForm({ schema, values, onChange, errors }: SchemaFormProps
           const opt = field.options?.find((o) => o.value === selected);
           return (
             <View key={key} className="gap-1.5">
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-xs tracking-wide"
-                style={{ fontFamily: 'Inter_500Medium' }}
-              >
+              <Text variant="body.xs" tone="muted">
                 {field.label}
-                {required ? <Text className="text-danger"> *</Text> : null}
+                {required ? (
+                  <Text variant="body.xs" tone="danger">
+                    {' *'}
+                  </Text>
+                ) : null}
               </Text>
               {field.description ? (
-                <Text
-                  className="text-fg-subtle dark:text-fg-dark-subtle text-xs"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
+                <Text variant="body.xs" tone="subtle">
                   {field.description}
                 </Text>
               ) : null}
@@ -127,20 +119,16 @@ export function SchemaForm({ schema, values, onChange, errors }: SchemaFormProps
                     : 'border-border dark:border-border-dark',
                 )}
               >
-                <Text
-                  className={cn(
-                    'text-[15px]',
-                    selected
-                      ? 'text-fg dark:text-fg-dark-DEFAULT'
-                      : 'text-fg-subtle dark:text-fg-dark-subtle',
-                  )}
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
+                <Text variant="body.lg" tone={selected ? 'default' : 'subtle'}>
                   {opt?.label ?? (selected || 'Select…')}
                 </Text>
                 <Ionicons name="chevron-down" size={14} color={colors.fgMuted} />
               </Pressable>
-              {error ? <Text className="text-danger text-xs">{error}</Text> : null}
+              {error ? (
+                <Text variant="body.xs" tone="danger">
+                  {error}
+                </Text>
+              ) : null}
             </View>
           );
         }
@@ -183,10 +171,7 @@ export function SchemaForm({ schema, values, onChange, errors }: SchemaFormProps
           className="absolute inset-0 bg-fg/40 dark:bg-bg-dark/60 z-40 justify-end"
         >
           <Pressable className="bg-surface dark:bg-surface-dark border-t border-border dark:border-border-dark rounded-t-3xl p-5">
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-base mb-3"
-              style={{ fontFamily: 'Inter_600SemiBold' }}
-            >
+            <Text variant="display.sm" className="mb-3">
               {schema[sheet.fieldKey]?.label ?? 'Select'}
             </Text>
             {sheet.options.map((o) => {
@@ -205,12 +190,7 @@ export function SchemaForm({ schema, values, onChange, errors }: SchemaFormProps
                       : 'bg-surface-2 dark:bg-surface-2-dark',
                   )}
                 >
-                  <Text
-                    className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                    style={{ fontFamily: 'Inter_500Medium' }}
-                  >
-                    {o.label}
-                  </Text>
+                  <Text variant="body.medium">{o.label}</Text>
                   {selected ? (
                     <Ionicons name="checkmark" size={18} color={colors.accent} />
                   ) : null}

@@ -1,7 +1,8 @@
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
 import type { ToolCallRecord } from '@/api/hooks/chatHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
@@ -44,12 +45,12 @@ export function ToolCallBadge({ tool }: ToolCallBadgeProps) {
           color={iconColor}
         />
       )}
+      {/* A tool name is provenance — the mono eyebrow carries the uppercase
+          tracking that used to be hand-written here. */}
       <Text
-        className={cn(
-          'text-[11px] ml-1.5 uppercase tracking-wider',
-          isError ? 'text-danger' : isPending ? 'text-fg-muted dark:text-fg-dark-muted' : 'text-success',
-        )}
-        style={{ fontFamily: 'Inter_500Medium' }}
+        variant="mono.label"
+        tone={isError ? 'danger' : isPending ? 'muted' : 'success'}
+        className="ml-1.5"
       >
         {tool.name}
       </Text>

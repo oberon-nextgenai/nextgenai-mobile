@@ -1,6 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { cn } from '@/lib/cn';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type {
   PrimeStructuredResponse,
@@ -16,14 +17,7 @@ interface StructuredCardProps {
   onActionTap?: (action: PrimeAction) => void;
 }
 
-const RESPONSE_BORDER: Record<string, string> = {
-  status: 'border-border dark:border-border-dark',
-  analytics: 'border-accent/30 dark:border-accent-dark/40',
-  error: 'border-danger/40',
-  'action-result': 'border-success/40',
-  info: 'border-border dark:border-border-dark',
-};
-
+/** Metrics render as figures, so they get the serif treatment. */
 function MetricsGrid({ items }: { items: PrimeSectionItem[] }) {
   return (
     <View className="flex-row flex-wrap -mx-1.5">
@@ -32,29 +26,18 @@ function MetricsGrid({ items }: { items: PrimeSectionItem[] }) {
         if (onlyText) {
           return (
             <View key={i} className="w-full px-1.5 mb-2">
-              <Text
-                className="text-fg dark:text-fg-dark-DEFAULT text-[13px] leading-[18px]"
-                style={{ fontFamily: 'Inter_400Regular' }}
-              >
-                {m.text}
-              </Text>
+              <Text variant="body.sm">{m.text}</Text>
             </View>
           );
         }
         return (
-          <View key={i} className="w-1/2 px-1.5 mb-2">
+          <View key={i} className="w-1/2 px-1.5 mb-3">
             {m.label ? (
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-                style={{ fontFamily: 'Inter_500Medium' }}
-              >
+              <Text variant="mono.label" tone="subtle" numberOfLines={1}>
                 {m.label}
               </Text>
             ) : null}
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-lg mt-0.5"
-              style={{ fontFamily: 'Inter_600SemiBold' }}
-            >
+            <Text variant="display.sm" className="mt-1" numberOfLines={1}>
               {m.value ?? m.text ?? '—'}
             </Text>
           </View>
@@ -65,41 +48,29 @@ function MetricsGrid({ items }: { items: PrimeSectionItem[] }) {
 }
 
 function ListSection({ items }: { items: PrimeSectionItem[] }) {
+  const { colors } = useThemeMode();
   return (
     <View className="gap-2.5">
-      {items.map((it, i) => {
-        const hasLabelValue = it.label && it.value;
-        return (
-          <View key={i} className="flex-row items-start">
-            <View className="w-1 h-1 rounded-full bg-accent mt-2 mr-2.5" />
-            <View className="flex-1">
-              {hasLabelValue ? (
-                <>
-                  <Text
-                    className="text-fg dark:text-fg-dark-DEFAULT text-[13px]"
-                    style={{ fontFamily: 'Inter_600SemiBold' }}
-                  >
-                    {it.label}
-                  </Text>
-                  <Text
-                    className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                    style={{ fontFamily: 'Inter_400Regular' }}
-                  >
-                    {it.value}
-                  </Text>
-                </>
-              ) : (
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-[13px] leading-[18px]"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
-                  {it.text ?? it.label ?? it.value}
+      {items.map((it, i) => (
+        <View key={i} className="flex-row items-start">
+          <View
+            className="w-1 h-1 rounded-full mt-2 mr-2.5"
+            style={{ backgroundColor: colors.accent2 }}
+          />
+          <View className="flex-1">
+            {it.label && it.value ? (
+              <>
+                <Text variant="body.semibold">{it.label}</Text>
+                <Text variant="body.sm" tone="muted" className="mt-0.5">
+                  {it.value}
                 </Text>
-              )}
-            </View>
+              </>
+            ) : (
+              <Text variant="body.sm">{it.text ?? it.label ?? it.value}</Text>
+            )}
           </View>
-        );
-      })}
+        </View>
+      ))}
     </View>
   );
 }
@@ -107,10 +78,7 @@ function ListSection({ items }: { items: PrimeSectionItem[] }) {
 function SectionRenderer({ section }: { section: PrimeSection }) {
   return (
     <View className="mb-3">
-      <Text
-        className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-2"
-        style={{ fontFamily: 'Inter_500Medium' }}
-      >
+      <Text variant="mono.label" tone="subtle" className="mb-2">
         {section.name}
       </Text>
       {section.kind === 'metrics' ? (
@@ -122,40 +90,39 @@ function SectionRenderer({ section }: { section: PrimeSection }) {
   );
 }
 
-export function StructuredCard({
-  data,
-  fallbackMarkdown,
-  onActionTap,
-}: StructuredCardProps) {
+/**
+ * Renders a UCOF-1 structured reply.
+ *
+ * Schema-driven on purpose — it switches on `kind`, never on which tool produced
+ * the payload — so a new Prime capability that returns UCOF renders here with no
+ * client change. See `PRIME_STREAMING_CONTRACT.md`.
+ */
+export function StructuredCard({ data, fallbackMarkdown, onActionTap }: StructuredCardProps) {
   const { colors } = useThemeMode();
-  const borderClass = RESPONSE_BORDER[data.responseType] ?? RESPONSE_BORDER.info;
+
+  // The response type tints the left rail: analytics reads, errors, and
+  // completed actions should be distinguishable before you read the title.
+  const rail: string | undefined = {
+    analytics: colors.steel,
+    error: colors.danger,
+    'action-result': colors.successBright,
+    status: undefined,
+    info: undefined,
+  }[data.responseType];
+
   const summaryLines = data.summary?.filter(Boolean) ?? [];
   const insightLines = data.insights?.filter(Boolean) ?? [];
-  // Cap to the 3 most relevant suggestions to keep the card scannable.
+  // Capped to keep the card scannable on a phone.
   const actions = (data.actions?.filter(Boolean) ?? []).slice(0, 3);
 
   return (
-    <View
-      className={cn(
-        'bg-surface dark:bg-surface-dark border rounded-2xl p-4',
-        borderClass,
-      )}
-    >
-      <Text
-        className="text-fg dark:text-fg-dark-DEFAULT text-[15px]"
-        style={{ fontFamily: 'Inter_600SemiBold' }}
-      >
-        {data.title}
-      </Text>
+    <Card rail={rail}>
+      <Text variant="display.sm">{data.title}</Text>
 
       {summaryLines.length > 0 ? (
         <View className="mt-1.5 mb-3">
           {summaryLines.map((line, i) => (
-            <Text
-              key={i}
-              className="text-fg-muted dark:text-fg-dark-muted text-xs leading-[18px]"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text key={i} variant="body.sm" tone="muted">
               {line}
             </Text>
           ))}
@@ -169,56 +136,53 @@ export function StructuredCard({
       ))}
 
       {insightLines.length > 0 ? (
-        <View className="mt-1 mb-1 bg-surface-2 dark:bg-surface-2-dark rounded-lg p-3 border-l-2 border-accent">
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-1.5"
-            style={{ fontFamily: 'Inter_500Medium' }}
-          >
+        <View
+          className="mt-1 mb-1 rounded-xl p-3"
+          style={{ backgroundColor: colors.surface2, borderLeftWidth: 2, borderLeftColor: colors.accent2 }}
+        >
+          <Text variant="mono.label" tone="accent" className="mb-1.5">
             Insights
           </Text>
           {insightLines.map((line, i) => (
-            <Text
-              key={i}
-              className="text-fg dark:text-fg-dark-DEFAULT text-xs leading-[18px] mb-1"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text key={i} variant="body.sm" className="mb-1">
               {line}
             </Text>
           ))}
         </View>
       ) : null}
 
+      {/* `actions` are ready-to-send replies, so they read as things you say. */}
       {actions.length > 0 ? (
         <View className="mt-3 gap-2">
           {actions.map((a, i) => (
             <Pressable
               key={i}
               onPress={() => onActionTap?.({ label: a, prompt: a })}
-              className="flex-row items-center bg-accent-soft dark:bg-accent-soft-dark border border-accent/30 dark:border-accent-dark/40 rounded-xl px-3 py-2.5 active:opacity-80"
+              accessibilityRole="button"
+              className="flex-row items-center rounded-xl px-3 py-2.5 active:opacity-80"
+              style={{
+                backgroundColor: colors.chipSelectedBg,
+                borderWidth: 1,
+                borderColor: colors.chipSelectedBorder,
+              }}
             >
-              <Text
-                className="flex-1 text-accent dark:text-accent-dark text-[13px] leading-[18px]"
-                style={{ fontFamily: 'Inter_500Medium' }}
-                numberOfLines={2}
-              >
+              <Text variant="body.sm" tone="accent" numberOfLines={2} className="flex-1">
                 {a}
               </Text>
-              <Ionicons
-                name="arrow-forward"
-                size={13}
-                color={colors.accent}
-                style={{ marginLeft: 8, opacity: 0.7 }}
-              />
+              <Ionicons name="arrow-forward" size={13} color={colors.accent2} style={{ marginLeft: 8 }} />
             </Pressable>
           ))}
         </View>
       ) : null}
 
       {fallbackMarkdown ? (
-        <View className="mt-3 pt-3 border-t border-border-subtle dark:border-border-dark-subtle">
+        <View
+          className="mt-3 pt-3"
+          style={{ borderTopWidth: 1, borderTopColor: colors.borderSubtle }}
+        >
           <MarkdownRenderer source={fallbackMarkdown} />
         </View>
       ) : null}
-    </View>
+    </Card>
   );
 }

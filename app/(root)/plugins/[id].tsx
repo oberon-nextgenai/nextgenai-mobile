@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  Text,
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -16,7 +15,8 @@ import { Input } from '@/components/ui/Input';
 import { SchemaForm } from '@/components/ui/SchemaForm';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { StickyAction } from '@/components/ui/StickyAction';
-import { Pill } from '@/components/ui/Pill';
+import { Tag, type TagTone } from '@/components/ui/Tag';
+import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import {
   useIntegration,
@@ -31,7 +31,7 @@ import type { IntegrationStatus } from '@/api/services/types';
 
 function statusTone(s: IntegrationStatus): {
   label: string;
-  tone: 'success' | 'warning' | 'danger' | 'neutral';
+  tone: TagTone;
 } {
   switch (s) {
     case 'active':
@@ -144,31 +144,20 @@ export default function PluginConfigureScreen() {
       >
         <View className="flex-row items-center mb-4 mt-1">
           <View className="w-12 h-12 rounded-xl bg-accent-soft dark:bg-accent-soft-dark border border-accent/30 dark:border-accent-dark/40 items-center justify-center">
-            <Text
-              className="text-accent dark:text-accent-dark text-lg"
-              style={{ fontFamily: 'Inter_700Bold' }}
-            >
+            <Text variant="display.sm" tone="accent">
               {(i.name ?? i.type ?? '?').slice(0, 1).toUpperCase()}
             </Text>
           </View>
           <View className="flex-1 ml-3">
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-lg"
-              style={{ fontFamily: 'Inter_700Bold' }}
-            >
-              {i.name}
-            </Text>
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="display.sm">{i.name}</Text>
+            <Text variant="mono.sm" tone="muted" className="mt-0.5">
               {i.type}
               {i.metadata?.last_sync
                 ? ` · synced ${fmtRelative(i.metadata.last_sync)}`
                 : ''}
             </Text>
           </View>
-          {status ? <Pill tone={status.tone}>{status.label}</Pill> : null}
+          {status ? <Tag label={status.label} tone={status.tone} /> : null}
         </View>
 
         <SectionCard label="Identity">
@@ -183,10 +172,7 @@ export default function PluginConfigureScreen() {
               onChange={setConfig}
             />
           ) : (
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-sm"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="body.sm" tone="muted">
               No configurable fields.
             </Text>
           )}
@@ -203,10 +189,7 @@ export default function PluginConfigureScreen() {
             Test connection
           </Button>
           {i.metadata?.last_error ? (
-            <Text
-              className="text-danger text-xs mt-2"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
+            <Text variant="body.sm" tone="danger" className="mt-2">
               Last error: {i.metadata.last_error}
             </Text>
           ) : null}

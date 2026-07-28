@@ -1,5 +1,6 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { Chip } from '@/components/ui/Chip';
+import { Text } from '@/components/ui/Text';
 
 export type CallDateRange = 'all' | '7d' | '30d' | '90d';
 export type CallStatusFilter = 'all' | 'successful' | 'unsuccessful' | 'failed';
@@ -28,10 +29,7 @@ export function CallFilters({ range, onRange, status, onStatus }: CallFiltersPro
   return (
     <View className="gap-3">
       <View>
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-1.5"
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
+        <Text variant="mono.label" tone="muted" className="mb-1.5">
           Date range
         </Text>
         <View className="flex-row flex-wrap gap-2">
@@ -46,10 +44,7 @@ export function CallFilters({ range, onRange, status, onStatus }: CallFiltersPro
         </View>
       </View>
       <View>
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest mb-1.5"
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
+        <Text variant="mono.label" tone="muted" className="mb-1.5">
           Status
         </Text>
         <View className="flex-row flex-wrap gap-2">

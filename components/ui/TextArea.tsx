@@ -1,6 +1,8 @@
 import { forwardRef, useState } from 'react';
-import { Text, TextInput, TextInputProps, View } from 'react-native';
+import { TextInput, TextInputProps, View } from 'react-native';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
+import { Type } from '@/constants/Typography';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
 interface TextAreaProps extends Omit<TextInputProps, 'multiline'> {
@@ -35,18 +37,12 @@ export const TextArea = forwardRef<TextInput, TextAreaProps>(function TextArea(
   return (
     <View className={cn('gap-1.5', containerClassName)}>
       {label ? (
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-xs tracking-wide"
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
+        <Text variant="body.xs" tone="muted">
           {label}
         </Text>
       ) : null}
       {description ? (
-        <Text
-          className="text-fg-subtle dark:text-fg-dark-subtle text-xs"
-          style={{ fontFamily: 'Inter_400Regular' }}
-        >
+        <Text variant="body.xs" tone="subtle">
           {description}
         </Text>
       ) : null}
@@ -65,22 +61,26 @@ export const TextArea = forwardRef<TextInput, TextAreaProps>(function TextArea(
           onBlur?.(e);
         }}
         className={cn(
-          'bg-surface dark:bg-surface-dark border rounded-lg px-3.5 py-3 text-fg dark:text-fg-dark-DEFAULT text-[15px] leading-5',
+          'bg-surface dark:bg-surface-dark border rounded-lg px-3.5 py-3',
           focused
             ? 'border-accent dark:border-accent-dark'
             : 'border-border dark:border-border-dark',
           error && 'border-danger',
           className,
         )}
+        // TextInput is not the Text primitive, so the type role is spread
+        // directly. `mono.code` is the role that replaces the old 'Menlo'.
         style={[
-          {
-            minHeight: 24 * minLines,
-            fontFamily: monospace ? 'Menlo' : 'Inter_400Regular',
-          },
+          monospace ? Type.mono.code : Type.body.lg,
+          { color: colors.fg, minHeight: 24 * minLines },
           style,
         ]}
       />
-      {error ? <Text className="text-danger text-xs">{error}</Text> : null}
+      {error ? (
+        <Text variant="body.xs" tone="danger">
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 });

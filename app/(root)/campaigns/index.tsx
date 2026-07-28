@@ -1,36 +1,26 @@
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Card } from '@/components/ui/Card';
+import { Tag, type TagTone } from '@/components/ui/Tag';
+import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import { useCampaigns } from '@/api/hooks/campaignHooks';
 import { fmtRelative } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
-const STATUS_TONE: Record<string, 'positive' | 'warning' | 'negative' | 'neutral'> = {
-  active: 'positive',
+const STATUS_TONE: Record<string, TagTone> = {
+  active: 'success',
   scheduled: 'warning',
   draft: 'neutral',
-  completed: 'positive',
+  completed: 'success',
   paused: 'warning',
-  failed: 'negative',
-  cancelled: 'negative',
-};
-
-const TONE_BG: Record<string, string> = {
-  positive: 'bg-success-soft',
-  warning: 'bg-warning-soft',
-  negative: 'bg-danger-soft',
-  neutral: 'bg-surface-2 dark:bg-surface-2-dark',
-};
-const TONE_FG: Record<string, string> = {
-  positive: 'text-success',
-  warning: 'text-warning',
-  negative: 'text-danger',
-  neutral: 'text-fg-muted dark:text-fg-dark-muted',
+  failed: 'danger',
+  cancelled: 'danger',
 };
 
 export default function CampaignsListScreen() {
@@ -74,50 +64,32 @@ export default function CampaignsListScreen() {
               <Pressable
                 key={c._id}
                 onPress={() => router.push(`/(root)/campaigns/${c._id}` as never)}
-                className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3 mb-2 active:opacity-80"
+                className="mb-2 active:opacity-80"
               >
-                <View className="flex-row items-start justify-between mb-1">
-                  <Text
-                    className="text-fg dark:text-fg-dark-DEFAULT text-sm flex-1 pr-3"
-                    style={{ fontFamily: 'Inter_600SemiBold' }}
-                    numberOfLines={1}
-                  >
-                    {c.name}
-                  </Text>
-                  <View className={`px-2 py-0.5 rounded-full ${TONE_BG[tone]}`}>
-                    <Text
-                      className={`text-[10px] uppercase tracking-wider ${TONE_FG[tone]}`}
-                      style={{ fontFamily: 'Inter_500Medium' }}
-                    >
-                      {c.status}
+                {/* No gloss: this renders once per campaign in a scrolling list. */}
+                <Card padding="sm">
+                  <View className="flex-row items-start justify-between mb-1">
+                    <Text variant="display.sm" className="flex-1 pr-3" numberOfLines={1}>
+                      {c.name}
                     </Text>
+                    <Tag label={c.status} tone={tone} />
                   </View>
-                </View>
-                {c.description ? (
-                  <Text
-                    className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                    style={{ fontFamily: 'Inter_400Regular' }}
-                    numberOfLines={2}
-                  >
-                    {c.description}
-                  </Text>
-                ) : null}
-                <View className="flex-row gap-4 mt-2">
-                  <Text
-                    className="text-fg-muted dark:text-fg-dark-muted text-[11px]"
-                    style={{ fontFamily: 'Inter_400Regular' }}
-                  >
-                    {c.contacts?.length ?? 0} contacts
-                  </Text>
-                  {c.updatedAt ? (
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-[11px]"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                    >
-                      Updated {fmtRelative(c.updatedAt)}
+                  {c.description ? (
+                    <Text variant="body.sm" tone="muted" className="mt-0.5" numberOfLines={2}>
+                      {c.description}
                     </Text>
                   ) : null}
-                </View>
+                  <View className="flex-row gap-4 mt-2">
+                    <Text variant="mono.sm" tone="muted">
+                      {c.contacts?.length ?? 0} contacts
+                    </Text>
+                    {c.updatedAt ? (
+                      <Text variant="mono.sm" tone="muted">
+                        Updated {fmtRelative(c.updatedAt)}
+                      </Text>
+                    ) : null}
+                  </View>
+                </Card>
               </Pressable>
             );
           })}

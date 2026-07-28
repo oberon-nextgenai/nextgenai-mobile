@@ -1,7 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { cn } from '@/lib/cn';
-import { useThemeMode } from '@/hooks/useThemeMode';
+import { Text } from '@/components/ui/Text';
 
 interface CheckboxProps {
   checked: boolean;
@@ -11,7 +11,6 @@ interface CheckboxProps {
 }
 
 export function Checkbox({ checked, onChange, label, className }: CheckboxProps) {
-  const { colors } = useThemeMode();
   return (
     <Pressable
       onPress={() => onChange(!checked)}
@@ -30,10 +29,7 @@ export function Checkbox({ checked, onChange, label, className }: CheckboxProps)
         {checked ? <Ionicons name="checkmark" size={13} color="#FFFFFF" /> : null}
       </View>
       {label ? (
-        <Text
-          className="text-fg dark:text-fg-dark-DEFAULT text-sm ml-2"
-          style={{ fontFamily: 'Inter_500Medium', color: colors.fg }}
-        >
+        <Text variant="body.medium" className="ml-2">
           {label}
         </Text>
       ) : null}

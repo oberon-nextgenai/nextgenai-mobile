@@ -7,6 +7,7 @@ import { PATHS } from '@/api/client/paths';
 import { QUERY_KEYS } from '@/lib/constants';
 import { useInstalledIntegrations } from './pluginHooks';
 import type { NdsPeriod, Integration } from '@/api/services/types';
+import { fetchChannelMix, type ChannelMixParams } from '@/api/services/channelMix';
 
 const ANALYTICS_PLUGIN_TYPE = 'agent-analytics-dashboard';
 
@@ -158,5 +159,20 @@ export function useMmrCampaigns(orgId: string | null) {
     enabled: Boolean(orgId),
     queryFn: () => analyticsService.fetchMmrCampaigns(orgId as string),
     staleTime: 30_000,
+  });
+}
+
+/**
+ * Channel mix for the Outcomes screen.
+ *
+ * Cached 60s server-side on a snapped window, so a short client `staleTime`
+ * costs nothing and keeps the card in step with the rest of the screen.
+ */
+export function useChannelMix(orgId: string | null, params: ChannelMixParams = {}) {
+  const range = `${params.from ?? 'default'}:${params.to ?? 'default'}`;
+  return useQuery({
+    queryKey: QUERY_KEYS.channelMix(orgId ?? '', range),
+    enabled: !!orgId,
+    queryFn: () => fetchChannelMix(orgId!, params),
   });
 }

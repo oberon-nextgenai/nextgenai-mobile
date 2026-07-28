@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth';
 import { useOrgStore } from '@/store/org';
 import { QUERY_KEYS } from '@/lib/constants';
 import type { LoginRequest, TwoFactorLoginRequest } from '@/api/services/types';
+import { unregisterThisDevice } from '@/api/hooks/pushHooks';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -185,6 +186,11 @@ export function useLogoutMutation() {
   return useMutation({
     mutationFn: () => authService.logout(),
     onSettled: async () => {
+      // Unregister before clearing the session — the call needs the token that
+      // `clearAuth()` is about to drop. Best-effort inside: a shared phone must
+      // stop receiving the previous user's escalations, but failing to say so
+      // can never block someone signing out.
+      await unregisterThisDevice();
       await Promise.all([clearAuth(), clearOrg()]);
       qc.clear();
       router.replace('/(auth)/sign-in');

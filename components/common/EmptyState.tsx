@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
 
 type Variant = 'neutral' | 'accent';
 
@@ -33,17 +34,11 @@ export function EmptyState({
           {icon}
         </View>
       ) : null}
-      <Text
-        className="text-fg dark:text-fg-dark-DEFAULT text-base text-center"
-        style={{ fontFamily: 'Inter_600SemiBold' }}
-      >
+      <Text variant="display.sm" className="text-center">
         {title}
       </Text>
       {description ? (
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-[13px] text-center mt-1.5 max-w-[280px]"
-          style={{ fontFamily: 'Inter_400Regular' }}
-        >
+        <Text variant="body.sm" tone="muted" className="text-center mt-2 max-w-[280px]">
           {description}
         </Text>
       ) : null}

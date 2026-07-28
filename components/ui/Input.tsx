@@ -1,6 +1,8 @@
 import { forwardRef, ReactNode, useState } from 'react';
-import { Pressable, Text, TextInput, TextInputProps, View } from 'react-native';
+import { Pressable, TextInput, TextInputProps, View } from 'react-native';
 import { cn } from '@/lib/cn';
+import { Text } from '@/components/ui/Text';
+import { Type } from '@/constants/Typography';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
 interface InputProps extends TextInputProps {
@@ -23,6 +25,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
     onPressRightIcon,
     onFocus,
     onBlur,
+    style,
     ...rest
   },
   ref,
@@ -33,10 +36,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   return (
     <View className={cn('gap-1.5', containerClassName)}>
       {label ? (
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-xs font-medium tracking-wide"
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
+        <Text variant="body.xs" tone="muted">
           {label}
         </Text>
       ) : null}
@@ -62,11 +62,9 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
             setFocused(false);
             onBlur?.(e);
           }}
-          className={cn(
-            'flex-1 text-fg dark:text-fg-dark-DEFAULT text-[15px] py-3',
-            className,
-          )}
-          style={{ fontFamily: 'Inter_400Regular' }}
+          className={cn('flex-1 py-3', className)}
+          // TextInput is not the Text primitive, so the type role is spread directly.
+          style={[Type.body.lg, { color: colors.fg }, style]}
         />
         {rightIcon ? (
           <Pressable
@@ -79,7 +77,9 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
         ) : null}
       </View>
       {error ? (
-        <Text className="text-danger text-xs mt-0.5">{error}</Text>
+        <Text variant="body.xs" tone="danger" className="mt-0.5">
+          {error}
+        </Text>
       ) : null}
     </View>
   );

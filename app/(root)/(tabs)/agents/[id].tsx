@@ -4,7 +4,6 @@ import {
   Pressable,
   ScrollView,
   Switch,
-  Text,
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -13,6 +12,7 @@ import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Text } from '@/components/ui/Text';
 import { Avatar } from '@/components/ui/Avatar';
 import { Input } from '@/components/ui/Input';
 import { TextArea } from '@/components/ui/TextArea';
@@ -44,7 +44,7 @@ import { LLM_PROVIDERS, ORG_DEFAULT_LLM } from '@/lib/llmModels';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { cn } from '@/lib/cn';
 import { VoicePickerSheet } from '@/components/voice/VoicePickerSheet';
-import type { Agent, Department, KnowledgeBase, PhoneNumber, Role, VoiceConfig } from '@/api/services/types';
+import type { Agent, Department, KnowledgeBase, Role, VoiceConfig } from '@/api/services/types';
 
 type StatusValue = 'active' | 'paused' | 'inactive';
 
@@ -345,29 +345,19 @@ export default function AgentEditorScreen() {
         <View className="flex-row items-center mb-5 mt-2">
           <Avatar name={a.name} size={56} />
           <View className="flex-1 ml-3">
-            <Text
-              className="text-fg dark:text-fg-dark-DEFAULT text-lg"
-              style={{ fontFamily: 'Inter_700Bold' }}
-              numberOfLines={1}
-            >
+            <Text variant="display.sm" numberOfLines={1}>
               {form.name || a.name}
             </Text>
             <View className="flex-row items-center mt-1 gap-2 flex-wrap">
               <ProviderChip provider={a.provider ?? a.agentType} />
               <View className="flex-row items-center">
                 <StatusDot status={form.status} />
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest ml-1.5"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="mono.label" tone="muted" className="ml-1.5">
                   {form.status}
                 </Text>
               </View>
               {a.agentType ? (
-                <Text
-                  className="text-fg-subtle dark:text-fg-dark-subtle text-[10px] uppercase tracking-widest"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="mono.label" tone="subtle">
                   · {a.agentType}
                 </Text>
               ) : null}
@@ -390,10 +380,7 @@ export default function AgentEditorScreen() {
               minLines={2}
             />
             <View className="gap-1.5">
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-xs tracking-wide"
-                style={{ fontFamily: 'Inter_500Medium' }}
-              >
+              <Text variant="body.xs" tone="muted">
                 Status
               </Text>
               <SegmentedControl
@@ -428,28 +415,18 @@ export default function AgentEditorScreen() {
           {form.systemPrompt ? (
             <View>
               <View className="bg-surface-2 dark:bg-surface-2-dark border border-border-subtle dark:border-border-dark-subtle rounded-lg p-3">
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-xs leading-5"
-                  style={{ fontFamily: 'Menlo' }}
-                  numberOfLines={4}
-                >
+                <Text variant="mono.code" numberOfLines={4}>
                   {promptPreview}
                   {promptHasMore ? '\n…' : ''}
                 </Text>
               </View>
-              <Text
-                className="text-fg-subtle dark:text-fg-dark-subtle text-[11px] mt-2"
-                style={{ fontFamily: 'Inter_400Regular' }}
-              >
+              <Text variant="body.xs" tone="subtle" className="mt-2">
                 Edit the prompt on the web platform
                 {a.updatedAt ? ` · last updated ${fmtRelative(a.updatedAt)}` : ''}
               </Text>
             </View>
           ) : (
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-sm"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="body.sm" tone="muted">
               No system prompt yet. Add one on the web platform.
             </Text>
           )}
@@ -463,10 +440,7 @@ export default function AgentEditorScreen() {
               value={form.llmModel || `Org default (${ORG_DEFAULT_LLM})`}
               onPress={() => setSheet('llm')}
             />
-            <Text
-              className="text-fg-subtle dark:text-fg-dark-subtle text-[11px]"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="body.xs" tone="subtle">
               Pick a model, or use the organization default.
             </Text>
           </View>
@@ -479,17 +453,9 @@ export default function AgentEditorScreen() {
               <View className="gap-2.5">
                 <View className="flex-row items-center justify-between bg-surface-2 dark:bg-surface-2-dark border border-border-subtle dark:border-border-dark-subtle rounded-lg px-3 py-3">
                   <View className="flex-1 pr-3">
-                    <Text
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                      style={{ fontFamily: 'Inter_600SemiBold' }}
-                    >
-                      {currentPhone.number}
-                    </Text>
+                    <Text variant="mono.value">{currentPhone.number}</Text>
                     {currentPhone.provider ? (
-                      <Text
-                        className="text-fg-muted dark:text-fg-dark-muted text-[11px] uppercase tracking-widest mt-0.5"
-                        style={{ fontFamily: 'Inter_500Medium' }}
-                      >
+                      <Text variant="mono.label" tone="muted" className="mt-0.5">
                         {currentPhone.provider}
                       </Text>
                     ) : null}
@@ -516,10 +482,7 @@ export default function AgentEditorScreen() {
               </View>
             ) : (
               <View className="gap-2.5">
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-sm"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
+                <Text variant="body.sm" tone="muted">
                   No phone number assigned. The agent cannot receive inbound calls until you assign one.
                 </Text>
                 <Button
@@ -574,10 +537,7 @@ export default function AgentEditorScreen() {
         <SectionCard label="Knowledge bases">
           <View className="gap-2.5">
             {form.knowledgeBaseIds.length === 0 ? (
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-sm"
-                style={{ fontFamily: 'Inter_400Regular' }}
-              >
+              <Text variant="body.sm" tone="muted">
                 No knowledge bases attached.
               </Text>
             ) : (
@@ -590,10 +550,7 @@ export default function AgentEditorScreen() {
                       className="flex-row items-center bg-accent-soft dark:bg-accent-soft-dark rounded-full px-3 py-1.5"
                     >
                       <Ionicons name="library-outline" size={12} color={colors.accent} />
-                      <Text
-                        className="text-accent dark:text-accent-dark text-xs ml-1.5 mr-2"
-                        style={{ fontFamily: 'Inter_500Medium' }}
-                      >
+                      <Text variant="body.xs" tone="accent" className="ml-1.5 mr-2">
                         {kb?.name ?? kbId}
                       </Text>
                       <Pressable onPress={() => toggleKb(kbId)}>
@@ -621,17 +578,9 @@ export default function AgentEditorScreen() {
           <View className="gap-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-1 pr-3">
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
-                  Escalate to manager
-                </Text>
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
-                  When the agent can't resolve, hand off the conversation.
+                <Text variant="body.medium">Escalate to manager</Text>
+                <Text variant="body.sm" tone="muted" className="mt-0.5">
+                  When the agent can&apos;t resolve, hand off the conversation.
                 </Text>
               </View>
               <Switch
@@ -660,17 +609,9 @@ export default function AgentEditorScreen() {
           <View className="gap-2">
             <View className="flex-row items-center justify-between">
               <View className="flex-1 pr-3">
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
-                  Append signature
-                </Text>
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
-                  Adds the agent's signature to outbound emails.
+                <Text variant="body.medium">Append signature</Text>
+                <Text variant="body.sm" tone="muted" className="mt-0.5">
+                  Adds the agent&apos;s signature to outbound emails.
                 </Text>
               </View>
               <Switch
@@ -681,10 +622,7 @@ export default function AgentEditorScreen() {
                 ios_backgroundColor={colors.border}
               />
             </View>
-            <Text
-              className="text-fg-subtle dark:text-fg-dark-subtle text-[11px]"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="body.xs" tone="subtle">
               Signature content is edited on the web.
             </Text>
           </View>
@@ -695,16 +633,8 @@ export default function AgentEditorScreen() {
           <View className="gap-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-1 pr-3">
-                <Text
-                  className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
-                  Enable daily reports
-                </Text>
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                >
+                <Text variant="body.medium">Enable daily reports</Text>
+                <Text variant="body.sm" tone="muted" className="mt-0.5">
                   Sends a summary email at the chosen time.
                 </Text>
               </View>
@@ -753,17 +683,11 @@ export default function AgentEditorScreen() {
         {/* Tools — only those sourced from installed integrations/plugins */}
         <SectionCard label="Tools" dense>
           {tools.isPending ? (
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-sm px-2 py-2"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="body.sm" tone="muted" className="px-2 py-2">
               Loading tools…
             </Text>
           ) : availableTools.length === 0 ? (
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-sm px-2 py-2"
-              style={{ fontFamily: 'Inter_400Regular' }}
-            >
+            <Text variant="body.sm" tone="muted" className="px-2 py-2">
               No tools available. Install and assign a plugin/integration to give this agent runtime capabilities.
             </Text>
           ) : (
@@ -773,16 +697,12 @@ export default function AgentEditorScreen() {
                 className="flex-row items-center justify-between py-2.5 border-b border-border-subtle dark:border-border-dark-subtle last:border-b-0"
               >
                 <View className="flex-1 pr-3">
-                  <Text
-                    className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                    style={{ fontFamily: 'Inter_500Medium' }}
-                  >
-                    {t.name}
-                  </Text>
+                  <Text variant="body.medium">{t.name}</Text>
                   {t.description ? (
                     <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                      style={{ fontFamily: 'Inter_400Regular' }}
+                      variant="body.sm"
+                      tone="muted"
+                      className="mt-0.5"
                       numberOfLines={2}
                     >
                       {t.description}
@@ -817,10 +737,7 @@ export default function AgentEditorScreen() {
           >
             Move to trash
           </Button>
-          <Text
-            className="text-fg-subtle dark:text-fg-dark-subtle text-xs mt-2"
-            style={{ fontFamily: 'Inter_400Regular' }}
-          >
+          <Text variant="body.xs" tone="subtle" className="mt-2">
             Can be restored from trash within 30 days.
           </Text>
         </SectionCard>
@@ -954,10 +871,7 @@ export default function AgentEditorScreen() {
           />
           {LLM_PROVIDERS.map((group) => (
             <View key={group.provider}>
-              <Text
-                className="text-fg-subtle dark:text-fg-dark-subtle text-[10px] uppercase tracking-widest mt-3 mb-1.5 px-1"
-                style={{ fontFamily: 'Inter_600SemiBold' }}
-              >
+              <Text variant="mono.label" tone="subtle" className="mt-3 mb-1.5 px-1">
                 {group.provider}
               </Text>
               {group.models.map((model) => (
@@ -1006,18 +920,11 @@ export default function AgentEditorScreen() {
                   )}
                 >
                   <View className="flex-1 pr-3">
-                    <Text
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                      style={{ fontFamily: 'Inter_500Medium' }}
-                      numberOfLines={1}
-                    >
+                    <Text variant="body.medium" numberOfLines={1}>
                       {kb.name}
                     </Text>
                     {kb.type || kb.status ? (
-                      <Text
-                        className="text-fg-muted dark:text-fg-dark-muted text-[11px] mt-0.5"
-                        style={{ fontFamily: 'Inter_400Regular' }}
-                      >
+                      <Text variant="body.xs" tone="muted" className="mt-0.5">
                         {[kb.type, kb.status].filter(Boolean).join(' · ')}
                       </Text>
                     ) : null}
@@ -1061,17 +968,10 @@ function PickerRow({ label, value, loading, disabled, onPress }: PickerRowProps)
       )}
     >
       <View className="flex-1">
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-widest"
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
+        <Text variant="mono.label" tone="muted">
           {label}
         </Text>
-        <Text
-          className="text-fg dark:text-fg-dark-DEFAULT text-sm mt-0.5"
-          style={{ fontFamily: 'Inter_500Medium' }}
-          numberOfLines={1}
-        >
+        <Text variant="body.medium" className="mt-0.5" numberOfLines={1}>
           {value}
         </Text>
       </View>
@@ -1090,6 +990,7 @@ interface PickerSheetProps {
   children: React.ReactNode;
 }
 function PickerSheet({ title, onClose, children }: PickerSheetProps) {
+  const { colors } = useThemeMode();
   return (
     <Pressable
       onPress={onClose}
@@ -1097,14 +998,9 @@ function PickerSheet({ title, onClose, children }: PickerSheetProps) {
     >
       <Pressable className="bg-surface dark:bg-surface-dark border-t border-border dark:border-border-dark rounded-t-3xl p-5 max-h-[80%]">
         <View className="flex-row items-center justify-between mb-3">
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-base"
-            style={{ fontFamily: 'Inter_600SemiBold' }}
-          >
-            {title}
-          </Text>
+          <Text variant="display.sm">{title}</Text>
           <Pressable onPress={onClose} hitSlop={12}>
-            <Ionicons name="close" size={20} color="#94A3B8" />
+            <Ionicons name="close" size={20} color={colors.fgSubtle} />
           </Pressable>
         </View>
         <ScrollView showsVerticalScrollIndicator={false}>{children}</ScrollView>
@@ -1135,19 +1031,11 @@ function SheetRow({ label, subtitle, selected, disabled, onPress }: SheetRowProp
       )}
     >
       <View className="flex-1 pr-3">
-        <Text
-          className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-          style={{ fontFamily: 'Inter_500Medium' }}
-          numberOfLines={1}
-        >
+        <Text variant="body.medium" numberOfLines={1}>
           {label}
         </Text>
         {subtitle ? (
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-[11px] mt-0.5"
-            style={{ fontFamily: 'Inter_400Regular' }}
-            numberOfLines={1}
-          >
+          <Text variant="body.xs" tone="muted" className="mt-0.5" numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
@@ -1160,10 +1048,7 @@ function SheetRow({ label, subtitle, selected, disabled, onPress }: SheetRowProp
 function SheetEmpty({ text }: { text: string }) {
   return (
     <View className="py-6 items-center">
-      <Text
-        className="text-fg-muted dark:text-fg-dark-muted text-sm"
-        style={{ fontFamily: 'Inter_400Regular' }}
-      >
+      <Text variant="body.sm" tone="muted">
         {text}
       </Text>
     </View>

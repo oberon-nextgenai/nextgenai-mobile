@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Text } from '@/components/ui/Text';
+import { Type } from '@/constants/Typography';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { cn } from '@/lib/cn';
 
@@ -46,18 +48,12 @@ export function ChipInput({
   return (
     <View className={cn('gap-1.5', className)}>
       {label ? (
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-xs tracking-wide"
-          style={{ fontFamily: 'Inter_500Medium' }}
-        >
+        <Text variant="body.xs" tone="muted">
           {label}
         </Text>
       ) : null}
       {description ? (
-        <Text
-          className="text-fg-subtle dark:text-fg-dark-subtle text-xs"
-          style={{ fontFamily: 'Inter_400Regular' }}
-        >
+        <Text variant="body.xs" tone="subtle">
           {description}
         </Text>
       ) : null}
@@ -74,10 +70,7 @@ export function ChipInput({
             key={v}
             className="flex-row items-center bg-accent-soft dark:bg-accent-soft-dark border border-accent/30 dark:border-accent-dark/40 rounded-full pl-2.5 pr-1 py-0.5"
           >
-            <Text
-              className="text-accent dark:text-accent-dark text-xs"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
+            <Text variant="body.xs" tone="accent">
               {v}
             </Text>
             <Pressable
@@ -107,8 +100,9 @@ export function ChipInput({
           placeholderTextColor={colors.fgSubtle}
           autoCapitalize="none"
           autoCorrect={false}
-          className="flex-1 min-w-[120px] text-fg dark:text-fg-dark-DEFAULT text-[15px] py-1.5"
-          style={{ fontFamily: 'Inter_400Regular' }}
+          className="flex-1 min-w-[120px] py-1.5"
+          // TextInput is not the Text primitive, so the type role is spread directly.
+          style={[Type.body.lg, { color: colors.fg }]}
         />
       </View>
     </View>

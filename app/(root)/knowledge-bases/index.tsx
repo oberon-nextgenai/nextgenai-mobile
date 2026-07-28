@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
@@ -7,6 +7,8 @@ import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import { useKnowledgeBases } from '@/api/hooks/agentHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
@@ -81,28 +83,25 @@ export default function KnowledgeBasesListScreen() {
                 <Pressable
                   key={kb._id}
                   onPress={() => router.push(`/(root)/knowledge-bases/${kb._id}` as never)}
-                  className="flex-row items-center bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-3 mb-2 active:opacity-80"
+                  className="mb-2 active:opacity-80"
                 >
-                  <View className="w-9 h-9 rounded-lg bg-accent-soft dark:bg-accent-soft-dark items-center justify-center mr-3">
-                    <Ionicons name="document-text-outline" size={16} color={colors.accent} />
-                  </View>
-                  <View className="flex-1">
-                    <Text
-                      className="text-fg dark:text-fg-dark-DEFAULT text-sm"
-                      style={{ fontFamily: 'Inter_500Medium' }}
-                      numberOfLines={1}
-                    >
-                      {kb.name}
-                    </Text>
-                    <Text
-                      className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                      style={{ fontFamily: 'Inter_400Regular' }}
-                      numberOfLines={1}
-                    >
-                      {[kb.type, kb.status, fmtBytes(kb.size)].filter(Boolean).join(' · ')}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={14} color={colors.fgSubtle} />
+                  {/* No gloss: this renders once per knowledge base in a scrolling list. */}
+                  <Card padding="sm">
+                    <View className="flex-row items-center">
+                      <View className="w-9 h-9 rounded-lg bg-accent-soft dark:bg-accent-soft-dark items-center justify-center mr-3">
+                        <Ionicons name="document-text-outline" size={16} color={colors.accent} />
+                      </View>
+                      <View className="flex-1">
+                        <Text variant="display.sm" numberOfLines={1}>
+                          {kb.name}
+                        </Text>
+                        <Text variant="mono.sm" tone="muted" className="mt-0.5" numberOfLines={1}>
+                          {[kb.type, kb.status, fmtBytes(kb.size)].filter(Boolean).join(' · ')}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={14} color={colors.fgSubtle} />
+                    </View>
+                  </Card>
                 </Pressable>
               ))}
             </ScrollView>

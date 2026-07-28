@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
@@ -8,6 +8,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { SchemaForm } from '@/components/ui/SchemaForm';
+import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import { useInstallIntegration, usePlugin } from '@/api/hooks/pluginHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
@@ -98,26 +99,14 @@ export default function PluginInstallScreen() {
         >
           <View className="flex-row items-center mb-4">
             <View className="w-12 h-12 rounded-xl bg-accent-soft dark:bg-accent-soft-dark border border-accent/30 dark:border-accent-dark/40 items-center justify-center">
-              <Text
-                className="text-accent dark:text-accent-dark text-lg"
-                style={{ fontFamily: 'Inter_700Bold' }}
-              >
+              <Text variant="display.sm" tone="accent">
                 {(plugin.data.name ?? '?').slice(0, 1).toUpperCase()}
               </Text>
             </View>
             <View className="flex-1 ml-3">
-              <Text
-                className="text-fg dark:text-fg-dark-DEFAULT text-lg"
-                style={{ fontFamily: 'Inter_700Bold' }}
-              >
-                {plugin.data.name}
-              </Text>
+              <Text variant="display.sm">{plugin.data.name}</Text>
               {plugin.data.description ? (
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-xs mt-0.5"
-                  style={{ fontFamily: 'Inter_400Regular' }}
-                  numberOfLines={3}
-                >
+                <Text variant="body.xs" tone="muted" className="mt-0.5" numberOfLines={3}>
                   {plugin.data.description}
                 </Text>
               ) : null}
@@ -128,10 +117,7 @@ export default function PluginInstallScreen() {
             <View className="bg-warning-soft border border-warning/40 rounded-xl p-4">
               <View className="flex-row items-start">
                 <Ionicons name="information-circle" size={16} color={colors.warning} />
-                <Text
-                  className="text-warning text-sm ml-2 flex-1 leading-5"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="body.sm" tone="warning" className="ml-2 flex-1">
                   This integration uses OAuth and must be set up on the web app for now. We&apos;re
                   bringing mobile OAuth in a future update.
                 </Text>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
+import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { TextArea } from '@/components/ui/TextArea';
 import { ErrorState } from '@/components/common/ErrorState';
@@ -80,10 +81,7 @@ export default function EditPromptScreen() {
           contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text
-            className="text-fg-muted dark:text-fg-dark-muted text-xs mb-3"
-            style={{ fontFamily: 'Inter_400Regular' }}
-          >
+          <Text variant="body.xs" tone="muted" className="mb-3">
             Markdown-style headers are supported. Prime re-reads this on the next call.
           </Text>
           <TextArea

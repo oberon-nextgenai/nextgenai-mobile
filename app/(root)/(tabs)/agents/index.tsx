@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
@@ -158,10 +159,7 @@ export default function AgentsScreen() {
                 }
               />
               <View className="absolute bottom-0 left-0 right-0 bg-bg dark:bg-bg-dark border-t border-border-subtle dark:border-border-dark-subtle px-4 py-2.5">
-                <Text
-                  className="text-fg-muted dark:text-fg-dark-muted text-xs text-center"
-                  style={{ fontFamily: 'Inter_500Medium' }}
-                >
+                <Text variant="body.xs" tone="muted" className="text-center">
                   Showing {filteredAgents.length} of {total} agents
                 </Text>
               </View>

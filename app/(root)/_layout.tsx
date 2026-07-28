@@ -4,6 +4,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 import { useOrgStore } from '@/store/org';
 import { useMeQuery, useOrganizationsQuery } from '@/api/hooks/authHooks';
+import { usePushDeepLinks, usePushRegistration } from '@/api/hooks/pushHooks';
 import { useBiometricUnlock } from '@/hooks/useBiometricUnlock';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { BiometricGate } from '@/components/common/BiometricGate';
@@ -32,6 +33,12 @@ export default function RootAreaLayout() {
       });
     }
   }, [orgsQuery.data, meQuery.data, reconcile]);
+
+  // Registers this device for push and routes tapped notifications. Both are
+  // hooks, so they must run before any early return — they no-op until there is
+  // a session and an active organization.
+  usePushRegistration();
+  usePushDeepLinks();
 
   if (!token) {
     return <Redirect href="/(auth)/sign-in" />;
@@ -78,6 +85,13 @@ export default function RootAreaLayout() {
           name="agents/new"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
+        {/* The audit receipt is a modal: it is the confirmation of a decision you
+            just made, not a place you navigate to. */}
+        <Stack.Screen
+          name="approval-receipt/[id]"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen name="outcomes" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="security" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="campaigns/index" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="campaigns/[id]" options={{ animation: 'slide_from_right' }} />

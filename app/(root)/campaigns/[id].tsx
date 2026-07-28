@@ -1,10 +1,12 @@
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { Tag } from '@/components/ui/Tag';
+import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import { useCampaign } from '@/api/hooks/campaignHooks';
 import { fmtDateTime } from '@/lib/formatters';
@@ -38,27 +40,13 @@ export default function CampaignDetailScreen() {
         <EmptyState title="Campaign not found" />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-          <Text
-            className="text-fg dark:text-fg-dark-DEFAULT text-2xl mb-1"
-            style={{ fontFamily: 'Inter_700Bold' }}
-            numberOfLines={2}
-          >
+          <Text variant="display.lg" className="mb-1" numberOfLines={2}>
             {q.data.name}
           </Text>
           <View className="flex-row items-center gap-2 mb-4">
-            <View className="px-2 py-0.5 rounded-full bg-surface-2 dark:bg-surface-2-dark">
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-[10px] uppercase tracking-wider"
-                style={{ fontFamily: 'Inter_500Medium' }}
-              >
-                {q.data.status}
-              </Text>
-            </View>
+            <Tag label={q.data.status} />
             {q.data.contacts ? (
-              <Text
-                className="text-fg-muted dark:text-fg-dark-muted text-xs"
-                style={{ fontFamily: 'Inter_400Regular' }}
-              >
+              <Text variant="mono.value" tone="muted">
                 {q.data.contacts.length} contacts
               </Text>
             ) : null}
@@ -66,12 +54,7 @@ export default function CampaignDetailScreen() {
 
           {q.data.description ? (
             <SectionCard label="Description">
-              <Text
-                className="text-fg dark:text-fg-dark-DEFAULT text-sm leading-5"
-                style={{ fontFamily: 'Inter_400Regular' }}
-              >
-                {q.data.description}
-              </Text>
+              <Text variant="body.sm">{q.data.description}</Text>
             </SectionCard>
           ) : null}
 
@@ -80,18 +63,15 @@ export default function CampaignDetailScreen() {
               <DetailRow label="Created" value={fmtDateTime(q.data.createdAt)} />
               <DetailRow label="Updated" value={fmtDateTime(q.data.updatedAt)} />
               {q.data.assistantId ? (
-                <DetailRow label="Assistant" value={q.data.assistantId} mono />
+                <DetailRow label="Assistant" value={q.data.assistantId} />
               ) : null}
               {q.data.vapiCampaignId ? (
-                <DetailRow label="VAPI ID" value={q.data.vapiCampaignId} mono />
+                <DetailRow label="VAPI ID" value={q.data.vapiCampaignId} />
               ) : null}
             </View>
           </SectionCard>
 
-          <Text
-            className="text-fg-subtle dark:text-fg-dark-subtle text-[11px] text-center mt-2"
-            style={{ fontFamily: 'Inter_400Regular' }}
-          >
+          <Text variant="body.xs" tone="subtle" className="text-center mt-2">
             Edit campaigns on the web platform.
           </Text>
         </ScrollView>
@@ -100,20 +80,14 @@ export default function CampaignDetailScreen() {
   );
 }
 
-function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+/** Mono label left, mono value right — the audit-record row. */
+function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-start">
-      <Text
-        className="text-fg-muted dark:text-fg-dark-muted text-[11px] uppercase tracking-widest w-24"
-        style={{ fontFamily: 'Inter_500Medium' }}
-      >
+      <Text variant="mono.label" tone="muted" className="w-24">
         {label}
       </Text>
-      <Text
-        className="text-fg dark:text-fg-dark-DEFAULT text-sm flex-1"
-        style={{ fontFamily: mono ? 'Menlo' : 'Inter_500Medium' }}
-        numberOfLines={2}
-      >
+      <Text variant="mono.value" className="flex-1" numberOfLines={2}>
         {value || '—'}
       </Text>
     </View>

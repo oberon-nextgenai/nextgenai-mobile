@@ -36,11 +36,22 @@ const INVALIDATION_MAP: Record<string, (orgId: string) => readonly unknown[][]> 
     ['campaigns', orgId],
     ['agents', orgId],
   ],
+  // No screen queries `['tasks', …]` yet, so these are currently no-ops. Kept
+  // deliberately: Prime can already mutate tasks, and the day a task surface
+  // lands it should refresh without anyone remembering to come back here.
   create_task: (orgId) => [['tasks', orgId]],
   update_task: (orgId) => [['tasks', orgId]],
   update_task_status: (orgId) => [['tasks', orgId]],
   delete_task: (orgId) => [['tasks', orgId]],
   duplicate_task: (orgId) => [['tasks', orgId]],
+  // Escalations: the inbox, the badge counts and any open detail all live under
+  // the `['escalations', orgId]` prefix, so one key covers all three.
+  list_escalations: (orgId) => [['escalations', orgId]],
+  triage_escalations: (orgId) => [['escalations', orgId]],
+  approve_human_takeover: (orgId) => [
+    ['escalations', orgId],
+    ['audit-log', orgId],
+  ],
   install_plugin: (orgId) => [
     ['plugins', orgId],
     ['integrations', orgId],

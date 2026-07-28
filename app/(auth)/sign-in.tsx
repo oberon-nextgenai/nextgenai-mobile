@@ -1,20 +1,38 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Screen } from '@/components/common/Screen';
 import { Button } from '@/components/ui/Button';
+import { GradientButton } from '@/components/ui/GradientButton';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
-import { AppMark } from '@/components/brand/AppMark';
+import { Card } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
+import { Logo } from '@/components/brand/Logo';
 import { useLoginMutation } from '@/api/hooks/authHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
 const REMEMBER_KEY = 'oberon.rememberedEmail';
+
+/**
+ * The screen's one moment: the brand block settles into place — a fade and a 10px
+ * rise, rather than the 25px default, so it reads as the mark arriving and not as
+ * a card sliding in. The form itself never moves; a field that animates while you
+ * are trying to tap it is a nuisance, not a flourish.
+ *
+ * Reanimated layout animations default to `ReduceMotion.System`, so this is
+ * skipped outright when the OS setting is on and the block simply renders.
+ */
+const BRAND_ENTRANCE = FadeInDown.duration(420).withInitialValues({
+  opacity: 0,
+  transform: [{ translateY: 10 }],
+});
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -34,7 +52,6 @@ export default function SignInScreen() {
     defaultValues: { email: '', password: '' },
   });
 
-  // Restore remembered email on mount.
   useEffect(() => {
     void (async () => {
       const stored = await AsyncStorage.getItem(REMEMBER_KEY);
@@ -45,12 +62,9 @@ export default function SignInScreen() {
     })();
   }, [setValue]);
 
-  const onSubmit = handleSubmit(async (values) => {
-    if (rememberMe) {
-      await AsyncStorage.setItem(REMEMBER_KEY, values.email);
-    } else {
-      await AsyncStorage.removeItem(REMEMBER_KEY);
-    }
+  const onSubmit = handleSubmit(async values => {
+    if (rememberMe) await AsyncStorage.setItem(REMEMBER_KEY, values.email);
+    else await AsyncStorage.removeItem(REMEMBER_KEY);
     login.mutate(values);
   });
 
@@ -59,27 +73,25 @@ export default function SignInScreen() {
       ?.response?.data?.message ?? (login.error as Error | undefined)?.message;
 
   return (
-    <Screen avoidKeyboard className="px-6">
+    <Screen background="nebula" avoidKeyboard className="px-6">
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 32 }}
+        showsVerticalScrollIndicator={false}
       >
-        <View className="mb-10 items-start">
-          <AppMark size={44} variant="full" />
-        </View>
-
-        <Text
-          className="text-fg dark:text-fg-dark-DEFAULT text-3xl tracking-tight"
-          style={{ fontFamily: 'Inter_700Bold' }}
-        >
-          Welcome back
-        </Text>
-        <Text
-          className="text-fg-muted dark:text-fg-dark-muted text-sm mt-1 mb-6"
-          style={{ fontFamily: 'Inter_400Regular' }}
-        >
-          Sign in to continue
-        </Text>
+        {/* Brand block — the app states what it is before asking who you are. */}
+        <Animated.View entering={BRAND_ENTRANCE} className="items-center mb-9">
+          <Logo size={56} />
+          <Text variant="mono.label" tone="accent" className="mt-4">
+            NextGen AI · Prime
+          </Text>
+          <Text variant="display.lg" className="mt-2 text-center">
+            AI Workforce Command
+          </Text>
+          <Text variant="body.sm" tone="muted" className="mt-2 text-center">
+            Your executive console for the AI workforce.
+          </Text>
+        </Animated.View>
 
         <View className="gap-3">
           <Controller
@@ -114,9 +126,7 @@ export default function SignInScreen() {
                 onChangeText={onChange}
                 onBlur={onBlur}
                 error={fieldState.error?.message}
-                leftIcon={
-                  <Ionicons name="lock-closed-outline" size={16} color={colors.fgMuted} />
-                }
+                leftIcon={<Ionicons name="lock-closed-outline" size={16} color={colors.fgMuted} />}
                 rightIcon={
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -124,68 +134,64 @@ export default function SignInScreen() {
                     color={colors.fgMuted}
                   />
                 }
-                onPressRightIcon={() => setShowPassword((v) => !v)}
+                onPressRightIcon={() => setShowPassword(v => !v)}
               />
             )}
           />
 
           <View className="flex-row items-center justify-between mt-1">
             <Checkbox checked={rememberMe} onChange={setRememberMe} label="Remember me" />
-            <Pressable onPress={() => router.push('/(auth)/forgot-password')}>
-              <Text
-                className="text-accent dark:text-accent-dark text-sm"
-                style={{ fontFamily: 'Inter_500Medium' }}
-              >
+            <Pressable onPress={() => router.push('/(auth)/forgot-password')} hitSlop={8}>
+              <Text variant="body.sm" tone="accent">
                 Forgot password?
               </Text>
             </Pressable>
           </View>
 
           {errorMsg ? (
-            <View className="bg-danger-soft border border-danger/40 rounded-lg px-3 py-2">
-              <Text className="text-danger text-sm" style={{ fontFamily: 'Inter_500Medium' }}>
+            <Card variant="plain" padding="sm" style={{ backgroundColor: colors.dangerSoft }}>
+              <Text variant="body.sm" tone="danger">
                 {errorMsg}
               </Text>
-            </View>
+            </Card>
           ) : null}
 
-          <Button onPress={onSubmit} loading={login.isPending} fullWidth className="mt-2">
+          <GradientButton onPress={onSubmit} loading={login.isPending} fullWidth className="mt-2">
             Sign in
-          </Button>
+          </GradientButton>
 
           <View className="flex-row items-center my-3">
-            <View className="flex-1 h-px bg-border dark:bg-border-dark" />
-            <Text
-              className="text-fg-subtle dark:text-fg-dark-subtle text-xs mx-3"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
+            <View className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
+            <Text variant="mono.label" tone="subtle" className="mx-3">
               or
             </Text>
-            <View className="flex-1 h-px bg-border dark:bg-border-dark" />
+            <View className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
           </View>
 
           <Button
             variant="secondary"
             fullWidth
-            onPress={() =>
-              router.push({
-                pathname: '/(auth)/sso',
-                params: {},
-              } as never)
-            }
-            leftIcon={<Ionicons name="key-outline" size={16} color={colors.fg} />}
+            onPress={() => router.push({ pathname: '/(auth)/sso', params: {} } as never)}
+            leftIcon={<Ionicons name="shield-outline" size={16} color={colors.fg} />}
           >
-            Sign in with SSO
+            Continue with Enterprise SSO
           </Button>
 
-          <View className="flex-row items-center justify-center mt-4 opacity-70">
-            <Ionicons name="shield-checkmark-outline" size={12} color={colors.fgMuted} />
-            <Text
-              className="text-fg-muted dark:text-fg-dark-muted text-xs ml-1"
-              style={{ fontFamily: 'Inter_500Medium' }}
-            >
-              Secure access with 2FA
-            </Text>
+          {/* Only claims the app actually implements — 2FA and biometric unlock
+              both exist. Compliance badges are not asserted here. */}
+          <View className="items-center mt-6 gap-1.5">
+            <View className="flex-row items-center">
+              <Ionicons name="lock-closed-outline" size={11} color={colors.fgSubtle} />
+              <Text variant="mono.label" tone="subtle" className="ml-1.5">
+                Two-factor authentication supported
+              </Text>
+            </View>
+            <View className="flex-row items-center">
+              <Ionicons name="finger-print-outline" size={11} color={colors.fgSubtle} />
+              <Text variant="mono.label" tone="subtle" className="ml-1.5">
+                Biometric unlock available after sign-in
+              </Text>
+            </View>
           </View>
         </View>
       </ScrollView>
