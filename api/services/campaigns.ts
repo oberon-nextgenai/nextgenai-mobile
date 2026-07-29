@@ -7,6 +7,9 @@ export interface Campaign {
   description?: string;
   organizationId: string;
   status: string;
+  /** 'phone' | 'text' | 'email' | 'mmr'. Absent on older documents, which
+   * predate the field and are all phone campaigns. */
+  type?: string;
   assistantId?: string;
   phoneNumberId?: string;
   contacts?: string[];

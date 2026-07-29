@@ -10,6 +10,7 @@ import { Tag, type TagTone } from '@/components/ui/Tag';
 import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import { useCampaigns } from '@/api/hooks/campaignHooks';
+import { useMmrEntitlement } from '@/api/hooks/mmrHooks';
 import { fmtRelative } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
@@ -28,10 +29,28 @@ export default function CampaignsListScreen() {
   const { activeOrgId } = useActiveOrg();
   const { colors } = useThemeMode();
   const q = useCampaigns(activeOrgId);
+  const mmr = useMmrEntitlement(activeOrgId);
 
   return (
     <Screen edges={{ top: true, bottom: false }}>
-      <AppHeader title="Campaigns" showBack showOrgPill={false} />
+      <AppHeader
+        title="Campaigns"
+        showBack
+        showOrgPill={false}
+        // Only surfaced for a workspace with the MMR plugin — for everyone else
+        // a spreadsheet upload leads nowhere they can use.
+        right={
+          mmr.enabled ? (
+            <Pressable
+              onPress={() => router.push('/mmr-uploads' as never)}
+              hitSlop={10}
+              accessibilityLabel="Meter spreadsheets"
+            >
+              <Ionicons name="cloud-upload-outline" size={18} color={colors.fg} />
+            </Pressable>
+          ) : undefined
+        }
+      />
       {!activeOrgId ? (
         <EmptyState title="Choose an organization" />
       ) : q.isPending ? (
@@ -74,6 +93,16 @@ export default function CampaignsListScreen() {
                     </Text>
                     <Tag label={c.status} tone={tone} />
                   </View>
+                  {/* MMR campaigns open a different screen and are measured in
+                      meters rather than contacts, so they are marked here. */}
+                  {c.type === 'mmr' ? (
+                    <View className="flex-row items-center mb-1">
+                      <Ionicons name="speedometer-outline" size={11} color={colors.fgSubtle} />
+                      <Text variant="mono.label" tone="subtle" className="ml-1.5">
+                        Meter reading
+                      </Text>
+                    </View>
+                  ) : null}
                   {c.description ? (
                     <Text variant="body.sm" tone="muted" className="mt-0.5" numberOfLines={2}>
                       {c.description}

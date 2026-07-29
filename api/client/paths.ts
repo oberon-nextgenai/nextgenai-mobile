@@ -49,6 +49,25 @@ export const PATHS = {
   campaigns: {
     list: '/api/campaigns',
     detail: (id: string) => `/api/campaigns/${encodeURIComponent(id)}`,
+    start: (id: string) => `/api/campaigns/${encodeURIComponent(id)}/start`,
+    stop: (id: string) => `/api/campaigns/${encodeURIComponent(id)}/stop`,
+    mmr: {
+      details: (id: string) => `/api/campaigns/${encodeURIComponent(id)}/mmr/details`,
+      callStatus: (id: string) => `/api/campaigns/${encodeURIComponent(id)}/mmr/call-status`,
+      emailStatus: (id: string) => `/api/campaigns/${encodeURIComponent(id)}/mmr/email-status`,
+      resendEmail: (id: string) => `/api/campaigns/${encodeURIComponent(id)}/mmr/resend-email`,
+      exportXlsx: (id: string) => `/api/campaigns/${encodeURIComponent(id)}/mmr/export`,
+      clone: (id: string) => `/api/campaigns/${encodeURIComponent(id)}/mmr/clone`,
+      cantCollect: (id: string, groupId: string) =>
+        `/api/campaigns/${encodeURIComponent(id)}/mmr/contact-groups/${encodeURIComponent(groupId)}/cant-collect`,
+      updateContact: (id: string, groupId: string) =>
+        `/api/campaigns/${encodeURIComponent(id)}/mmr/contact-groups/${encodeURIComponent(groupId)}/contact`,
+      uploads: '/api/campaigns/mmr/uploads',
+      upload: (uploadId: string) =>
+        `/api/campaigns/mmr/uploads/${encodeURIComponent(uploadId)}`,
+      uploadToCampaign: (uploadId: string) =>
+        `/api/campaigns/mmr/uploads/${encodeURIComponent(uploadId)}/campaign`,
+    },
   },
   security: {
     twoFactorSetup: '/api/auth/2fa/setup',
