@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { PATHS } from '@/api/client/paths';
 import { openPrimeStream } from '@/api/client/sseClient';
@@ -78,8 +79,20 @@ export interface UsePrimeChatOptions {
   onAssistantComplete?: (speakableText: string) => void;
 }
 
+/**
+ * How long a turn may go without any SSE event before it is treated as dead.
+ *
+ * Generous on purpose: Prime fans out to tools that can legitimately take tens of
+ * seconds, and the timer is re-armed on every event, so only real silence trips it.
+ */
+const STREAM_IDLE_TIMEOUT_MS = 90_000;
+
+/** Where the turn-summary toast lands when more than one tool ran. */
+const PRIME_CHAT_ROUTE = '/(root)/(tabs)/prime';
+
 export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions = {}) {
   const qc = useQueryClient();
+  const router = useRouter();
   const addToolResult = useToolResults((s) => s.add);
   const addNotification = useNotifications((s) => s.add);
   // Keep the latest completion callback so the async stream fires the current one.
@@ -150,11 +163,98 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
       };
 
       let aggregatedContent = '';
+
+      // A turn ends exactly once, whichever way it ends. Previously only the
+      // `complete` and `error` SSE events cleared `isStreaming`; a connection that
+      // simply closed — a recycled pod, a dropped network — left the composer
+      // disabled until the app was killed and reopened.
+      let turnEnded = false;
+      let idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+      // Successful tool runs are coalesced into a single toast at end of turn —
+      // a four-tool turn used to stack four toasts on top of four notification-inbox
+      // entries. The inbox still gets one entry per result (`addNotification` below,
+      // untouched); only this transient summary batches. Errors are excluded and
+      // keep firing individually — they need attention, not a batch average.
+      let successfulToolNames: string[] = [];
+      let lastSuccessToolResultId: string | null = null;
+      let toastFlushed = false;
+
+      const clearIdleTimer = () => {
+        if (idleTimer) {
+          clearTimeout(idleTimer);
+          idleTimer = null;
+        }
+      };
+
+      /** Fires once per turn, however it ends — clean finish, idle timeout, or a bare close. */
+      const flushTurnToast = () => {
+        if (toastFlushed) return;
+        toastFlushed = true;
+        if (successfulToolNames.length === 0) return;
+
+        const count = successfulToolNames.length;
+        const single = count === 1;
+        // Single tool: same place its notification-inbox entry points to
+        // (`/tool-result/<id>`, set below). Several tools: no one screen owns all
+        // of them, so fall back to the chat thread that ran them.
+        const destination =
+          single && lastSuccessToolResultId
+            ? `/tool-result/${lastSuccessToolResultId}`
+            : PRIME_CHAT_ROUTE;
+
+        Toast.show({
+          type: 'success',
+          text1: single ? successfulToolNames[0] : 'Prime',
+          text2: single ? 'Tap to review the result' : `Ran ${count} tools · tap to review`,
+          onPress: () => {
+            Toast.hide();
+            router.push(destination as never);
+          },
+        });
+      };
+
+      /** Clean finish — suppresses the close and watchdog fallbacks. */
+      const endTurn = () => {
+        turnEnded = true;
+        clearIdleTimer();
+        flushTurnToast();
+      };
+
+      /** The stream died without ever completing. */
+      const failTurn = (reason: string) => {
+        if (turnEnded) return;
+        turnEnded = true;
+        clearIdleTimer();
+        flushTurnToast();
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === currentAssistantIdRef.current
+              ? { ...m, status: 'error', content: aggregatedContent || reason }
+              : m,
+          ),
+        );
+        setIsStreaming(false);
+        setStreamingContent('');
+        closeStream();
+      };
+
+      // Re-armed on every event, so a long tool round-trip never trips it.
+      const armIdleTimer = () => {
+        clearIdleTimer();
+        idleTimer = setTimeout(
+          () => failTurn('Prime stopped responding. Try again.'),
+          STREAM_IDLE_TIMEOUT_MS,
+        );
+      };
+      armIdleTimer();
       let finalStructured: PrimeStructuredResponse | null = null;
       let finalFallbackMarkdown: string | null = null;
       let currentFormat: 'text' | 'structured' = 'text';
 
       const onMessage = (data: unknown) => {
+        // Any traffic means the turn is alive — push the silence deadline out.
+        armIdleTimer();
         const event = data as { type?: string; [k: string]: unknown };
         switch (event.type) {
           case 'format': {
@@ -274,6 +374,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
               const name = r.name ?? r.toolName ?? 'tool';
               const status: ToolCallRecord['status'] = r.error ? 'error' : 'success';
 
+              const calledAt = Date.now();
               addToolResult({
                 id,
                 toolName: name,
@@ -284,22 +385,26 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
 
               if (status === 'success') {
                 invalidateForTool(qc, name, orgId);
+                // `tool` + `at` ride along so the result screen can fall back to
+                // the audit trail if this notification is tapped after the local
+                // LRU has evicted the result — see app/(root)/tool-result/[id].tsx.
                 addNotification({
                   type: 'prime',
                   title: `Prime ran ${name}`,
                   body: 'Tap to view the result.',
-                  deepLink: `/tool-result/${id}`,
+                  deepLink: `/tool-result/${id}?tool=${encodeURIComponent(name)}&at=${calledAt}`,
                   meta: { toolName: name },
                 });
-                Toast.show({
-                  type: 'success',
-                  text1: `Prime: ${name}`,
-                  text2: 'Updated successfully.',
-                });
+                // No toast here — successes are batched into one summary toast
+                // when the turn ends (`flushTurnToast`, above). The notification
+                // inbox above still gets its own entry per result, unchanged.
+                successfulToolNames.push(name);
+                lastSuccessToolResultId = id;
               } else {
+                // Errors are not batched — each needs its own attention.
                 Toast.show({
                   type: 'error',
-                  text1: `Prime: ${name}`,
+                  text1: name,
                   text2: 'Tool returned an error.',
                 });
               }
@@ -366,6 +471,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             );
             // NOTE: Do not call /api/chat/save-prime-console-message — backend
             // already persists user + assistant during streamMessage.
+            endTurn();
             setIsStreaming(false);
             setStreamingContent('');
             closeStream();
@@ -388,6 +494,10 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
                   : m,
               ),
             );
+            // This is an end-of-turn path too — flush any tool successes that
+            // already landed before the backend reported the error, and clear
+            // the idle timer so it cannot re-fire failTurn after the fact.
+            endTurn();
             setIsStreaming(false);
             setStreamingContent('');
             closeStream();
@@ -439,10 +549,14 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
                   : m,
               ),
             );
+            endTurn();
             setIsStreaming(false);
             setStreamingContent('');
             closeStream();
           },
+          // A close with no `complete` and no `error` is the case that used to
+          // lock the composer permanently.
+          onClose: () => failTurn('Prime disconnected before finishing.'),
         });
         streamRef.current = es;
       } catch (err) {
@@ -453,10 +567,13 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
           text1: 'Could not start chat',
           text2: (err as Error).message,
         });
+        // Never got past opening the stream, so there is nothing to flush — but
+        // still retire the idle timer armed above so it cannot fire later.
+        endTurn();
         setIsStreaming(false);
       }
     },
-    [inputValue, isStreaming, messages, orgId, qc, addToolResult, addNotification, closeStream],
+    [inputValue, isStreaming, messages, orgId, qc, router, addToolResult, addNotification, closeStream],
   );
 
   const clearMessages = useCallback(() => {

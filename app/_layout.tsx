@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
+import { toastConfig } from '@/components/ui/Toast';
 import {
   useFonts,
   Inter_400Regular,
@@ -107,7 +108,7 @@ export default function RootLayout() {
               animation: 'fade',
             }}
           />
-          <Toast />
+          <Toast config={toastConfig} />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

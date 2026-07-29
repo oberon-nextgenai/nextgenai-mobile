@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
@@ -102,6 +103,12 @@ export function usePushDeepLinks(): void {
   );
 
   useEffect(() => {
+    // `expo-notifications` has no web implementation: calling into it throws
+    // "not available on web", which took down the whole authenticated shell in
+    // a browser and made the app impossible to preview with `expo start --web`.
+    // There is no push to respond to on web anyway, so this is a no-op there.
+    if (Platform.OS === 'web') return;
+
     // Cold start: the app was launched by tapping a notification.
     void Notifications.getLastNotificationResponseAsync().then(response => {
       if (response) open(response.notification.request.content.data);

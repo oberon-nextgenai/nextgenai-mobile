@@ -25,7 +25,11 @@ export function ToolCallBadge({ tool }: ToolCallBadgeProps) {
     <Pressable
       onPress={() => {
         if (tool.status !== 'pending') {
-          router.push(`/tool-result/${tool.id}`);
+          // `tool` + `at` let the result screen fall back to the audit trail if
+          // the local LRU already evicted this result (a very long chat session
+          // can push past the cap). `at` is only an approximation of when the
+          // call actually ran — good enough for the fallback's matching window.
+          router.push(`/tool-result/${tool.id}?tool=${encodeURIComponent(tool.name)}&at=${Date.now()}`);
         }
       }}
       disabled={isPending}

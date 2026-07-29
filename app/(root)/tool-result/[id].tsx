@@ -1,4 +1,4 @@
-import { ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
@@ -7,23 +7,107 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { useToolResults } from '@/store/toolResults';
+import { useAuthStore } from '@/store/auth';
+import { useActiveOrg } from '@/store/org';
+import { useAuditLogList } from '@/api/hooks/auditHooks';
+import { findAuditFallback, AUDIT_FALLBACK_WINDOW_MS } from '@/lib/prime/auditFallback';
 import { fmtDateTime } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
 export default function ToolResultScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tool, at } = useLocalSearchParams<{ id: string; tool?: string; at?: string }>();
   const record = useToolResults((s) => (id ? s.byId[id] : undefined));
   const { colors } = useThemeMode();
+  const user = useAuthStore((s) => s.user);
+  const { activeOrgId } = useActiveOrg();
+
+  // The audit trail (`GET /api/audit-log`) is gated at `org_admin`+ on the
+  // backend, and only carries a row at all for the subset of Prime tools that
+  // mutate something (`McpService.stampAudit`) — read-only tool calls are never
+  // audited. Without `tool`/`at` (older notifications minted before this
+  // fallback existed) there is nothing to match against either. Any of those
+  // makes the fallback query pointless, so it's simply not issued.
+  const atMs = at ? Number(at) : NaN;
+  const canAttemptAudit =
+    !record &&
+    Boolean(tool) &&
+    Boolean(activeOrgId) &&
+    Number.isFinite(atMs) &&
+    (user?.role === 'org_admin' || user?.role === 'superadmin');
+
+  const userId = user?._id ?? user?.id ?? user?.userId;
+  const auditQuery = useAuditLogList(canAttemptAudit ? activeOrgId : null, {
+    userId,
+    from: canAttemptAudit ? new Date(atMs - AUDIT_FALLBACK_WINDOW_MS).toISOString() : undefined,
+    to: canAttemptAudit ? new Date(atMs + AUDIT_FALLBACK_WINDOW_MS).toISOString() : undefined,
+  });
 
   if (!record) {
+    const auditMatch =
+      canAttemptAudit && tool && auditQuery.isSuccess
+        ? findAuditFallback(auditQuery.entries, tool, atMs)
+        : null;
+
     return (
       <Screen>
         <AppHeader title="Tool result" showBack showOrgPill={false} showNotifications={false} />
-        <EmptyState
-          icon={<Ionicons name="alert-circle-outline" size={28} color={colors.warning} />}
-          title="Result not available"
-          description="This tool result is no longer in memory. Run the tool again to view fresh output."
-        />
+        {/* flex-1 wrapper is reserved up front so swapping between the spinner,
+            the audit-record card and the empty state never reflows the header
+            above it or causes a visible jump. */}
+        <View className="flex-1">
+          {canAttemptAudit && auditQuery.isLoading ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="small" color={colors.fgMuted} />
+              <Text variant="body.sm" tone="muted" className="mt-3">
+                Checking the audit trail…
+              </Text>
+            </View>
+          ) : auditMatch ? (
+            <ScrollView contentContainerStyle={{ padding: 16 }}>
+              <Card padding="md">
+                <View className="flex-row items-center mb-3">
+                  <Ionicons name="time-outline" size={16} color={colors.warning} />
+                  <Text variant="mono.label" tone="warning" className="ml-1.5">
+                    Audit record
+                  </Text>
+                  <Text variant="mono.sm" tone="subtle" className="ml-auto">
+                    {fmtDateTime(auditMatch.createdAt)}
+                  </Text>
+                </View>
+                <Text variant="body.md" className="mb-1">
+                  Prime ran {tool}
+                </Text>
+                <Text variant="body.sm" tone="muted" className="mb-3">
+                  This local result aged out, so what follows comes from the audit trail
+                  instead — it is a record that this call happened, not the tool&apos;s
+                  output. Run the tool again to see fresh data.
+                </Text>
+                {auditMatch.details?.payload != null ? (
+                  <View>
+                    <Text variant="mono.label" tone="muted" className="mb-1.5">
+                      Submitted parameters
+                    </Text>
+                    <Card padding="sm" variant="raised">
+                      <Text variant="mono.code">
+                        {JSON.stringify(auditMatch.details.payload, null, 2)}
+                      </Text>
+                    </Card>
+                  </View>
+                ) : null}
+              </Card>
+            </ScrollView>
+          ) : (
+            <EmptyState
+              icon={<Ionicons name="time-outline" size={28} color={colors.fgMuted} />}
+              title="Older results aren't retained"
+              description={
+                canAttemptAudit
+                  ? "Prime keeps only your most recent tool results on this device, and no matching record turned up in the audit trail either. Run the tool again to see current data."
+                  : "Prime keeps only your most recent tool results on this device. Once one ages out — or after a fresh install — the original output can't be recovered. Run the tool again to see current data."
+              }
+            />
+          )}
+        </View>
       </Screen>
     );
   }

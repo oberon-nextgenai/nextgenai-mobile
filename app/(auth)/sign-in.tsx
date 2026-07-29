@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -28,11 +28,25 @@ const REMEMBER_KEY = 'oberon.rememberedEmail';
  *
  * Reanimated layout animations default to `ReduceMotion.System`, so this is
  * skipped outright when the OS setting is on and the block simply renders.
+ *
+ * Web takes the preset instead. `withInitialValues` generates a custom keyframe,
+ * and a custom name is not in Reanimated's `Animations` registry — which is the
+ * condition for scheduling the cleanup at
+ * `layoutReanimation/web/componentUtils.js:149-155`. That cleanup calls
+ * `setElementPosition` (`componentStyle.js:33-40`), which sets `position:
+ * absolute` and `margin: 0` on the element after the animation ends. The brand
+ * block then leaves normal flow, `mb-9` is discarded, and the form lays out from
+ * the top of the centred container and paints straight over the title. Preset
+ * names skip that path, so the cost of avoiding it is web using the stock 25px
+ * rise while native keeps the 10px one.
  */
-const BRAND_ENTRANCE = FadeInDown.duration(420).withInitialValues({
-  opacity: 0,
-  transform: [{ translateY: 10 }],
-});
+const BRAND_ENTRANCE =
+  Platform.OS === 'web'
+    ? FadeInDown.duration(420)
+    : FadeInDown.duration(420).withInitialValues({
+        opacity: 0,
+        transform: [{ translateY: 10 }],
+      });
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),

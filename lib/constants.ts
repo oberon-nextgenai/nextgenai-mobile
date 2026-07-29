@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   activeOrgId: 'oberon.activeOrgId',
   theme: 'oberon.theme',
   biometricEnabled: 'oberon.biometricEnabled',
+  toolResults: 'oberon.toolResults',
 } as const;
 
 export const QUERY_KEYS = {
@@ -43,6 +44,13 @@ export const QUERY_KEYS = {
   campaigns: (orgId: string) => ['campaigns', orgId] as const,
   campaign: (orgId: string, id: string) =>
     ['campaigns', orgId, 'detail', id] as const,
+  mmrDetails: (orgId: string, id: string) =>
+    ['campaigns', orgId, 'mmr', id, 'details'] as const,
+  mmrCallStatus: (orgId: string, id: string) =>
+    ['campaigns', orgId, 'mmr', id, 'call-status'] as const,
+  mmrEmailStatus: (orgId: string, id: string) =>
+    ['campaigns', orgId, 'mmr', id, 'email-status'] as const,
+  mmrUploads: (orgId: string) => ['campaigns', orgId, 'mmr', 'uploads'] as const,
   escalations: (orgId: string, filters?: Record<string, unknown>) =>
     ['escalations', orgId, filters ?? {}] as const,
   escalation: (orgId: string, id: string) =>

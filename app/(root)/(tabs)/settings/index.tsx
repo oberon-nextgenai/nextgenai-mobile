@@ -17,7 +17,11 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/store/auth';
+import { useActiveOrg } from '@/store/org';
 import { useLogoutMutation } from '@/api/hooks/authHooks';
+import { useInstalledIntegrations } from '@/api/hooks/pluginHooks';
+import { useCampaigns } from '@/api/hooks/campaignHooks';
+import { useKnowledgeBases } from '@/api/hooks/agentHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { STORAGE_KEYS } from '@/lib/constants';
 import { confirmAction } from '@/lib/confirm';
@@ -73,14 +77,106 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
+interface WorkspaceStatusCardProps {
+  /** Mono uppercase eyebrow — INTEGRATIONS, CAMPAIGNS. */
+  eyebrow: string;
+  /** The figure that matters, pre-formatted. '—' while loading or on error. */
+  value: string;
+  /** Sans explanation next to the value — "installed", "active". */
+  caption?: string;
+  /** Second line — a status worth surfacing before the tap, e.g. "1 needs attention". */
+  alertText?: string;
+  /** Paints a status dot beside `alertText`. Off for plain informational lines (a total). */
+  alertDot?: boolean;
+  onPress: () => void;
+}
+
+/**
+ * A live status card for the WORKSPACE section — tells you something before you
+ * tap instead of repeating the row's own label as a description. Same idiom as
+ * `StatTile` (mono eyebrow / serif figure / sans caption), reused here as a
+ * full-width card rather than a 2x2 tile, per this screen's brief.
+ *
+ * The body always renders all three rows — value row and alert row included —
+ * so a card never changes height between its loading, loaded, and error states;
+ * `value` falls back to '—' and the alert row is simply empty rather than absent.
+ */
+function WorkspaceStatusCard({
+  eyebrow,
+  value,
+  caption,
+  alertText,
+  alertDot,
+  onPress,
+}: WorkspaceStatusCardProps) {
+  const { colors } = useThemeMode();
+  return (
+    <Pressable onPress={onPress} className="mb-2 active:opacity-80">
+      <Card gloss>
+        <View className="flex-row items-center justify-between">
+          <Text variant="mono.label" tone="subtle">
+            {eyebrow}
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.fgSubtle} />
+        </View>
+
+        <View className="mt-1.5 flex-row items-baseline">
+          <Text variant="display.md">{value}</Text>
+          {caption ? (
+            <Text variant="body.sm" tone="muted" className="ml-1.5">
+              {caption}
+            </Text>
+          ) : null}
+        </View>
+
+        {/* Reserved height: the alert row is always mounted, whether or not it
+            ends up with anything to say, so the card never reflows once a
+            query resolves. */}
+        <View className="mt-1 h-4 flex-row items-center">
+          {alertText ? (
+            <>
+              {alertDot ? (
+                <View
+                  className="h-1.5 w-1.5 rounded-full mr-1.5"
+                  style={{ backgroundColor: colors.warning }}
+                />
+              ) : null}
+              <Text variant="body.xs" tone="muted">
+                {alertText}
+              </Text>
+            </>
+          ) : null}
+        </View>
+      </Card>
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const { activeOrgId } = useActiveOrg();
   const logout = useLogoutMutation();
   const { appearance, mode, setAppearance, colors } = useThemeMode();
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [showAppearance, setShowAppearance] = useState(false);
+
+  const integrations = useInstalledIntegrations(activeOrgId);
+  const campaigns = useCampaigns(activeOrgId);
+  const knowledgeBases = useKnowledgeBases(activeOrgId);
+
+  // Non-active covers every status besides 'active' (error, authentication_required,
+  // disabled, pending_setup, …) — a single, honest "worth a look" signal rather than
+  // guessing which specific status the user meant by "re-auth".
+  const integrationsTotal = integrations.data?.length ?? 0;
+  const integrationsNeedingAttention =
+    integrations.data?.filter((i) => i.status !== 'active').length ?? 0;
+
+  const campaignsActive = campaigns.data?.filter((c) => c.status === 'active').length ?? 0;
+  const campaignsTotal = campaigns.data?.length ?? 0;
+
+  const knowledgeBaseTotal = knowledgeBases.data?.length ?? 0;
 
   useEffect(() => {
     void (async () => {
@@ -190,23 +286,42 @@ export default function SettingsScreen() {
 
         <View className="h-3" />
         <SectionLabel>Workspace</SectionLabel>
-        <Row
-          icon="extension-puzzle-outline"
-          label="Plugins & integrations"
-          description="Marketplace and installed plugins"
+        <WorkspaceStatusCard
+          eyebrow="Integrations"
+          value={integrations.isPending || integrations.isError ? '—' : String(integrationsTotal)}
+          caption={integrations.isPending || integrations.isError ? undefined : 'installed'}
+          alertText={
+            integrationsNeedingAttention > 0
+              ? `${integrationsNeedingAttention} need${integrationsNeedingAttention === 1 ? 's' : ''} attention`
+              : undefined
+          }
+          alertDot
           onPress={() => router.push('/plugins' as never)}
         />
-        <Row
-          icon="library-outline"
-          label="Knowledge bases"
-          description="Browse documents and chunks"
-          onPress={() => router.push('/knowledge-bases' as never)}
-        />
-        <Row
-          icon="megaphone-outline"
-          label="Campaigns"
-          description="Outbound campaign status"
+        <WorkspaceStatusCard
+          eyebrow="Campaigns"
+          value={campaigns.isPending || campaigns.isError ? '—' : String(campaignsActive)}
+          caption={campaigns.isPending || campaigns.isError ? undefined : 'active'}
+          alertText={
+            !campaigns.isPending && !campaigns.isError && campaignsTotal > 0
+              ? `${campaignsTotal} total`
+              : undefined
+          }
           onPress={() => router.push('/campaigns' as never)}
+        />
+        <WorkspaceStatusCard
+          eyebrow="Knowledge bases"
+          value={
+            knowledgeBases.isPending || knowledgeBases.isError ? '—' : String(knowledgeBaseTotal)
+          }
+          caption={
+            knowledgeBases.isPending || knowledgeBases.isError
+              ? undefined
+              : knowledgeBaseTotal === 1
+                ? 'document'
+                : 'documents'
+          }
+          onPress={() => router.push('/knowledge-bases' as never)}
         />
 
         <View className="h-6" />
