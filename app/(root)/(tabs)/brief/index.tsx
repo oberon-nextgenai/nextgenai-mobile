@@ -10,10 +10,12 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { CommandSearchButton } from '@/components/executive/CommandSearchButton';
 import { PriorityCard } from '@/components/executive/PriorityCard';
 import { StatTile } from '@/components/executive/StatTile';
+import { OperationalBriefCard } from '@/components/brief/OperationalBriefCard';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { useDailyBrief } from '@/api/hooks/executiveHooks';
+import { useOperationalBriefings } from '@/api/hooks/briefingHooks';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { fmtCurrency } from '@/lib/formatters';
@@ -33,6 +35,14 @@ export default function BriefScreen() {
   const { activeOrgId } = useActiveOrg();
   const { colors } = useThemeMode();
   const { brief, isPending, isError, error, isFetching, refetch } = useDailyBrief(activeOrgId);
+  // Deliberately not folded into the gates below. A workspace's dashboard
+  // briefing failing must cost one card, never the whole morning brief.
+  const {
+    briefings,
+    unavailable,
+    isFetching: briefingsFetching,
+    refetch: refetchBriefings,
+  } = useOperationalBriefings(activeOrgId);
 
   const header = (
     <AppHeader
@@ -82,7 +92,14 @@ export default function BriefScreen() {
       contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={colors.accent} />
+        <RefreshControl
+          refreshing={isFetching || briefingsFetching}
+          onRefresh={() => {
+            refetch();
+            void refetchBriefings();
+          }}
+          tintColor={colors.accent}
+        />
       }
     >
       {/* The greeting is the one place the app speaks in the first person, so it
@@ -132,8 +149,44 @@ export default function BriefScreen() {
         </Card>
       </Animated.View>
 
+      {/* Each installed dashboard's morning read. A workspace with no analytics
+          dashboard gets none of these, and the sweep closes up behind them. */}
+      {briefings.map((operational, i) => (
+        <Animated.View key={operational.provider} entering={enter(2 + i)} className="mt-4">
+          <OperationalBriefCard
+            briefing={operational}
+            onOpenDashboard={() => router.push('/(root)/(tabs)/analytics' as never)}
+            onAskPrime={(prompt) =>
+              router.push({
+                pathname: '/(root)/(tabs)/prime',
+                params: { prompt },
+              } as never)
+            }
+          />
+        </Animated.View>
+      ))}
+
+      {/* A provider that exists but could not be read. Saying nothing here would
+          render an unreachable database as a clean morning. */}
+      {unavailable.map((item) => (
+        <Animated.View
+          key={item.provider}
+          entering={enter(2 + briefings.length)}
+          className="mt-4"
+        >
+          <Card>
+            <Text variant="mono.label" tone="subtle">
+              {item.title}
+            </Text>
+            <Text variant="body.md" tone="muted" className="mt-2">
+              This morning&apos;s read could not be loaded. Pull down to try again.
+            </Text>
+          </Card>
+        </Animated.View>
+      ))}
+
       {topPriority ? (
-        <Animated.View entering={enter(2)} className="mt-4">
+        <Animated.View entering={enter(2 + briefings.length + unavailable.length)} className="mt-4">
           <PriorityCard
             severity={topPriority.severity}
             eyebrow="Needs attention"
@@ -149,7 +202,10 @@ export default function BriefScreen() {
 
       {/* 2×2 instrumentation. The sweep lands here and hands off to the numerals,
           which count up from zero once — the screen's one deliberate moment. */}
-      <Animated.View entering={enter(3)} className="mt-4 gap-3">
+      <Animated.View
+        entering={enter(3 + briefings.length + unavailable.length)}
+        className="mt-4 gap-3"
+      >
         <View className="flex-row gap-3">
           <StatTile
             label="Agents active"

@@ -51,6 +51,7 @@ export const QUERY_KEYS = {
   mmrEmailStatus: (orgId: string, id: string) =>
     ['campaigns', orgId, 'mmr', id, 'email-status'] as const,
   mmrUploads: (orgId: string) => ['campaigns', orgId, 'mmr', 'uploads'] as const,
+  briefings: (orgId: string) => ['briefings', orgId] as const,
   escalations: (orgId: string, filters?: Record<string, unknown>) =>
     ['escalations', orgId, filters ?? {}] as const,
   escalation: (orgId: string, id: string) =>

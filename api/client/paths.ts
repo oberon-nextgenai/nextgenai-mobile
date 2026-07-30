@@ -109,6 +109,9 @@ export const PATHS = {
       `/api/agent-analytics/nds-background-checks/${encodeURIComponent(orgId)}`,
     mmrCampaigns: '/api/campaigns',
   },
+  briefings: {
+    list: (orgId: string) => `/api/briefings/${encodeURIComponent(orgId)}`,
+  },
   escalations: {
     list: '/api/escalations',
     counts: '/api/escalations/counts',
