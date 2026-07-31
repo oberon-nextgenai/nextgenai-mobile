@@ -1,5 +1,4 @@
 import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -11,9 +10,9 @@ import { CommandSearchButton } from '@/components/executive/CommandSearchButton'
 import { PriorityCard } from '@/components/executive/PriorityCard';
 import { StatTile } from '@/components/executive/StatTile';
 import { OperationalBriefCard } from '@/components/brief/OperationalBriefCard';
+import { PrimeBriefCard } from '@/components/brief/PrimeBriefCard';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
-import { GradientButton } from '@/components/ui/GradientButton';
 import { useDailyBrief } from '@/api/hooks/executiveHooks';
 import { useOperationalBriefings } from '@/api/hooks/briefingHooks';
 import { useActiveOrg } from '@/store/org';
@@ -79,6 +78,10 @@ export default function BriefScreen() {
 
   const { greeting, headline, summary, metrics, topPriority } = brief;
 
+  // The workspace's primary dashboard read is folded into the hero. Anything
+  // after it — a second installed dashboard — keeps its own card.
+  const [primaryBriefing, ...extraBriefings] = briefings;
+
   const onPressPriority = () => {
     router.push(
       topPriority?.agentId
@@ -86,6 +89,27 @@ export default function BriefScreen() {
         : ('/(root)/(tabs)/workforce' as never),
     );
   };
+
+  const openDashboard = () => router.push('/(root)/(tabs)/analytics' as never);
+
+  const askPrime = (prompt?: string) =>
+    router.push(
+      prompt
+        ? ({ pathname: '/(root)/(tabs)/prime', params: { prompt } } as never)
+        : ('/(root)/(tabs)/prime' as never),
+    );
+
+  // One running counter, in render order. A block that does not render closes
+  // the gap behind it rather than leaving a 50ms hole in the sweep, and two
+  // blocks can never land on the same beat.
+  let step = 0;
+  const beat = () => step++;
+  const greetingStep = beat();
+  const heroStep = beat();
+  const extraSteps = extraBriefings.map(() => beat());
+  const unavailableSteps = unavailable.map(() => beat());
+  const priorityStep = topPriority ? beat() : -1;
+  const statsStep = beat();
 
   return shell(
     <ScrollView
@@ -104,7 +128,7 @@ export default function BriefScreen() {
     >
       {/* The greeting is the one place the app speaks in the first person, so it
           gets the serif and a mono timestamp for provenance. */}
-      <Animated.View entering={enter(0)}>
+      <Animated.View entering={enter(greetingStep)}>
         <Text variant="mono.label" tone="subtle">
           {format(new Date(), 'EEE · MMM d, yyyy · HH:mm')}
         </Text>
@@ -116,64 +140,35 @@ export default function BriefScreen() {
         </Text>
       </Animated.View>
 
-      {/* Prime's overnight read — the hero surface, so it gets the sheen. */}
-      <Animated.View entering={enter(1)} className="mt-5">
-        <Card variant="prime" gloss>
-          <View className="flex-row items-center justify-between">
-            <Text variant="mono.label" tone="accent">
-              Prime · Morning brief
-            </Text>
-            <View className="flex-row items-center">
-              <View
-                className="h-1.5 w-1.5 rounded-full mr-1.5"
-                style={{ backgroundColor: colors.successBright }}
-              />
-              <Text variant="mono.label" tone="success">
-                Live
-              </Text>
-            </View>
-          </View>
-
-          <Text variant="body.lg" className="mt-3">
-            {summary}
-          </Text>
-
-          <View className="mt-4">
-            <GradientButton
-              onPress={() => router.push('/(root)/(tabs)/prime' as never)}
-              rightIcon={<Ionicons name="arrow-forward" size={16} color="#FFFFFF" />}
-            >
-              Ask Prime
-            </GradientButton>
-          </View>
-        </Card>
+      {/* One morning brief, not two: Prime's read and the workspace's primary
+          dashboard briefing are the same statement, so they share the hero. With
+          no briefing — none installed, still loading, or failed — this is the
+          generic summary exactly as it was before. */}
+      <Animated.View entering={enter(heroStep)} className="mt-5">
+        <PrimeBriefCard
+          summary={summary}
+          briefing={primaryBriefing}
+          onOpenDashboard={openDashboard}
+          onAskPrime={askPrime}
+        />
       </Animated.View>
 
-      {/* Each installed dashboard's morning read. A workspace with no analytics
-          dashboard gets none of these, and the sweep closes up behind them. */}
-      {briefings.map((operational, i) => (
-        <Animated.View key={operational.provider} entering={enter(2 + i)} className="mt-4">
+      {/* A second installed dashboard keeps its own card. The registry is general
+          on purpose; a workspace running two of them must not lose one. */}
+      {extraBriefings.map((operational, i) => (
+        <Animated.View key={operational.provider} entering={enter(extraSteps[i])} className="mt-4">
           <OperationalBriefCard
             briefing={operational}
-            onOpenDashboard={() => router.push('/(root)/(tabs)/analytics' as never)}
-            onAskPrime={(prompt) =>
-              router.push({
-                pathname: '/(root)/(tabs)/prime',
-                params: { prompt },
-              } as never)
-            }
+            onOpenDashboard={openDashboard}
+            onAskPrime={askPrime}
           />
         </Animated.View>
       ))}
 
       {/* A provider that exists but could not be read. Saying nothing here would
           render an unreachable database as a clean morning. */}
-      {unavailable.map((item) => (
-        <Animated.View
-          key={item.provider}
-          entering={enter(2 + briefings.length)}
-          className="mt-4"
-        >
+      {unavailable.map((item, i) => (
+        <Animated.View key={item.provider} entering={enter(unavailableSteps[i])} className="mt-4">
           <Card>
             <Text variant="mono.label" tone="subtle">
               {item.title}
@@ -186,7 +181,7 @@ export default function BriefScreen() {
       ))}
 
       {topPriority ? (
-        <Animated.View entering={enter(2 + briefings.length + unavailable.length)} className="mt-4">
+        <Animated.View entering={enter(priorityStep)} className="mt-4">
           <PriorityCard
             severity={topPriority.severity}
             eyebrow="Needs attention"
@@ -201,11 +196,12 @@ export default function BriefScreen() {
       ) : null}
 
       {/* 2×2 instrumentation. The sweep lands here and hands off to the numerals,
-          which count up from zero once — the screen's one deliberate moment. */}
-      <Animated.View
-        entering={enter(3 + briefings.length + unavailable.length)}
-        className="mt-4 gap-3"
-      >
+          which count up from zero once — the screen's one deliberate moment.
+
+          Captions come off the hook rather than being written here: two of these
+          numbers cover a 7-day window and one covers 30, and a tile that says
+          "today" over a week's figure is wrong every day it renders. */}
+      <Animated.View entering={enter(statsStep)} className="mt-4 gap-3">
         <View className="flex-row gap-3">
           <StatTile
             label="Agents active"
@@ -220,7 +216,7 @@ export default function BriefScreen() {
             label="Tasks resolved"
             value={String(metrics.tasksResolved)}
             count={{ to: metrics.tasksResolved }}
-            caption="today"
+            caption={metrics.windowLabel}
             tone="accent"
             index={1}
           />
@@ -230,16 +226,17 @@ export default function BriefScreen() {
             label="Needs attention"
             value={String(metrics.attention)}
             count={{ to: metrics.attention }}
-            caption="pending review"
+            caption={metrics.attentionWindowLabel}
             tone={metrics.attention > 0 ? 'warning' : 'neutral'}
             dot={metrics.attention > 0}
             index={2}
             onPress={() => router.push('/(root)/(tabs)/workforce' as never)}
           />
           <StatTile
-            label="Spend today"
+            label="Spend"
             value={fmtCurrency(metrics.spendToday)}
             count={{ to: metrics.spendToday, format: fmtCurrency }}
+            caption={metrics.windowLabel}
             tone="neutral"
             index={3}
           />

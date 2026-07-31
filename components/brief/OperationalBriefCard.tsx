@@ -17,7 +17,7 @@ export function formatDelta(delta: number): string {
 }
 
 /** A zero movement is real information, but it is not good or bad news. */
-function deltaTone(delta: number): 'subtle' | 'success' | 'danger' {
+export function deltaTone(delta: number): 'subtle' | 'success' | 'danger' {
   if (delta === 0) return 'subtle';
   return delta > 0 ? 'success' : 'danger';
 }

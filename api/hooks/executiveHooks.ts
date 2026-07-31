@@ -3,7 +3,7 @@ import { useDashboard, useAgentsAnalytics } from './analyticsHooks';
 import { useAgentsList } from './agentHooks';
 import { useNotifications } from '@/store/notifications';
 import { useAuthStore } from '@/store/auth';
-import type { Agent, AnalyticsAgentRow } from '@/api/services/types';
+import type { Agent, AnalyticsAgentRow, NdsPeriod } from '@/api/services/types';
 
 /**
  * Executive UI adapters. These map the app's existing, org-scoped React Query
@@ -76,17 +76,31 @@ function matchAnalytics(
   );
 }
 
+/**
+ * The canonical success rate for an agent: the analytics row when the agent
+ * placed calls in the window, the roster's own field otherwise, `undefined`
+ * when neither knows — which `deriveStatus` reads as "no signal", not "bad".
+ */
+function successRateFor(agent: Agent, rows: AnalyticsAgentRow[]): number | undefined {
+  const row = matchAnalytics(agent, rows);
+  return row?.successRate ?? (typeof agent.successRate === 'number' ? agent.successRate : undefined);
+}
+
+/** Flatten the paginated `GET /api/agents` roster into a plain list. */
+function rosterFrom(pages: { items: Agent[] }[] | undefined): Agent[] {
+  return pages?.flatMap((p) => p.items) ?? [];
+}
+
 export function useWorkforce(orgId: string | null) {
   const list = useAgentsList({ orgId });
   const analytics = useAgentsAnalytics(orgId);
 
   const agents = useMemo<WorkforceAgent[]>(() => {
-    const items = list.data?.pages.flatMap((p) => p.items) ?? [];
+    const items = rosterFrom(list.data?.pages);
     const rows = analytics.data ?? [];
     return items.map((agent) => {
       const row = matchAnalytics(agent, rows);
-      const successRate =
-        row?.successRate ?? (typeof agent.successRate === 'number' ? agent.successRate : undefined);
+      const successRate = successRateFor(agent, rows);
       const performancePct =
         successRate != null ? Math.round(successRate) : undefined;
       return {
@@ -150,14 +164,53 @@ export interface DailyBrief {
   /** Generated from live numbers until a `/api/prime/brief` endpoint exists. */
   summary: string;
   metrics: {
+    /** Roster agents not paused/inactive — the same population the Workforce tab counts. */
     activeAgents: number;
+    /** Roster size. Not the number of agents that happened to place a call. */
     totalAgents: number;
     tasksResolved: number;
     attention: number;
     spendToday: number;
+    /**
+     * Human-readable window that `tasksResolved` and `spendToday` actually
+     * cover, for the tile caption. Pinned contract — the Brief screen renders
+     * this verbatim. See `BRIEF_WINDOW_LABEL`.
+     */
+    windowLabel: string;
+    /**
+     * `attention` comes from `/api/analytics/agents/:orgId`, which the client
+     * calls with no `from`/`to` and the server therefore answers over 30 days —
+     * a different window from the tiles beside it. Exposed so the caption can
+     * say so instead of inheriting `windowLabel`.
+     */
+    attentionWindowLabel: string;
   };
   topPriority?: BriefPriority;
 }
+
+/**
+ * The window the brief's dashboard query asks for.
+ *
+ * Kept at 7 days deliberately. A true "today" tile would need a 1-day period,
+ * and `rangeForPeriod` (`analyticsHooks.ts`) only maps `NdsPeriod`, which is
+ * `'7d' | '30d' | '90d'` — the same union the NDS dashboard sends to the server
+ * as a literal and the analytics screen renders as a period picker. Widening it
+ * for one tile would ripple into that contract, so the label tells the truth
+ * about the window instead of the window being quietly wrong.
+ */
+const BRIEF_PERIOD: NdsPeriod = '7d';
+
+const WINDOW_LABELS: Record<NdsPeriod, string> = {
+  '7d': 'last 7 days',
+  '30d': 'last 30 days',
+  '90d': 'last 90 days',
+};
+
+/** Derived from `BRIEF_PERIOD` so the caption cannot drift from the query. */
+const BRIEF_WINDOW_LABEL = WINDOW_LABELS[BRIEF_PERIOD];
+
+/** `useAgentsAnalytics` sends no range; the server defaults to 30 days. */
+const ATTENTION_WINDOW_LABEL = WINDOW_LABELS['30d'];
 
 function greetingForNow(name?: string): string {
   const h = new Date().getHours();
@@ -179,14 +232,19 @@ function headlineFor(attention: number, hasPriority: boolean): string {
 }
 
 export function useDailyBrief(orgId: string | null) {
-  const dashboard = useDashboard(orgId);
+  const dashboard = useDashboard(orgId, BRIEF_PERIOD);
   const analytics = useAgentsAnalytics(orgId);
+  // Same query key/args as `useWorkforce`, so this shares the Workforce tab's
+  // cache entry rather than issuing a second request — and, more importantly,
+  // makes the two screens count agents from the same source.
+  const list = useAgentsList({ orgId });
   const user = useAuthStore((s) => s.user);
   const unread = useNotifications((s) => s.unreadCount());
 
   const brief = useMemo<DailyBrief>(() => {
     const m = dashboard.data?.metrics;
     const rows = analytics.data ?? [];
+    const roster = rosterFrom(list.data?.pages);
 
     // The single worst-performing agent becomes the top priority.
     const ranked = rows
@@ -220,15 +278,42 @@ export function useDailyBrief(orgId: string | null) {
       };
     }
 
-    const activeAgents = m?.activeAgents ?? 0;
+    // Roster counts, not call-derived ones. `metrics.activeAgents` from the
+    // dashboard endpoint is `agentKeys.size` over Retell call rows in the
+    // window, so a text agent — or any agent that simply did not get a call —
+    // is invisible to it, and the tile read 0 for a fleet of 4. The web app
+    // fixed the same bug under ND-537 (`DashboardMetrics.tsx`) by ignoring the
+    // analytics field; this is the mobile counterpart, and it makes the tile
+    // agree with the Workforce tab.
+    const totalAgents = roster.length;
+    const activeAgents = roster.filter(
+      (a) => deriveStatus(a, successRateFor(a, rows)) !== 'paused',
+    ).length;
+
     const tasksResolved = m?.successfulCalls ?? m?.totalCalls ?? 0;
     const spendToday = m?.totalCost ?? 0;
 
-    const summary = topPriority
-      ? `${tasksResolved} tasks resolved across ${activeAgents} active agents overnight. ${attention} ${
-          attention === 1 ? 'agent needs' : 'agents need'
-        } your attention.`
-      : `${tasksResolved} tasks resolved across ${activeAgents} active agents. Everything is on track.`;
+    // Distinguish "nothing happened" from "we were told nothing". The dashboard
+    // endpoint answers a swallowed server error with an all-zero metrics
+    // payload, and an org with no Retell agents produces the same thing, so a
+    // zero here is not a fact we can put in a sentence.
+    const hasCallSignal = rows.length > 0 || (m?.totalCalls ?? 0) > 0 || tasksResolved > 0;
+
+    const summary = !hasCallSignal
+      ? totalAgents > 0
+        ? `${totalAgents} ${
+            totalAgents === 1 ? 'agent' : 'agents'
+          } on duty. No call activity in the ${BRIEF_WINDOW_LABEL}.`
+        : 'No agent activity to report yet.'
+      : topPriority
+        ? `${tasksResolved} tasks resolved across ${activeAgents} active ${
+            activeAgents === 1 ? 'agent' : 'agents'
+          } in the ${BRIEF_WINDOW_LABEL}. ${attention} ${
+            attention === 1 ? 'agent needs' : 'agents need'
+          } your attention.`
+        : `${tasksResolved} tasks resolved across ${activeAgents} active ${
+            activeAgents === 1 ? 'agent' : 'agents'
+          } in the ${BRIEF_WINDOW_LABEL}. Everything is on track.`;
 
     return {
       greeting: greetingForNow(user?.name),
@@ -236,24 +321,30 @@ export function useDailyBrief(orgId: string | null) {
       summary,
       metrics: {
         activeAgents,
-        totalAgents: rows.length || activeAgents,
+        totalAgents,
         tasksResolved,
         attention,
         spendToday,
+        windowLabel: BRIEF_WINDOW_LABEL,
+        attentionWindowLabel: ATTENTION_WINDOW_LABEL,
       },
       topPriority,
     };
-  }, [dashboard.data, analytics.data, unread, user?.name]);
+  }, [dashboard.data, analytics.data, list.data, unread, user?.name]);
 
   return {
     brief,
+    // Deliberately still keyed off the dashboard query alone. The roster is a
+    // second, independent request; gating first paint on it would make the
+    // screen slower for a number that fills in a moment later.
     isPending: dashboard.isPending,
     isError: dashboard.isError,
     error: dashboard.error,
-    isFetching: dashboard.isFetching || analytics.isFetching,
+    isFetching: dashboard.isFetching || analytics.isFetching || list.isFetching,
     refetch: () => {
       void dashboard.refetch();
       void analytics.refetch();
+      void list.refetch();
     },
   };
 }
