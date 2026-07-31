@@ -668,25 +668,8 @@ export default function AnalyticsScreen() {
               </View>
             )
           ) : (
-            // Core fallback view (no analytics plugin installed) + banner
+            // Core fallback view (no analytics plugin installed)
             <View className="gap-3">
-              {routing.view?.kind === 'core' ? (
-                <Pressable
-                  onPress={() =>
-                    router.push(
-                      '/plugins/install/agent-analytics-dashboard' as never,
-                    )
-                  }
-                  className="flex-row items-center bg-accent-soft dark:bg-accent-soft-dark border border-accent/30 dark:border-accent-dark/40 rounded-xl px-3 py-2.5"
-                >
-                  <Ionicons name="sparkles-outline" size={14} color={colors.accent} />
-                  <Text variant="body.xs" tone="accent" className="ml-2 flex-1">
-                    Install Agent Analytics Dashboard for richer insights
-                  </Text>
-                  <Ionicons name="chevron-forward" size={12} color={colors.accent} />
-                </Pressable>
-              ) : null}
-
               {dashboard.isPending ? (
                 <View className="py-12 items-center">
                   <ActivityIndicator color={colors.accent} />
