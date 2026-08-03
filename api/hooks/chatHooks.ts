@@ -12,6 +12,7 @@ import {
   pickFallbackMarkdown,
 } from '@/lib/primeStructuredSchema';
 import { invalidateForTool } from '@/lib/toolInvalidations';
+import { isEnvelopeFailure } from '@/lib/mcpEnvelope';
 import { useToolResults } from '@/store/toolResults';
 import { useNotifications } from '@/store/notifications';
 import type { ToolAvailable } from '@/api/services/types';
@@ -316,11 +317,11 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             // per delta (which produced dozens of unnamed pills).
             const deltas = (
               event as {
-                tool_calls?: Array<{
+                tool_calls?: {
                   index?: number;
                   id?: string;
                   function?: { name?: string; arguments?: string };
-                }>;
+                }[];
               }
             ).tool_calls;
 
@@ -368,11 +369,40 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             break;
           }
           case 'tool_results': {
-            const results = (event as { results?: Array<{ id?: string; name?: string; toolName?: string; result?: unknown; error?: unknown; arguments?: unknown }> }).results ?? [];
+            const results = (
+              event as {
+                results?: {
+                  toolCallId?: string;
+                  id?: string;
+                  toolName?: string;
+                  name?: string;
+                  result?: unknown;
+                  error?: unknown;
+                  arguments?: unknown;
+                }[];
+              }
+            ).results ?? [];
             for (const r of results) {
-              const id = r.id ?? genId();
-              const name = r.name ?? r.toolName ?? 'tool';
-              const status: ToolCallRecord['status'] = r.error ? 'error' : 'success';
+              // The backend's actual `tool_results` wire shape is `{ toolName,
+              // toolCallId, arguments, result }` (chat.types.ts `ToolCallResult`)
+              // — there is no `id` or `error` field. `toolCallId` is the same
+              // OpenAI streaming tool-call id the `tool_call` delta merge above
+              // stored on `ToolCallRecord.id`, and the one `ToolCallBadge`
+              // navigates with — so it MUST win here, or every stored record
+              // gets a fresh random id that a badge tap can never match (lands
+              // on the not-found/audit-fallback screen instead of the result).
+              // `id`/`name` are kept as fallbacks only for any other event
+              // shape that might still send them.
+              const id = r.toolCallId ?? r.id ?? genId();
+              const name = r.toolName ?? r.name ?? 'tool';
+              // The API increasingly reports a tool refusal or miss as a
+              // *payload* — `{ success: false, errorCode, message,
+              // retryable }` — with no transport-level `error` set at all.
+              // Status must be derived from both before anything downstream
+              // (the stored record, the notification, the toast) decides
+              // this was a success.
+              const isFailure = Boolean(r.error) || isEnvelopeFailure(r.result);
+              const status: ToolCallRecord['status'] = isFailure ? 'error' : 'success';
 
               const calledAt = Date.now();
               addToolResult({
@@ -531,7 +561,6 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
                   ? err
                   : 'Stream error';
             // Surface the real error so future regressions are diagnosable.
-            // eslint-disable-next-line no-console
             console.error('[prime stream]', err);
             Toast.show({
               type: 'error',
@@ -560,7 +589,6 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
         });
         streamRef.current = es;
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error('[prime stream] open failed', err);
         Toast.show({
           type: 'error',

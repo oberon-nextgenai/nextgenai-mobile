@@ -13,6 +13,7 @@ import { useAuditLogList } from '@/api/hooks/auditHooks';
 import { findAuditFallback, AUDIT_FALLBACK_WINDOW_MS } from '@/lib/prime/auditFallback';
 import { fmtDateTime } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
+import { isEnvelopeFailure } from '@/lib/mcpEnvelope';
 
 export default function ToolResultScreen() {
   const { id, tool, at } = useLocalSearchParams<{ id: string; tool?: string; at?: string }>();
@@ -112,7 +113,11 @@ export default function ToolResultScreen() {
     );
   }
 
-  const isError = Boolean(record.error);
+  // The API increasingly reports tool failures as payloads — `{ success:
+  // false, errorCode, message, retryable }` — with no transport-level
+  // `error` at all, so a refusal or a miss must be read out of the result
+  // too, not just off `record.error`.
+  const isError = Boolean(record.error) || isEnvelopeFailure(record.result);
 
   return (
     <Screen>
