@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { Alert, RefreshControl, ScrollView, View } from 'react-native';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
+import * as Haptics from 'expo-haptics';
+import { format, isToday, isYesterday } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
@@ -65,6 +67,22 @@ function buildPreview(m: StoredPrimeMessage): Preview {
   return { kind: 'plain', body: m.content };
 }
 
+/** Who said it, in the user's vocabulary — not the wire-format role. */
+const ROLE_NAME: Record<string, string> = {
+  user: 'You',
+  assistant: 'Prime',
+  system: 'System',
+};
+
+function dayLabel(ts?: string | number | Date): string {
+  if (!ts) return 'Earlier';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return 'Earlier';
+  if (isToday(d)) return 'Today';
+  if (isYesterday(d)) return 'Yesterday';
+  return format(d, 'EEE, MMM d');
+}
+
 export default function PrimeHistoryScreen() {
   const qc = useQueryClient();
   const { activeOrgId } = useActiveOrg();
@@ -74,6 +92,9 @@ export default function PrimeHistoryScreen() {
   const clear = useMutation({
     mutationFn: () => clearPrimeHistory(activeOrgId as string),
     onSuccess: () => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+        () => undefined,
+      );
       if (activeOrgId) {
         qc.invalidateQueries({ queryKey: QUERY_KEYS.primeHistory(activeOrgId) });
       }
@@ -125,30 +146,45 @@ export default function PrimeHistoryScreen() {
             />
           }
         >
-          {items.map((m) => {
-            const roleColor =
-              m.role === 'user'
-                ? 'bg-accent'
-                : m.role === 'assistant'
-                  ? 'bg-success'
-                  : 'bg-fg-subtle';
+          {items.map((m, i) => {
+            // Violet is the AI's color in this app — Prime gets it, you stay neutral.
+            const roleDot =
+              m.role === 'assistant'
+                ? colors.accent2
+                : m.role === 'user'
+                  ? colors.fgMuted
+                  : colors.fgSubtle;
             const preview = buildPreview(m);
+            const label = dayLabel(m.timestamp ?? m.createdAt);
+            const prevLabel =
+              i > 0 ? dayLabel(items[i - 1].timestamp ?? items[i - 1].createdAt) : null;
+            const key = m._id ?? m.id ?? `${m.timestamp}-${m.role}`;
             return (
-              <Card
-                key={m._id ?? m.id ?? `${m.timestamp}-${m.role}`}
-                padding="sm"
-                className="mb-2"
-              >
-                <View className="flex-row items-center mb-2">
-                  <View className={`w-1.5 h-1.5 rounded-full mr-2 ${roleColor}`} />
-                  {/* Who said it and when — both audit fields, both mono. */}
-                  <Text variant="mono.label" tone="muted">
-                    {m.role}
-                  </Text>
-                  <Text variant="mono.sm" tone="subtle" className="ml-auto">
-                    {fmtRelative(m.timestamp ?? m.createdAt)}
-                  </Text>
-                </View>
+              <Fragment key={key}>
+                {label !== prevLabel ? (
+                  <View className="flex-row items-center my-3">
+                    <View className="flex-1 h-px" style={{ backgroundColor: colors.borderSubtle }} />
+                    {/* A date is provenance — mono, like every audit field. */}
+                    <Text variant="mono.label" tone="subtle" className="mx-3">
+                      {label}
+                    </Text>
+                    <View className="flex-1 h-px" style={{ backgroundColor: colors.borderSubtle }} />
+                  </View>
+                ) : null}
+                <Card padding="sm" className="mb-2">
+                  <View className="flex-row items-center mb-2">
+                    <View
+                      className="w-1.5 h-1.5 rounded-full mr-2"
+                      style={{ backgroundColor: roleDot }}
+                    />
+                    {/* Who said it and when — both audit fields, both mono. */}
+                    <Text variant="mono.label" tone="muted">
+                      {ROLE_NAME[m.role] ?? m.role}
+                    </Text>
+                    <Text variant="mono.sm" tone="subtle" className="ml-auto">
+                      {fmtRelative(m.timestamp ?? m.createdAt)}
+                    </Text>
+                  </View>
 
                 {preview.kind === 'structured' ? (
                   <>
@@ -168,12 +204,13 @@ export default function PrimeHistoryScreen() {
                   </>
                 ) : preview.kind === 'markdown' ? (
                   <MarkdownRenderer source={preview.body} />
-                ) : (
-                  <Text variant="body.md" numberOfLines={6}>
-                    {preview.body}
-                  </Text>
-                )}
-              </Card>
+                  ) : (
+                    <Text variant="body.md" numberOfLines={6}>
+                      {preview.body}
+                    </Text>
+                  )}
+                </Card>
+              </Fragment>
             );
           })}
         </ScrollView>

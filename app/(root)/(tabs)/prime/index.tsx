@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -13,6 +15,7 @@ import { ChatList } from '@/components/prime/ChatList';
 import { Composer } from '@/components/prime/Composer';
 import { usePrimeChat } from '@/api/hooks/chatHooks';
 import { usePrimeVoice } from '@/api/hooks/usePrimeVoice';
+import { useOperationalBriefings } from '@/api/hooks/briefingHooks';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type { PrimeAction } from '@/lib/primeStructuredSchema';
@@ -23,6 +26,10 @@ const SUGGESTED_PROMPTS = [
   'Draft a board update',
   'Show me the biggest cost drivers',
 ];
+
+/** Empty-state entrance beat — same cadence the Brief screen uses. */
+const BEAT = 50;
+const enter = (step: number) => FadeInDown.duration(300).delay(step * BEAT);
 
 export default function PrimeScreen() {
   const router = useRouter();
@@ -41,10 +48,39 @@ export default function PrimeScreen() {
     isStreaming,
     streamingContent,
     handleSubmit,
+    stopStreaming,
     clearMessages,
   } = usePrimeChat(activeOrgId, {
     onAssistantComplete: (text) => speakRef.current?.(text),
+    onTurnEnd: (outcome) => {
+      // A finished turn is felt, not just seen. Stop already gave its own tap.
+      if (outcome === 'complete') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+          () => undefined,
+        );
+      } else if (outcome === 'error') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(
+          () => undefined,
+        );
+      }
+    },
   });
+
+  // The workspace's own morning read makes a better first prompt than a canned one.
+  const { briefings } = useOperationalBriefings(activeOrgId);
+  const suggestedPrompts = useMemo(() => {
+    const fromBriefings = briefings
+      .map((b) => b.primePrompt?.trim())
+      .filter((p): p is string => Boolean(p));
+    return [...new Set([...fromBriefings, ...SUGGESTED_PROMPTS])].slice(0, 5);
+  }, [briefings]);
+  const briefingPromptSet = useMemo(
+    () =>
+      new Set(
+        briefings.map((b) => b.primePrompt?.trim()).filter((p): p is string => Boolean(p)),
+      ),
+    [briefings],
+  );
 
   const voice = usePrimeVoice({
     orgId: activeOrgId,
@@ -103,29 +139,41 @@ export default function PrimeScreen() {
         />
       ) : messages.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
-          <View className="opacity-60 mb-4">
+          <Animated.View entering={enter(0)} className="opacity-60 mb-4">
             <Logo size={56} />
-          </View>
+          </Animated.View>
           {/* The empty state is the screen's headline — serif carries it. */}
-          <Text variant="display.lg" className="text-center">
-            Ask Prime anything
-          </Text>
-          <Text variant="body.md" tone="muted" className="text-center mt-1.5 max-w-[300px]">
-            Prime can manage agents, campaigns, tasks, knowledge bases, and surface analytics —
-            all from chat. Tap the phone to start a hands-free call.
-          </Text>
-          <View className="flex-row flex-wrap justify-center gap-2 mt-5 max-w-[340px]">
-            {SUGGESTED_PROMPTS.map((p) => (
+          <Animated.View entering={enter(1)}>
+            <Text variant="display.lg" className="text-center">
+              Ask Prime anything
+            </Text>
+          </Animated.View>
+          <Animated.View entering={enter(2)}>
+            <Text variant="body.md" tone="muted" className="text-center mt-1.5 max-w-[300px]">
+              Prime can manage agents, campaigns, tasks, knowledge bases, and surface analytics —
+              all from chat. Tap the phone to start a hands-free call.
+            </Text>
+          </Animated.View>
+          <Animated.View
+            entering={enter(3)}
+            className="flex-row flex-wrap justify-center gap-2 mt-5 max-w-[340px]"
+          >
+            {suggestedPrompts.map((p) => (
               <Chip
                 key={p}
                 label={p}
                 leftIcon={
-                  <Ionicons name="sparkles-outline" size={13} color={colors.accent2} />
+                  <Ionicons
+                    // The workspace's own morning read is marked as today's, not generic sparkle.
+                    name={briefingPromptSet.has(p) ? 'today-outline' : 'sparkles-outline'}
+                    size={13}
+                    color={colors.accent2}
+                  />
                 }
                 onPress={() => handleSubmit(p)}
               />
             ))}
-          </View>
+          </Animated.View>
         </View>
       ) : (
         <ChatList
@@ -138,6 +186,7 @@ export default function PrimeScreen() {
         value={inputValue}
         onChange={setInputValue}
         onSubmit={() => handleSubmit()}
+        onStop={stopStreaming}
         isStreaming={isStreaming}
         disabled={!activeOrgId}
         showCall={Boolean(activeOrgId)}

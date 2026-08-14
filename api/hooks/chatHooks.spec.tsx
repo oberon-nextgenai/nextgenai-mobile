@@ -285,3 +285,81 @@ describe('usePrimeChat — tool_results record id linkage', () => {
     expect(stored.id).not.toBe('create_agent');
   });
 });
+
+/**
+ * `stopStreaming` is the composer's stop button: closing the stream IS the
+ * backend abort signal (chat.controller.ts aborts OpenAI consumption on
+ * `close`), so client-side the turn must end exactly once, keep whatever
+ * already arrived, and never leave a phantom empty assistant row behind.
+ */
+describe('usePrimeChat — stopStreaming', () => {
+  it('ends the turn, closes the stream, and drops an assistant row nothing ever reached', async () => {
+    const close = jest.fn();
+    mockOpenPrimeStream.mockImplementation((opts: CapturedStreamOptions) => {
+      capturedOnMessage = opts.onMessage;
+      return Promise.resolve({ close });
+    });
+    const onTurnEnd = jest.fn();
+    const { result } = renderHook(() => usePrimeChat(ORG, { onTurnEnd }), { wrapper });
+
+    await act(async () => {
+      await result.current.handleSubmit('do something');
+    });
+    expect(result.current.isStreaming).toBe(true);
+    expect(result.current.messages).toHaveLength(2); // user + assistant placeholder
+
+    act(() => {
+      result.current.stopStreaming();
+    });
+
+    expect(result.current.isStreaming).toBe(false);
+    expect(close).toHaveBeenCalled();
+    expect(onTurnEnd).toHaveBeenCalledWith('stopped');
+    // Nothing arrived — the placeholder must not linger as an empty row.
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0].role).toBe('user');
+  });
+
+  it('keeps a turn that already produced tool activity, marked complete', async () => {
+    const { result } = renderHook(() => usePrimeChat(ORG), { wrapper });
+
+    await act(async () => {
+      await result.current.handleSubmit('do something');
+    });
+    if (!capturedOnMessage) throw new Error('openPrimeStream onMessage was not captured');
+    const onMessage = capturedOnMessage;
+
+    act(() => {
+      onMessage({ type: 'tool_call', id: 'call_9', name: 'list_agents' });
+    });
+    act(() => {
+      result.current.stopStreaming();
+    });
+
+    expect(result.current.isStreaming).toBe(false);
+    expect(result.current.messages).toHaveLength(2);
+    const assistant = result.current.messages[1];
+    expect(assistant.status).toBe('complete');
+    expect(assistant.toolCalls).toEqual([
+      expect.objectContaining({ id: 'call_9', name: 'list_agents' }),
+    ]);
+  });
+
+  it('a second stop — or a late close event — is a no-op after the turn ended', async () => {
+    const { result } = renderHook(() => usePrimeChat(ORG), { wrapper });
+
+    await act(async () => {
+      await result.current.handleSubmit('do something');
+    });
+    act(() => {
+      result.current.stopStreaming();
+    });
+    const after = result.current.messages;
+
+    act(() => {
+      result.current.stopStreaming();
+    });
+    expect(result.current.messages).toEqual(after);
+    expect(mockToastShow).not.toHaveBeenCalled();
+  });
+});

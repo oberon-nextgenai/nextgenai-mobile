@@ -78,6 +78,11 @@ export function usePrimeHistory(orgId: string | null) {
 export interface UsePrimeChatOptions {
   /** Called when an assistant reply completes, with the backend's speakable text (for voice). */
   onAssistantComplete?: (speakableText: string) => void;
+  /**
+   * Fired exactly once per turn when it ends, with how it ended. UI-side
+   * concerns (haptics, sounds) live in the caller, not here.
+   */
+  onTurnEnd?: (outcome: 'complete' | 'error' | 'stopped') => void;
 }
 
 /**
@@ -99,12 +104,20 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
   // Keep the latest completion callback so the async stream fires the current one.
   const onAssistantCompleteRef = useRef(options.onAssistantComplete);
   onAssistantCompleteRef.current = options.onAssistantComplete;
+  const onTurnEndRef = useRef(options.onTurnEnd);
+  onTurnEndRef.current = options.onTurnEnd;
   const [messages, setMessages] = useState<PrimeMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const streamRef = useRef<{ close: () => void } | null>(null);
   const currentAssistantIdRef = useRef<string | null>(null);
+  /**
+   * Set per-turn inside `handleSubmit`; ends the in-flight turn on user request.
+   * A stale entry from a finished turn is harmless — its closure's `turnEnded`
+   * flag makes it a no-op.
+   */
+  const stopTurnRef = useRef<(() => void) | null>(null);
 
   const toolsQuery = useAvailableTools(orgId);
   const availableTools: ToolAvailable[] = toolsQuery.data?.tools ?? [];
@@ -238,6 +251,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
         setIsStreaming(false);
         setStreamingContent('');
         closeStream();
+        onTurnEndRef.current?.('error');
       };
 
       // Re-armed on every event, so a long tool round-trip never trips it.
@@ -252,6 +266,48 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
       let finalStructured: PrimeStructuredResponse | null = null;
       let finalFallbackMarkdown: string | null = null;
       let currentFormat: 'text' | 'structured' = 'text';
+
+      // User-initiated stop. Closing the stream is the backend's abort signal
+      // (it drops OpenAI consumption on `close`), so this is real barge-in, not
+      // just hiding the spinner. Whatever already arrived — tool results, a
+      // structured payload — is kept; an untouched placeholder row is dropped.
+      stopTurnRef.current = () => {
+        if (turnEnded) return;
+        turnEnded = true;
+        clearIdleTimer();
+        flushTurnToast();
+        const id = currentAssistantIdRef.current;
+        setMessages((prev) =>
+          prev
+            .map((m) => {
+              if (m.id !== id) return m;
+              return {
+                ...m,
+                content: aggregatedContent,
+                structured: finalStructured,
+                fallbackMarkdown: finalFallbackMarkdown,
+                format: currentFormat,
+                status: 'complete' as const,
+                statusMessage: undefined,
+                toolCalls: (m.toolCalls ?? []).filter((tc) => tc.name.trim() !== ''),
+              };
+            })
+            .filter(
+              (m) =>
+                m.id !== id ||
+                Boolean(
+                  m.content ||
+                    m.structured ||
+                    m.fallbackMarkdown ||
+                    (m.toolCalls ?? []).length > 0,
+                ),
+            ),
+        );
+        setIsStreaming(false);
+        setStreamingContent('');
+        closeStream();
+        onTurnEndRef.current?.('stopped');
+      };
 
       const onMessage = (data: unknown) => {
         // Any traffic means the turn is alive — push the silence deadline out.
@@ -505,6 +561,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             setIsStreaming(false);
             setStreamingContent('');
             closeStream();
+            onTurnEndRef.current?.('complete');
             // Hand the backend-derived speakable text to the voice layer (once).
             if (completeMsg?.speakableText) {
               onAssistantCompleteRef.current?.(completeMsg.speakableText);
@@ -531,6 +588,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             setIsStreaming(false);
             setStreamingContent('');
             closeStream();
+            onTurnEndRef.current?.('error');
             break;
           }
           default: {
@@ -582,6 +640,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             setIsStreaming(false);
             setStreamingContent('');
             closeStream();
+            onTurnEndRef.current?.('error');
           },
           // A close with no `complete` and no `error` is the case that used to
           // lock the composer permanently.
@@ -604,6 +663,11 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
     [inputValue, isStreaming, messages, orgId, qc, router, addToolResult, addNotification, closeStream],
   );
 
+  /** User tapped stop — end the in-flight turn gracefully, keeping what arrived. */
+  const stopStreaming = useCallback(() => {
+    stopTurnRef.current?.();
+  }, []);
+
   const clearMessages = useCallback(() => {
     closeStream();
     setMessages([]);
@@ -623,6 +687,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
     streamingContent,
     availableTools,
     handleSubmit,
+    stopStreaming,
     clearMessages,
     seedFromHistory,
   };

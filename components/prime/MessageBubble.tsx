@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { cn } from '@/lib/cn';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
+import { useThemeMode } from '@/hooks/useThemeMode';
 import type { PrimeMessage } from '@/api/hooks/chatHooks';
 import type { PrimeAction } from '@/lib/primeStructuredSchema';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -18,6 +19,26 @@ interface MessageBubbleProps {
 }
 
 const TOOL_CALL_SUMMARY_THRESHOLD = 3;
+
+/**
+ * Provenance eyebrow for assistant prose turns. Structured replies carry their
+ * own serif title + rail, so they don't get one — this anchors the turns that
+ * would otherwise be bare full-width markdown with no visual owner.
+ */
+function PrimeEyebrow({ error }: { error?: boolean }) {
+  const { colors } = useThemeMode();
+  return (
+    <View className="flex-row items-center mb-1.5 px-1">
+      <View
+        className="w-1.5 h-1.5 rounded-full mr-2"
+        style={{ backgroundColor: error ? colors.danger : colors.accent2 }}
+      />
+      <Text variant="mono.label" tone={error ? 'danger' : 'subtle'}>
+        {error ? 'Prime · Error' : 'Prime'}
+      </Text>
+    </View>
+  );
+}
 
 export function MessageBubble({ message, streamingContent, onAction }: MessageBubbleProps) {
   if (message.role === 'user') {
@@ -90,14 +111,20 @@ export function MessageBubble({ message, streamingContent, onAction }: MessageBu
           onActionTap={onAction}
         />
       ) : hasFallbackOnly ? (
-        // A message row, never a hero surface — no gloss.
-        <Card>
-          <MarkdownRenderer source={message.fallbackMarkdown ?? ''} />
-        </Card>
+        <>
+          <PrimeEyebrow error={message.status === 'error'} />
+          {/* A message row, never a hero surface — no gloss. */}
+          <Card>
+            <MarkdownRenderer source={message.fallbackMarkdown ?? ''} />
+          </Card>
+        </>
       ) : displayContent || !isStreaming ? (
-        <View className="px-1">
-          <MarkdownRenderer source={displayContent || ' '} />
-        </View>
+        <>
+          <PrimeEyebrow error={message.status === 'error'} />
+          <View className="px-1">
+            <MarkdownRenderer source={displayContent || ' '} />
+          </View>
+        </>
       ) : (
         // Streaming, tools running, no prose yet — the panel above is the whole
         // message. An empty markdown block here would add a phantom line of

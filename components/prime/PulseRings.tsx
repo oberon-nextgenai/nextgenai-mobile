@@ -4,6 +4,7 @@ import Animated, {
   cancelAnimation,
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -68,14 +69,32 @@ function Ring({ delay, duration, color }: RingProps) {
  */
 export function PulseRings({ size = 36, color }: PulseRingsProps) {
   const { colors } = useThemeMode();
+  const reduceMotion = useReducedMotion();
   const ringColor = color ?? colors.accent2;
   const dotSize = Math.max(6, Math.round(size * 0.18));
 
   return (
     <View style={{ width: size, height: size }} className="items-center justify-center">
-      <Ring delay={0} duration={1600} color={ringColor} />
-      <Ring delay={530} duration={1600} color={ringColor} />
-      <Ring delay={1060} duration={1600} color={ringColor} />
+      {reduceMotion ? (
+        // Reduce Motion: the mark at rest — one still ring, no pulse.
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 9999,
+            borderWidth: 1.4,
+            borderColor: ringColor,
+            opacity: 0.35,
+          }}
+        />
+      ) : (
+        <>
+          <Ring delay={0} duration={1600} color={ringColor} />
+          <Ring delay={530} duration={1600} color={ringColor} />
+          <Ring delay={1060} duration={1600} color={ringColor} />
+        </>
+      )}
       <View
         style={{
           width: dotSize,

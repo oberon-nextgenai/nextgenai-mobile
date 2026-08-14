@@ -1,8 +1,11 @@
 import { Pressable, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import Animated from 'react-native-reanimated';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
+import { usePressScale } from '@/hooks/usePressScale';
 import type {
   PrimeStructuredResponse,
   PrimeSectionItem,
@@ -15,6 +18,39 @@ interface StructuredCardProps {
   data: PrimeStructuredResponse;
   fallbackMarkdown?: string | null;
   onActionTap?: (action: PrimeAction) => void;
+}
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/** A ready-to-send reply — tapping it speaks for the user, so it gets a felt tap. */
+function ActionChip({ label, onPress }: { label: string; onPress?: () => void }) {
+  const { colors } = useThemeMode();
+  const press = usePressScale({ to: 0.98 });
+  return (
+    <AnimatedPressable
+      onPress={() => {
+        Haptics.selectionAsync().catch(() => undefined);
+        onPress?.();
+      }}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      accessibilityRole="button"
+      className="flex-row items-center rounded-xl px-3 py-2.5"
+      style={[
+        press.animatedStyle,
+        {
+          backgroundColor: colors.chipSelectedBg,
+          borderWidth: 1,
+          borderColor: colors.chipSelectedBorder,
+        },
+      ]}
+    >
+      <Text variant="body.sm" tone="accent" numberOfLines={2} className="flex-1">
+        {label}
+      </Text>
+      <Ionicons name="arrow-forward" size={13} color={colors.accent2} style={{ marginLeft: 8 }} />
+    </AnimatedPressable>
+  );
 }
 
 /** Metrics render as figures, so they get the serif treatment. */
@@ -155,22 +191,7 @@ export function StructuredCard({ data, fallbackMarkdown, onActionTap }: Structur
       {actions.length > 0 ? (
         <View className="mt-3 gap-2">
           {actions.map((a, i) => (
-            <Pressable
-              key={i}
-              onPress={() => onActionTap?.({ label: a, prompt: a })}
-              accessibilityRole="button"
-              className="flex-row items-center rounded-xl px-3 py-2.5 active:opacity-80"
-              style={{
-                backgroundColor: colors.chipSelectedBg,
-                borderWidth: 1,
-                borderColor: colors.chipSelectedBorder,
-              }}
-            >
-              <Text variant="body.sm" tone="accent" numberOfLines={2} className="flex-1">
-                {a}
-              </Text>
-              <Ionicons name="arrow-forward" size={13} color={colors.accent2} style={{ marginLeft: 8 }} />
-            </Pressable>
+            <ActionChip key={i} label={a} onPress={() => onActionTap?.({ label: a, prompt: a })} />
           ))}
         </View>
       ) : null}
