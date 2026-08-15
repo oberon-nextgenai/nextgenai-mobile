@@ -13,6 +13,9 @@ import {
 } from '@/lib/primeStructuredSchema';
 import { invalidateForTool } from '@/lib/toolInvalidations';
 import { isEnvelopeFailure } from '@/lib/mcpEnvelope';
+// DEMO ONLY — DO NOT MERGE: presentation belt over Prime's rendered output.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { sanitizeDemoText, sanitizePrimeStructured } from '@/lib/prime/demoPresentation';
 import { useToolResults } from '@/store/toolResults';
 import { useNotifications } from '@/store/notifications';
 import type { ToolAvailable } from '@/api/services/types';
@@ -348,7 +351,12 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
           case 'content': {
             const chunk = (event as { content?: string }).content ?? '';
             aggregatedContent += chunk;
-            setStreamingContent(aggregatedContent);
+            // DEMO ONLY — DO NOT MERGE: sanitize the WHOLE aggregate, not the
+            // chunk — a vendor name split across SSE chunks only exists once
+            // the pieces are assembled.
+            setStreamingContent(
+              DEMO_APPROVALS ? sanitizeDemoText(aggregatedContent) : aggregatedContent,
+            );
             break;
           }
           case 'structured': {
@@ -358,10 +366,15 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
               event;
             const parsed = tryParsePrimeStructured(raw);
             if (parsed) {
-              finalStructured = parsed;
+              // DEMO ONLY — DO NOT MERGE: presentation belt over every string.
+              finalStructured = DEMO_APPROVALS ? sanitizePrimeStructured(parsed) : parsed;
             } else {
               const fallback = pickFallbackMarkdown(raw);
-              if (fallback) finalFallbackMarkdown = fallback;
+              if (fallback) {
+                finalFallbackMarkdown = DEMO_APPROVALS
+                  ? sanitizeDemoText(fallback)
+                  : fallback;
+              }
             }
             break;
           }
@@ -528,21 +541,28 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
               }).message;
             if (!finalStructured && completeMsg?.structured) {
               const parsed = tryParsePrimeStructured(completeMsg.structured);
-              if (parsed) finalStructured = parsed;
-              else {
+              if (parsed) {
+                finalStructured = DEMO_APPROVALS ? sanitizePrimeStructured(parsed) : parsed;
+              } else {
                 const fb = pickFallbackMarkdown(completeMsg.structured);
-                if (fb) finalFallbackMarkdown = fb;
+                if (fb) {
+                  finalFallbackMarkdown = DEMO_APPROVALS ? sanitizeDemoText(fb) : fb;
+                }
               }
             }
             if (!finalFallbackMarkdown && completeMsg?.fallbackMarkdown) {
-              finalFallbackMarkdown = completeMsg.fallbackMarkdown;
+              finalFallbackMarkdown = DEMO_APPROVALS
+                ? sanitizeDemoText(completeMsg.fallbackMarkdown)
+                : completeMsg.fallbackMarkdown;
             }
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === currentAssistantIdRef.current
                   ? {
                       ...m,
-                      content: aggregatedContent,
+                      content: DEMO_APPROVALS
+                        ? sanitizeDemoText(aggregatedContent)
+                        : aggregatedContent,
                       structured: finalStructured,
                       fallbackMarkdown: finalFallbackMarkdown,
                       format: currentFormat,
@@ -563,8 +583,13 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             closeStream();
             onTurnEndRef.current?.('complete');
             // Hand the backend-derived speakable text to the voice layer (once).
+            // Sanitized in demo mode — TTS must never SAY a vendor name.
             if (completeMsg?.speakableText) {
-              onAssistantCompleteRef.current?.(completeMsg.speakableText);
+              onAssistantCompleteRef.current?.(
+                DEMO_APPROVALS
+                  ? sanitizeDemoText(completeMsg.speakableText)
+                  : completeMsg.speakableText,
+              );
             }
             break;
           }

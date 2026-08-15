@@ -88,12 +88,25 @@ describe('profiles', () => {
       const p = DEMO_PROFILES[name];
       expect(p.auditSeeds.length).toBeGreaterThanOrEqual(2);
       expect(p.monthlyCost).toBeGreaterThan(0);
-      expect(p.includedMinutes).toBeGreaterThan(0);
-      expect(p.minutesUsedPct).toBeGreaterThan(0);
-      expect(p.minutesUsedPct).toBeLessThan(1);
+      expect(p.planUtilizationPct).toBeGreaterThan(0);
+      expect(p.planUtilizationPct).toBeLessThan(1);
+      expect(p.monthlyCalls + p.monthlyEmails).toBeGreaterThan(0);
     }
     expect(DEMO_PROFILES.Alex.monthlyCost).toBe(63_000);
     expect(DEMO_PROFILES.Sophie.monthlyCost).toBe(7_500);
     expect(DEMO_PROFILES.Ava.monthlyCost).toBe(3_900);
+    // Alex's volumes are the real 30-day platform dashboard numbers.
+    expect(DEMO_PROFILES.Alex.monthlyCalls).toBe(830);
+    expect(DEMO_PROFILES.Alex.monthlyEmails).toBe(1_313);
+  });
+
+  it('keeps the 7-day ledger within monthly-volume magnitude (±15% of monthly/4.3)', () => {
+    const monthly = CANONICAL_AGENTS.reduce(
+      (acc, n) => acc + DEMO_PROFILES[n].monthlyCalls + DEMO_PROFILES[n].monthlyEmails,
+      0,
+    );
+    const weekly = monthly / 4.3;
+    expect(DEMO_LEDGER.interactions7d).toBeGreaterThan(weekly * 0.85);
+    expect(DEMO_LEDGER.interactions7d).toBeLessThan(weekly * 1.15);
   });
 });

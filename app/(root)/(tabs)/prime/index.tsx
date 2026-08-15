@@ -19,6 +19,8 @@ import { useOperationalBriefings } from '@/api/hooks/briefingHooks';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { shouldSeedPrompt } from '@/lib/prime/promptSeed';
+// DEMO ONLY — DO NOT MERGE: "new chat" signal from the Prime tab button.
+import { usePrimeSession } from '@/store/primeSession';
 import type { PrimeAction } from '@/lib/primeStructuredSchema';
 
 const SUGGESTED_PROMPTS = [
@@ -104,12 +106,29 @@ export default function PrimeScreen() {
   const seededPrompt = useRef<string | null>(null);
   const inputValueRef = useRef(inputValue);
   inputValueRef.current = inputValue;
+
+  // DEMO ONLY — DO NOT MERGE: the Prime tab doubles as "new chat". On reset,
+  // the current route prompt is marked consumed AND cleared from the route —
+  // a stale param can never re-seed the composer after a tab press.
+  const resetCounter = usePrimeSession((s) => s.resetCounter);
+  const lastResetRef = useRef(resetCounter);
+  useEffect(() => {
+    if (resetCounter === lastResetRef.current) return;
+    lastResetRef.current = resetCounter;
+    clearMessages();
+    setInputValue('');
+    seededPrompt.current = (prompt as string | undefined) ?? null;
+    router.setParams({ prompt: undefined });
+  }, [resetCounter, clearMessages, setInputValue, prompt, router]);
+
   useEffect(() => {
     if (shouldSeedPrompt(prompt, seededPrompt.current, inputValueRef.current)) {
       seededPrompt.current = prompt as string;
+      // A deep-linked prompt opens a fresh conversation seeded with it.
+      clearMessages();
       setInputValue(prompt as string);
     }
-  }, [prompt, setInputValue]);
+  }, [prompt, setInputValue, clearMessages]);
 
   const handleAction = useCallback(
     (a: PrimeAction) => {

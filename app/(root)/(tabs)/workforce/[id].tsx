@@ -26,6 +26,9 @@ import { canonicalNameFor, profileForName } from '@/api/demo/agentProfiles';
 import { useDemoOverrides } from '@/store/demoOverrides';
 import { useConversationFeed } from '@/api/hooks/conversationHooks';
 import { useAgentAudit } from '@/api/hooks/auditHooks';
+import { useDashboardRender, useOrgData } from '@/api/hooks/orgDataHooks';
+import { WidgetTile } from '@/components/analytics/WidgetTile';
+import { LeasingCard, MeterFleetCard } from '@/components/analytics/OrgDataCards';
 import { ConversationRow } from '@/components/executive/ConversationRow';
 import { fmtCurrency, fmtNumber, fmtPct, fmtDuration, fmtRelative } from '@/lib/formatters';
 import type { Agent } from '@/api/services/types';
@@ -89,6 +92,20 @@ export default function WorkforceAgentScreen() {
     agentKey || undefined,
     canonicalName ?? agent?.name,
   );
+  // Per-agent performance sources: Alex ← the platform query engine's real
+  // widgets; Alex + Sophie ← org-owned database aggregates. Ava is fixture-only.
+  const renderQuery = useDashboardRender(canonicalName === 'Alex' ? activeOrgId : null, '30d');
+  const orgData = useOrgData(
+    canonicalName === 'Alex' || canonicalName === 'Sophie' ? activeOrgId : null,
+  );
+  const agentWidgets = (renderQuery.data?.widgets ?? [])
+    .filter(
+      (w) =>
+        !w.error &&
+        (w.data?.rows?.length ?? 0) > 0 &&
+        (w.display?.section === 'alex' || w.display?.section === 'contacts'),
+    )
+    .slice(0, 6);
 
   const shell = (children: React.ReactNode) => (
     <Screen background="nebula" edges={{ top: true, bottom: false }}>
@@ -181,8 +198,8 @@ export default function WorkforceAgentScreen() {
           arrives, and a later refetch updates it in place without recounting. */}
       <Animated.View entering={enter(2)} className="mt-5 gap-3">
         {profile ? (
-          // DEMO ONLY — DO NOT MERGE: the minutes-based plan is the cost story
-          // for the board — allowance, remaining minutes, monthly price.
+          // DEMO ONLY — DO NOT MERGE: the plan story for the board — real
+          // monthly volumes, plan utilization, flat contract price.
           <>
             <View className="flex-row gap-3">
               <StatTile
@@ -193,24 +210,25 @@ export default function WorkforceAgentScreen() {
                 index={0}
               />
               <StatTile
-                label="Calls handled"
-                value={fmtNumber(profile.monthlyCalls)}
+                label="Interactions"
+                value={fmtNumber(profile.monthlyCalls + profile.monthlyEmails)}
                 caption="this month"
-                count={{ to: profile.monthlyCalls, format: n => fmtNumber(Math.round(n)) }}
+                count={{
+                  to: profile.monthlyCalls + profile.monthlyEmails,
+                  format: n => fmtNumber(Math.round(n)),
+                }}
                 tone="accent"
                 index={1}
               />
             </View>
             <View className="flex-row gap-3">
               <StatTile
-                label="Minutes left"
-                value={fmtNumber(
-                  Math.round(profile.includedMinutes * (1 - profile.minutesUsedPct)),
-                )}
-                caption={`of ${Math.round(profile.includedMinutes / 1000)}K included`}
+                label="Plan utilization"
+                value={fmtPct(profile.planUtilizationPct * 100, 0)}
+                caption="of monthly allowance"
                 count={{
-                  to: Math.round(profile.includedMinutes * (1 - profile.minutesUsedPct)),
-                  format: n => fmtNumber(Math.round(n)),
+                  to: profile.planUtilizationPct * 100,
+                  format: n => fmtPct(n, 0),
                 }}
                 tone="neutral"
                 index={2}
@@ -218,7 +236,7 @@ export default function WorkforceAgentScreen() {
               <StatTile
                 label="Cost this month"
                 value={fmtCurrency(profile.monthlyCost)}
-                caption="minutes-based plan"
+                caption="flat monthly plan"
                 count={{ to: profile.monthlyCost, format: fmtCurrency }}
                 tone="warning"
                 index={3}
@@ -264,6 +282,52 @@ export default function WorkforceAgentScreen() {
           </>
         )}
       </Animated.View>
+
+      {/* Performance — real per-agent data: Alex from the platform query
+          engine + meter database, Sophie from the leasing database. */}
+      {canonicalName === 'Alex' && agentWidgets.length > 0 ? (
+        <Animated.View entering={enter(3)} className="mt-4 gap-3">
+          <View className="flex-row items-center justify-between">
+            <Text variant="mono.label" tone="subtle">
+              Performance · last 30 days
+            </Text>
+            <Text variant="mono.label" tone="muted">
+              platform query engine
+            </Text>
+          </View>
+          {Array.from(
+            { length: Math.ceil(agentWidgets.filter((w) => w.type === 'kpi').length / 2) },
+            (_, i) => {
+              const kpis = agentWidgets.filter((w) => w.type === 'kpi');
+              const pair = kpis.slice(i * 2, i * 2 + 2);
+              return (
+                <View key={`agent-kpi-${i}`} className="flex-row gap-3">
+                  {pair.map((w) => (
+                    <WidgetTile key={w.widgetId} widget={w} />
+                  ))}
+                  {pair.length === 1 ? <View className="flex-1" /> : null}
+                </View>
+              );
+            },
+          )}
+          {agentWidgets
+            .filter((w) => w.type !== 'kpi')
+            .slice(0, 2)
+            .map((w) => (
+              <WidgetTile key={w.widgetId} widget={w} />
+            ))}
+        </Animated.View>
+      ) : null}
+      {canonicalName === 'Alex' && orgData.data?.meterFleet ? (
+        <Animated.View entering={enter(3)} className="mt-4">
+          <MeterFleetCard fleet={orgData.data.meterFleet} />
+        </Animated.View>
+      ) : null}
+      {canonicalName === 'Sophie' && orgData.data?.leasing ? (
+        <Animated.View entering={enter(3)} className="mt-4">
+          <LeasingCard leasing={orgData.data.leasing} />
+        </Animated.View>
+      ) : null}
 
       {/* Configuration, in the audit-record idiom: mono label, mono value. */}
       <Animated.View entering={enter(3)} className="mt-4">

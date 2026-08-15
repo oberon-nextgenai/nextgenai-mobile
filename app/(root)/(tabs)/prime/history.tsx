@@ -23,7 +23,12 @@ import {
   tryParsePrimeStructured,
   type PrimeSectionItem,
 } from '@/lib/primeStructuredSchema';
+// DEMO ONLY — DO NOT MERGE: presentation belt over archived Prime output.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { sanitizeDemoText } from '@/lib/prime/demoPresentation';
 import type { StoredPrimeMessage } from '@/api/services/types';
+
+const present = (v: string): string => (DEMO_APPROVALS ? sanitizeDemoText(v) : v);
 
 type Preview =
   | { kind: 'structured'; title: string; body: string }
@@ -39,7 +44,7 @@ type Preview =
  */
 function buildPreview(m: StoredPrimeMessage): Preview {
   if (m.role === 'system') {
-    return { kind: 'markdown', body: m.content };
+    return { kind: 'markdown', body: present(m.content) };
   }
 
   if (m.role === 'assistant' && m.format === 'structured') {
@@ -54,17 +59,17 @@ function buildPreview(m: StoredPrimeMessage): Preview {
       })();
       return {
         kind: 'structured',
-        title: parsed.title,
-        body: summary ?? firstSectionText ?? '',
+        title: present(parsed.title),
+        body: present(summary ?? firstSectionText ?? ''),
       };
     }
     const fallback = pickFallbackMarkdown(m.content);
     if (fallback) {
-      return { kind: 'markdown', body: fallback };
+      return { kind: 'markdown', body: present(fallback) };
     }
   }
 
-  return { kind: 'plain', body: m.content };
+  return { kind: 'plain', body: present(m.content) };
 }
 
 /** Who said it, in the user's vocabulary — not the wire-format role. */

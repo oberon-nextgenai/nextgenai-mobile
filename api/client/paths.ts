@@ -133,6 +133,15 @@ export const PATHS = {
   auditLog: {
     list: '/api/audit-log',
   },
+  analyticsEngine: {
+    /** Widget schema + computed values in one call. `?preset=7d|30d|90d`. */
+    render: (orgId: string) =>
+      `/api/analytics-engine/dashboards/${encodeURIComponent(orgId)}/render`,
+  },
+  orgData: {
+    /** Org-owned Postgres aggregates: `{ meterFleet, leasing }`, each nullable. */
+    summary: (orgId: string) => `/api/org-data/${encodeURIComponent(orgId)}`,
+  },
   devices: {
     register: '/api/devices/register',
     list: '/api/devices',

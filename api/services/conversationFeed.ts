@@ -89,6 +89,8 @@ export async function fetchConversationFeed(
       const res = await http.get<ExportRow[]>(PATHS.conversations.export, {
         params: { organizationId, agentId },
         timeout: DEMO_TIMEOUT_MS,
+        // The fixture fallback below owns the failure UX — no global toast.
+        suppressErrorToast: true,
       });
       const rows = Array.isArray(res.data) ? res.data : [];
       if (rows.length > 0) {

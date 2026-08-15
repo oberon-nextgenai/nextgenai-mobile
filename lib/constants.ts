@@ -60,6 +60,9 @@ export const QUERY_KEYS = {
   conversations: (orgId: string) => ['conversations', orgId] as const,
   conversationFeed: (orgId: string, agentId?: string) =>
     ['conversations', orgId, 'feed', agentId ?? 'all'] as const,
+  dashboardRender: (orgId: string, preset: string) =>
+    ['analytics', 'dashboard-render', orgId, preset] as const,
+  orgData: (orgId: string) => ['org-data', orgId] as const,
   auditLog: (orgId: string, filters?: Record<string, unknown>) =>
     ['audit-log', orgId, filters ?? {}] as const,
   devices: ['devices', 'list'] as const,

@@ -10,7 +10,7 @@ function counts(total: number, critical: number): EscalationCounts {
 describe('demoBriefingHeadline', () => {
   it('pluralizes from the live counts — never hardcoded', () => {
     expect(demoBriefingHeadline(counts(4, 1))).toBe(
-      'Your AI workforce handled 1,284 interactions overnight and resolved 87% autonomously, and flagged 4 escalations for your review — 1 critical.',
+      'Your AI workforce handled 124 interactions overnight and resolved 96% autonomously, and flagged 4 escalations for your review — 1 critical.',
     );
     expect(demoBriefingHeadline(counts(1, 0))).toContain('flagged 1 escalation for your review');
     expect(demoBriefingHeadline(counts(1, 0))).not.toContain('critical');

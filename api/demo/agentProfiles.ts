@@ -21,12 +21,16 @@ export const CANONICAL_AGENTS: CanonicalAgentName[] = ['Alex', 'Sophie', 'Ava'];
 export interface DemoAgentProfile {
   name: CanonicalAgentName;
   role: string;
-  /** Minutes-based plan (Retell voice minutes). */
+  /** Flat monthly plan price (contract), NOT derived from usage. */
   monthlyCost: number;
-  includedMinutes: number;
-  /** Fraction of the allowance consumed so far this month. */
-  minutesUsedPct: number;
+  /**
+   * Fraction of the monthly plan allowance consumed — surfaces as
+   * "Plan utilization". No absolute minutes are claimed anywhere.
+   */
+  planUtilizationPct: number;
+  /** Monthly interaction volume — REAL platform magnitudes (Alex verified). */
   monthlyCalls: number;
+  monthlyEmails: number;
   /** Agent-specific orchestration events for the audit-trail fallback. */
   auditSeeds: string[];
 }
@@ -36,9 +40,10 @@ export const DEMO_PROFILES: Record<CanonicalAgentName, DemoAgentProfile> = {
     name: 'Alex',
     role: 'Meter collection',
     monthlyCost: 63_000,
-    includedMinutes: 420_000,
-    minutesUsedPct: 0.62,
-    monthlyCalls: 38_000,
+    planUtilizationPct: 0.62,
+    // Real 30-day platform numbers (Alex Meter Collection dashboard).
+    monthlyCalls: 830,
+    monthlyEmails: 1_313,
     auditSeeds: [
       'Prime tuned retry policy after 3 failed reads',
       'Prime paused batch RUN-B7E2 pending approval',
@@ -48,9 +53,9 @@ export const DEMO_PROFILES: Record<CanonicalAgentName, DemoAgentProfile> = {
     name: 'Sophie',
     role: 'Leasing',
     monthlyCost: 7_500,
-    includedMinutes: 50_000,
-    minutesUsedPct: 0.55,
-    monthlyCalls: 4_600,
+    planUtilizationPct: 0.55,
+    monthlyCalls: 60,
+    monthlyEmails: 350,
     auditSeeds: [
       'Prime drafted renewal at 12% and held for approval',
       'Policy check POL-LEASE-08 evaluated',
@@ -60,9 +65,9 @@ export const DEMO_PROFILES: Record<CanonicalAgentName, DemoAgentProfile> = {
     name: 'Ava',
     role: 'SDR',
     monthlyCost: 3_900,
-    includedMinutes: 26_000,
-    minutesUsedPct: 0.48,
-    monthlyCalls: 2_900,
+    planUtilizationPct: 0.48,
+    monthlyCalls: 0,
+    monthlyEmails: 730,
     auditSeeds: [
       'Prime paused outbound sequence — 2 open Sev-1 targets',
       'Sequence copy passed brand review',
@@ -71,19 +76,22 @@ export const DEMO_PROFILES: Record<CanonicalAgentName, DemoAgentProfile> = {
 };
 
 /**
- * The metric ledger. Derived values are written out (not computed at read
- * sites) so every surface quotes literally the same number.
+ * The metric ledger — rebased to REAL platform magnitudes (org ≈ 3,283
+ * interactions/mo across the three agents). Derived values are written out
+ * (not computed at read sites) so every surface quotes literally the same
+ * number. Ledger values are FALLBACKS for surfaces without a live source
+ * (the overnight narrative); wherever a live query exists, real data wins.
  *
- * `llmSpendToday` (token cost) is a DIFFERENT metric from the minutes-plan
+ * `llmSpendToday` (token cost) is a DIFFERENT metric from the flat plan
  * spend — the briefing labels it "LLM spend today"; the Spend tile shows the
  * plan spend.
  */
 export const DEMO_LEDGER = {
-  overnightInteractions: 1_284,
-  resolvedPct: 87,
-  overnightAutonomous: 1_117, // = round(1284 × 0.87)
-  interactions7d: 8_942,
-  resolved7d: 7_780, // = round(8942 × 0.87)
+  overnightInteractions: 124,
+  resolvedPct: 96,
+  overnightAutonomous: 119, // = round(124 × 0.96)
+  interactions7d: 760,
+  resolved7d: 730, // = round(760 × 0.96)
   planSpendToday: 2_480,
   planSpend7d: 17_360,
   llmSpendToday: 80,
@@ -95,8 +103,9 @@ export function profileForName(name: string): DemoAgentProfile | undefined {
 
 /**
  * Channel split of the ledger's 7-day interactions, for the analytics
- * channel-mix card when the live endpoint has nothing. Calls + email only —
- * that is what the three demo agents run. Counts sum to `interactions7d`.
+ * channel-mix card ONLY when the live endpoint is empty or errors (real data
+ * wins otherwise). Calls + email only — that is what the three demo agents
+ * run. Counts sum to `interactions7d`.
  */
 export function demoChannelMix(): {
   totalInteractions: number;
@@ -105,8 +114,8 @@ export function demoChannelMix(): {
   return {
     totalInteractions: DEMO_LEDGER.interactions7d,
     channels: [
-      { channel: 'calls', count: 5_187, aiHandledPct: 84 },
-      { channel: 'email', count: 3_755, aiHandledPct: 91 },
+      { channel: 'calls', count: 195, aiHandledPct: 84 },
+      { channel: 'email', count: 565, aiHandledPct: 91 },
     ],
   };
 }

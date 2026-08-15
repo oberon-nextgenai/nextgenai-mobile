@@ -13,6 +13,18 @@ type ApiError = {
   error?: string;
 };
 
+/**
+ * Per-request opt-out of the interceptor's error toasts, for callers that
+ * handle failure themselves (e.g. a short-timeout fetch with a graceful
+ * fallback — the fallback working and a red banner appearing contradict).
+ * 401 handling is never suppressed.
+ */
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    suppressErrorToast?: boolean;
+  }
+}
+
 type Unauthorized401Handler = () => void;
 let onUnauthorized: Unauthorized401Handler | null = null;
 export function setUnauthorizedHandler(handler: Unauthorized401Handler | null) {
@@ -52,9 +64,12 @@ http.interceptors.response.use(
     const data = error.response?.data;
     const message =
       data?.message ?? data?.error ?? error.message ?? 'Network error';
+    const suppress = error.config?.suppressErrorToast === true;
 
     if (status === 401) {
       onUnauthorized?.();
+    } else if (suppress) {
+      // Caller owns the failure UX — no toast, but still reject.
     } else if (status === 403) {
       Toast.show({
         type: 'error',
@@ -67,7 +82,15 @@ http.interceptors.response.use(
         text1: 'Too many requests',
         text2: 'Please slow down and try again in a moment.',
       });
-    } else if (status === undefined || status >= 500) {
+    } else if (status === undefined) {
+      // No response at all — timeout, offline, DNS. Not the server's fault,
+      // and calling it "Server error" misdiagnoses it for the user.
+      Toast.show({
+        type: 'error',
+        text1: 'Connection problem',
+        text2: String(message),
+      });
+    } else if (status >= 500) {
       Toast.show({
         type: 'error',
         text1: 'Server error',

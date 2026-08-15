@@ -1,5 +1,5 @@
 import { Platform, Pressable, View } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,8 @@ import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
 import { useEscalationCounts } from '@/api/hooks/escalationHooks';
 import { useActiveOrg } from '@/store/org';
+// DEMO ONLY — DO NOT MERGE: pressing the Prime tab always opens a new chat.
+import { usePrimeSession } from '@/store/primeSession';
 
 /**
  * The CEO command app exposes five calm destinations. Admin surfaces
@@ -52,6 +54,14 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           const focused = tab.name === activeName;
           const onPress = () => {
             if (Platform.OS !== 'web') void Haptics.selectionAsync();
+            // DEMO ONLY — DO NOT MERGE: the Prime tab is a "new chat" button —
+            // every press clears the thread and lands on the chat screen (also
+            // pops prime/history back to index). Archive lives in history.
+            if (tab.name === 'prime') {
+              usePrimeSession.getState().requestNewChat();
+              router.navigate('/(root)/(tabs)/prime' as never);
+              return;
+            }
             const target = state.routes.find((r) => r.name === tab.name);
             if (target) {
               const event = navigation.emit({

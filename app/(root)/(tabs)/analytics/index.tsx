@@ -30,6 +30,9 @@ import {
   useNdsDashboard,
 } from '@/api/hooks/analyticsHooks';
 import { CHANNEL_LABEL } from '@/api/services/channelMix';
+import { useDashboardRender, useOrgData } from '@/api/hooks/orgDataHooks';
+import { WidgetTile } from '@/components/analytics/WidgetTile';
+import { LeasingCard, MeterFleetCard } from '@/components/analytics/OrgDataCards';
 // DEMO ONLY — DO NOT MERGE: ledger-derived channel mix when the API has none.
 import { DEMO_APPROVALS } from '@/api/demo/flags';
 import { demoChannelMix } from '@/api/demo/agentProfiles';
@@ -136,6 +139,21 @@ export default function AnalyticsScreen() {
     period,
   );
   const mmr = useMmrCampaigns(routing.view?.kind === 'mmr' ? activeOrgId : null);
+
+  // The platform query engine's dashboard + org-owned database aggregates —
+  // rendered for every non-NDS org (NDS has its own full-band dashboard).
+  const platformOrgId = routing.view?.kind === 'nds' ? null : activeOrgId;
+  const renderQuery = useDashboardRender(platformOrgId, period === '30d' ? '30d' : '7d');
+  const orgData = useOrgData(platformOrgId);
+  const { kpiWidgets, chartWidgets } = useMemo(() => {
+    const widgets = (renderQuery.data?.widgets ?? []).filter(
+      w => !w.error && (w.data?.rows?.length ?? 0) > 0,
+    );
+    return {
+      kpiWidgets: widgets.filter(w => w.type === 'kpi').slice(0, 6),
+      chartWidgets: widgets.filter(w => w.type !== 'kpi').slice(0, 3),
+    };
+  }, [renderQuery.data]);
 
   // Channel mix — the server defaults its window to the last 7 days.
   const coreOrgId =
@@ -278,6 +296,48 @@ export default function AnalyticsScreen() {
               ) : null}
             </View>
           </View>
+
+          {/* The platform query engine's own dashboard — the same widgets the
+              web console renders, computed live per period. */}
+          {kpiWidgets.length > 0 || chartWidgets.length > 0 ? (
+            <View className="mb-4 gap-3">
+              <View className="flex-row items-center justify-between">
+                <Text variant="mono.label" tone="subtle">
+                  {renderQuery.data?.title ?? 'Workforce dashboard'}
+                </Text>
+                <Text variant="mono.label" tone="muted">
+                  platform query engine
+                </Text>
+              </View>
+              {kpiWidgets.length > 0
+                ? Array.from({ length: Math.ceil(kpiWidgets.length / 2) }, (_, i) => (
+                    <View key={`kpi-row-${i}`} className="flex-row gap-3">
+                      {kpiWidgets.slice(i * 2, i * 2 + 2).map(w => (
+                        <WidgetTile key={w.widgetId} widget={w} />
+                      ))}
+                      {kpiWidgets.slice(i * 2, i * 2 + 2).length === 1 ? (
+                        <View className="flex-1" />
+                      ) : null}
+                    </View>
+                  ))
+                : null}
+              {chartWidgets.map(w => (
+                <WidgetTile key={w.widgetId} widget={w} />
+              ))}
+            </View>
+          ) : null}
+
+          {/* Org-owned database aggregates: meter fleet + leasing pipeline. */}
+          {orgData.data?.meterFleet ? (
+            <View className="mb-4">
+              <MeterFleetCard fleet={orgData.data.meterFleet} />
+            </View>
+          ) : null}
+          {orgData.data?.leasing ? (
+            <View className="mb-4">
+              <LeasingCard leasing={orgData.data.leasing} />
+            </View>
+          ) : null}
 
           {routing.isPending ? (
             <View className="py-12 items-center">
