@@ -3,6 +3,10 @@ import { useDashboard, useAgentsAnalytics } from './analyticsHooks';
 import { useAgentsList } from './agentHooks';
 import { useNotifications } from '@/store/notifications';
 import { useAuthStore } from '@/store/auth';
+// DEMO ONLY — DO NOT MERGE: metric gap-fill + local pause state for the demo.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { demoAgentMetrics } from '@/api/demo/metricsDemo';
+import { useDemoOverrides } from '@/store/demoOverrides';
 import type { Agent, AnalyticsAgentRow, NdsPeriod } from '@/api/services/types';
 
 /**
@@ -94,28 +98,42 @@ function rosterFrom(pages: { items: Agent[] }[] | undefined): Agent[] {
 export function useWorkforce(orgId: string | null) {
   const list = useAgentsList({ orgId });
   const analytics = useAgentsAnalytics(orgId);
+  // DEMO ONLY — DO NOT MERGE: local pause/resume overrides for the demo.
+  const statusOverrides = useDemoOverrides((s) => s.status);
 
   const agents = useMemo<WorkforceAgent[]>(() => {
     const items = rosterFrom(list.data?.pages);
     const rows = analytics.data ?? [];
     return items.map((agent) => {
+      const id = agent._id ?? agent.id ?? agent.name;
       const row = matchAnalytics(agent, rows);
       const successRate = successRateFor(agent, rows);
       const performancePct =
         successRate != null ? Math.round(successRate) : undefined;
+      const costPerRun =
+        row && row.totalCost != null && (row.totalCalls ?? 0) > 0
+          ? row.totalCost / (row.totalCalls as number)
+          : undefined;
+
+      let status = deriveStatus(agent, successRate);
+      // DEMO ONLY — DO NOT MERGE: gap-fill missing metrics (real analytics
+      // always win) and apply the local pause/resume override.
+      const demo = DEMO_APPROVALS ? demoAgentMetrics(id) : undefined;
+      const override = DEMO_APPROVALS ? statusOverrides[id] : undefined;
+      if (override === 'paused') status = 'paused';
+      else if (override === 'active' && status === 'paused') status = 'healthy';
+
       return {
-        id: agent._id ?? agent.id ?? agent.name,
+        id,
         name: agent.name,
         role: roleLabel(agent),
-        status: deriveStatus(agent, successRate),
-        performancePct,
-        costPerRun:
-          row && row.totalCost != null && (row.totalCalls ?? 0) > 0
-            ? row.totalCost / (row.totalCalls as number)
-            : undefined,
+        status,
+        performancePct: performancePct ?? demo?.performancePct,
+        costPerRun: costPerRun ?? demo?.costPerRun,
+        trend: demo?.trend,
       };
     });
-  }, [list.data, analytics.data]);
+  }, [list.data, analytics.data, statusOverrides]);
 
   const summary = useMemo<WorkforceSummary>(() => {
     const s: WorkforceSummary = {

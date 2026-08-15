@@ -38,8 +38,14 @@ export async function fetchAgents(
     },
   });
   const { data = [], metadata } = res.data ?? { data: [], metadata: { total: 0, page: 1, limit: 20, totalPages: 1 } };
+  // The server strips hidden agents for org roles but returns them to
+  // superadmins (the web console needs them for its Hide/Show UI). Mobile has
+  // no moderation surface, so a hidden agent is dropped here for every role.
+  // `metadata.total` may therefore overcount for superadmins; visible counts
+  // are derived from the loaded roster, so only "Load more" can over-offer.
+  const visible = data.filter((a) => a.hidden !== true);
   return {
-    items: data,
+    items: visible,
     total: metadata?.total ?? data.length,
     page: metadata?.page ?? params.page ?? 1,
     limit: metadata?.limit ?? params.limit ?? 20,

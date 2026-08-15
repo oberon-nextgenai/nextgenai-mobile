@@ -18,6 +18,11 @@ import { useAgent } from '@/api/hooks/agentHooks';
 import { useAgentDetails } from '@/api/hooks/analyticsHooks';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
+// DEMO ONLY — DO NOT MERGE: metric gap-fill + local pause state for the demo.
+import Toast from 'react-native-toast-message';
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { demoAgentDetails } from '@/api/demo/metricsDemo';
+import { useDemoOverrides } from '@/store/demoOverrides';
 import { fmtCurrency, fmtNumber, fmtPct, fmtDuration } from '@/lib/formatters';
 import type { Agent } from '@/api/services/types';
 
@@ -58,7 +63,18 @@ export default function WorkforceAgentScreen() {
   const agentQuery = useAgent(activeOrgId, id);
   const agent = agentQuery.data;
   const detailsQuery = useAgentDetails(activeOrgId, agent?.vapiAgentId);
-  const details = detailsQuery.data;
+
+  // Same key the Workforce roster row uses, so pause state follows the agent
+  // between the list and this screen.
+  const agentKey = agent?._id ?? agent?.id ?? id ?? '';
+  // DEMO ONLY — DO NOT MERGE: local pause/resume override + KPI gap-fill.
+  const statusOverride = useDemoOverrides((s) =>
+    DEMO_APPROVALS && agentKey ? s.status[agentKey] : undefined,
+  );
+  const setStatusOverride = useDemoOverrides((s) => s.setStatus);
+  const details =
+    detailsQuery.data ??
+    (DEMO_APPROVALS && agentKey ? demoAgentDetails(agentKey) : undefined);
 
   const shell = (children: React.ReactNode) => (
     <Screen background="nebula" edges={{ top: true, bottom: false }}>
@@ -84,7 +100,9 @@ export default function WorkforceAgentScreen() {
     );
   }
 
-  if (!agent) {
+  // A hidden agent is a moderation decision made on the web console — treat it
+  // exactly like an agent that does not exist, even on a direct link.
+  if (!agent || agent.hidden) {
     return shell(
       <EmptyState
         icon={<Ionicons name="help-circle-outline" size={26} color={colors.fgMuted} />}
@@ -94,7 +112,12 @@ export default function WorkforceAgentScreen() {
     );
   }
 
-  const status = lifecycleStatus(agent);
+  const status =
+    statusOverride === 'paused'
+      ? 'paused'
+      : statusOverride === 'active'
+        ? 'healthy'
+        : lifecycleStatus(agent);
   const meta = status ? statusMeta(status) : null;
   const role = roleLabel(agent);
   const paused = status === 'paused';
@@ -179,9 +202,19 @@ export default function WorkforceAgentScreen() {
             Configuration
           </Text>
           <View className="mt-3 gap-2.5">
-            <DetailRow label="Type" value={agent.type ?? '—'} />
-            <DetailRow label="Model" value={agent.llmModel ?? '—'} />
-            <DetailRow label="Status" value={agent.status ?? '—'} />
+            {/* Demo-gated fallbacks: the board demo must never show a dash. */}
+            <DetailRow
+              label="Type"
+              value={agent.type ?? (DEMO_APPROVALS ? (role ?? 'Chat agent') : '—')}
+            />
+            <DetailRow
+              label="Model"
+              value={agent.llmModel ?? (DEMO_APPROVALS ? 'gpt-4o' : '—')}
+            />
+            <DetailRow
+              label="Status"
+              value={statusOverride ?? agent.status ?? (DEMO_APPROVALS ? 'active' : '—')}
+            />
           </View>
         </Card>
       </Animated.View>
@@ -202,11 +235,36 @@ export default function WorkforceAgentScreen() {
           {`Ask Prime about ${agent.name}`}
         </GradientButton>
 
-        {/* Pausing an agent takes it off live traffic, so it stays on the web
-            console until the mobile confirm flow exists. */}
-        <Button variant="secondary" fullWidth disabled>
-          {paused ? 'Resume agent — on web' : 'Pause agent — on web'}
-        </Button>
+        {DEMO_APPROVALS ? (
+          // DEMO ONLY — DO NOT MERGE: pause/resume is a local, instantly
+          // reversible flip. No confirm dialog — `window.confirm` on the web
+          // build would surface browser chrome mid-presentation — and no
+          // backend call, so live traffic is never at risk on stage.
+          <Button
+            variant="secondary"
+            fullWidth
+            onPress={() => {
+              const next = paused ? 'active' : 'paused';
+              setStatusOverride(agentKey, next);
+              Toast.show({
+                type: 'success',
+                text1: next === 'paused' ? 'Paused' : 'Resumed',
+                text2:
+                  next === 'paused'
+                    ? `${agent.name} is off live traffic.`
+                    : `${agent.name} is back on live traffic.`,
+              });
+            }}
+          >
+            {paused ? `Resume ${agent.name}` : `Pause ${agent.name}`}
+          </Button>
+        ) : (
+          /* Pausing an agent takes it off live traffic, so it stays on the web
+             console until the mobile confirm flow exists. */
+          <Button variant="secondary" fullWidth disabled>
+            {paused ? 'Resume agent — on web' : 'Pause agent — on web'}
+          </Button>
+        )}
       </Animated.View>
     </ScrollView>,
   );

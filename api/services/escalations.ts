@@ -1,5 +1,15 @@
 import { http } from '@/api/client/http';
 import { PATHS } from '@/api/client/paths';
+// DEMO ONLY — DO NOT MERGE: local fixtures for the Toshiba board demo.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import {
+  demoApproveEscalation,
+  demoAssignEscalation,
+  demoFetchEscalation,
+  demoFetchEscalationCounts,
+  demoFetchEscalations,
+  demoRejectEscalation,
+} from '@/api/demo/approvalsDemo';
 
 /**
  * Escalations + approvals — the human triage queue.
@@ -104,11 +114,13 @@ export interface ListEscalationsParams {
 }
 
 export async function fetchEscalations(params: ListEscalationsParams): Promise<EscalationPage> {
+  if (DEMO_APPROVALS) return demoFetchEscalations(params); // DEMO ONLY — DO NOT MERGE
   const { data } = await http.get<EscalationPage>(PATHS.escalations.list, { params });
   return data;
 }
 
 export async function fetchEscalationCounts(organizationId: string): Promise<EscalationCounts> {
+  if (DEMO_APPROVALS) return demoFetchEscalationCounts(organizationId); // DEMO ONLY — DO NOT MERGE
   const { data } = await http.get<EscalationCounts>(PATHS.escalations.counts, {
     params: { organizationId },
   });
@@ -119,6 +131,7 @@ export async function fetchEscalation(
   organizationId: string,
   id: string,
 ): Promise<EscalationDetail> {
+  if (DEMO_APPROVALS) return demoFetchEscalation(organizationId, id); // DEMO ONLY — DO NOT MERGE
   const { data } = await http.get<EscalationDetail>(PATHS.escalations.detail(id), {
     params: { organizationId },
   });
@@ -129,6 +142,7 @@ export async function assignEscalation(
   id: string,
   body: { organizationId: string; assigneeId?: string },
 ): Promise<Escalation> {
+  if (DEMO_APPROVALS) return demoAssignEscalation(id, body); // DEMO ONLY — DO NOT MERGE
   const { data } = await http.post<Escalation>(PATHS.escalations.assign(id), body);
   return data;
 }
@@ -144,6 +158,7 @@ export async function approveEscalation(
   id: string,
   body: DecideEscalationBody,
 ): Promise<EscalationDecisionResult> {
+  if (DEMO_APPROVALS) return demoApproveEscalation(id, body); // DEMO ONLY — DO NOT MERGE
   const { data } = await http.post<EscalationDecisionResult>(PATHS.escalations.approve(id), body);
   return data;
 }
@@ -152,6 +167,7 @@ export async function rejectEscalation(
   id: string,
   body: DecideEscalationBody,
 ): Promise<EscalationDecisionResult> {
+  if (DEMO_APPROVALS) return demoRejectEscalation(id, body); // DEMO ONLY — DO NOT MERGE
   const { data } = await http.post<EscalationDecisionResult>(PATHS.escalations.reject(id), body);
   return data;
 }

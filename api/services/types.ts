@@ -63,6 +63,12 @@ export interface Agent {
   id?: string;
   name: string;
   description?: string;
+  /**
+   * Superadmin moderation flag. The backend strips hidden agents from list
+   * responses for org roles but returns them to superadmins — mobile has no
+   * moderation UI, so hidden agents must never render here regardless of role.
+   */
+  hidden?: boolean;
   status?: 'active' | 'inactive' | 'paused' | 'training' | string;
   type?: 'phone' | 'text' | 'external' | string;
   agentType?: string;
