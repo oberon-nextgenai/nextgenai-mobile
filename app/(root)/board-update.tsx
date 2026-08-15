@@ -469,7 +469,9 @@ export default function BoardUpdateScreen() {
                   key={i}
                   accessibilityRole="button"
                   onPress={() =>
-                    router.push({
+                    // `navigate` reuses the live Prime instance — a push would
+                    // stack a second one with an empty conversation.
+                    router.navigate({
                       pathname: '/(root)/(tabs)/prime',
                       params: { prompt: a },
                     })

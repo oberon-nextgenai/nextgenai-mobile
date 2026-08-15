@@ -76,13 +76,18 @@ export function useEscalation(orgId: string | null, id: string | undefined) {
  *
  * The prefix `['escalations', orgId]` covers the list (whatever its filters),
  * the counts, and any open detail — a decision changes all three, and missing
- * one leaves a resolved item still showing as pending.
+ * one leaves a resolved item still showing as pending. The morning briefing
+ * embeds the same counts, so it invalidates alongside — otherwise its 5-minute
+ * staleness leaves the brief quoting a queue the badge no longer shows.
  */
 function useInvalidateEscalations(orgId: string | null) {
   const qc = useQueryClient();
   return () => {
     if (!orgId) return;
     void qc.invalidateQueries({ queryKey: ['escalations', orgId] });
+    void qc.invalidateQueries({ queryKey: QUERY_KEYS.briefings(orgId) });
+    // A decision is an audit event — the per-agent audit trail must follow.
+    void qc.invalidateQueries({ queryKey: ['audit-log', orgId] });
   };
 }
 

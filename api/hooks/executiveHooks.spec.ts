@@ -9,6 +9,21 @@ jest.mock('./analyticsHooks', () => ({
   useAgentsAnalytics: jest.fn(),
 }));
 
+// The board-demo branch is validated by its own specs (briefingDemo,
+// agentProfiles); these assert the real path, so the flag is forced off and
+// the escalation queries the demo branch subscribes to are stubbed out.
+jest.mock('@/api/demo/flags', () => ({ DEMO_APPROVALS: false }));
+
+jest.mock('./escalationHooks', () => ({
+  useEscalationCounts: jest.fn(() => ({
+    data: undefined,
+    isPending: false,
+    isFetching: false,
+    refetch: jest.fn(),
+  })),
+  useEscalations: jest.fn(() => ({ data: undefined })),
+}));
+
 jest.mock('./agentHooks', () => ({
   useAgentsList: jest.fn(),
 }));

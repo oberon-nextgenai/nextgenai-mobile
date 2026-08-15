@@ -6,7 +6,16 @@ import { useAuthStore } from '@/store/auth';
 // DEMO ONLY — DO NOT MERGE: metric gap-fill + local pause state for the demo.
 import { DEMO_APPROVALS } from '@/api/demo/flags';
 import { demoAgentMetrics } from '@/api/demo/metricsDemo';
+import {
+  DEMO_LEDGER,
+  DEMO_PROFILES,
+  canonicalDemoRoster,
+  canonicalNameFor,
+  resolveCanonicalIds,
+} from '@/api/demo/agentProfiles';
 import { useDemoOverrides } from '@/store/demoOverrides';
+import { useEscalationCounts, useEscalations } from './escalationHooks';
+import type { Escalation } from '@/api/services/escalations';
 import type { Agent, AnalyticsAgentRow, NdsPeriod } from '@/api/services/types';
 
 /**
@@ -26,6 +35,8 @@ export interface WorkforceAgent {
   status: WorkforceStatus;
   performancePct?: number;
   costPerRun?: number;
+  /** Minutes-plan cost — when present the row shows Cost/mo instead of Cost/run. */
+  costMonthly?: number;
   /**
    * Per-agent performance series for the row sparkline.
    *
@@ -104,6 +115,38 @@ export function useWorkforce(orgId: string | null) {
   const agents = useMemo<WorkforceAgent[]>(() => {
     const items = rosterFrom(list.data?.pages);
     const rows = analytics.data ?? [];
+
+    // DEMO ONLY — DO NOT MERGE: the board demo presents exactly three
+    // canonical agents (Alex · Sophie · Ava), each bound to a real roster
+    // agent where one exists, with minutes-plan costs from DEMO_PROFILES.
+    if (DEMO_APPROVALS) {
+      return canonicalDemoRoster(items).map((entry) => {
+        const successRate = entry.agent
+          ? successRateFor(entry.agent, rows)
+          : undefined;
+        const demo = demoAgentMetrics(entry.id);
+        const profile = DEMO_PROFILES[entry.name];
+
+        let status: WorkforceStatus = entry.agent
+          ? deriveStatus(entry.agent, successRate)
+          : 'healthy';
+        const override = statusOverrides[entry.id];
+        if (override === 'paused') status = 'paused';
+        else if (override === 'active' && status === 'paused') status = 'healthy';
+
+        return {
+          id: entry.id,
+          name: entry.name,
+          role: profile.role,
+          status,
+          performancePct:
+            successRate != null ? Math.round(successRate) : demo.performancePct,
+          costMonthly: profile.monthlyCost,
+          trend: demo.trend,
+        };
+      });
+    }
+
     return items.map((agent) => {
       const id = agent._id ?? agent.id ?? agent.name;
       const row = matchAnalytics(agent, rows);
@@ -115,22 +158,13 @@ export function useWorkforce(orgId: string | null) {
           ? row.totalCost / (row.totalCalls as number)
           : undefined;
 
-      let status = deriveStatus(agent, successRate);
-      // DEMO ONLY — DO NOT MERGE: gap-fill missing metrics (real analytics
-      // always win) and apply the local pause/resume override.
-      const demo = DEMO_APPROVALS ? demoAgentMetrics(id) : undefined;
-      const override = DEMO_APPROVALS ? statusOverrides[id] : undefined;
-      if (override === 'paused') status = 'paused';
-      else if (override === 'active' && status === 'paused') status = 'healthy';
-
       return {
         id,
         name: agent.name,
         role: roleLabel(agent),
-        status,
-        performancePct: performancePct ?? demo?.performancePct,
-        costPerRun: costPerRun ?? demo?.costPerRun,
-        trend: demo?.trend,
+        status: deriveStatus(agent, successRate),
+        performancePct,
+        costPerRun,
       };
     });
   }, [list.data, analytics.data, statusOverrides]);
@@ -238,6 +272,39 @@ function greetingForNow(name?: string): string {
 }
 
 /**
+ * Accounts without a display name still get greeted by name — derived from
+ * the email local part ("fabio@…" → "Fabio"). The greeting should always
+ * address the person who signed in.
+ */
+function fallbackNameFromEmail(email?: string): string | undefined {
+  const first = email?.split('@')[0]?.split(/[._-]/)[0]?.trim();
+  if (!first) return undefined;
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
+/** DEMO ONLY — DO NOT MERGE: how an escalation reads as the brief's top priority. */
+const DEMO_KIND_PHRASE: Record<string, string> = {
+  sla_risk: 'an SLA risk',
+  policy_exception: 'a policy exception',
+  customer: 'a customer decision',
+  cost_anomaly: 'a cost anomaly',
+  workflow_failure: 'a workflow failure',
+  compliance: 'a compliance flag',
+};
+
+function demoPriorityTitle(e: Escalation): string {
+  const kind = DEMO_KIND_PHRASE[e.kind] ?? 'an item for review';
+  const risk =
+    e.impactAmount > 0
+      ? ` — $${(e.impactAmount / 1000).toFixed(1).replace(/\.0$/, '')}K at stake`
+      : '';
+  return `${e.agentName ?? 'An agent'} flagged ${kind}${risk}`;
+}
+
+/** Module-level so the object keeps one identity inside the React Query key. */
+const DEMO_ESC_FILTERS = {};
+
+/**
  * The verdict line. States what happened rather than selling it, and names the
  * problem when there is one — an executive scanning this needs to know in one
  * line whether to keep reading.
@@ -258,8 +325,76 @@ export function useDailyBrief(orgId: string | null) {
   const list = useAgentsList({ orgId });
   const user = useAuthStore((s) => s.user);
   const unread = useNotifications((s) => s.unreadCount());
+  // DEMO ONLY — DO NOT MERGE: the demo brief derives ALL workforce-facing
+  // state from the canonical roster + the live demo escalation queries
+  // (reactive — a decision invalidates these and the brief follows), never
+  // from raw analytics rows a stray fourth agent could pollute.
+  const escCounts = useEscalationCounts(DEMO_APPROVALS ? orgId : null);
+  const escList = useEscalations(DEMO_APPROVALS ? orgId : null, DEMO_ESC_FILTERS);
+  const demoStatus = useDemoOverrides((s) => s.status);
 
   const brief = useMemo<DailyBrief>(() => {
+    const greeting = greetingForNow(user?.name ?? fallbackNameFromEmail(user?.email));
+
+    if (DEMO_APPROVALS) {
+      const roster = rosterFrom(list.data?.pages);
+      const canonical = canonicalDemoRoster(roster);
+      const ids = resolveCanonicalIds(roster);
+      const open = escCounts.data?.total ?? 0;
+      const critical = escCounts.data?.critical ?? 0;
+      const activeAgents = canonical.filter(
+        (e) => demoStatus[e.id] !== 'paused',
+      ).length;
+
+      // The queue is served SLA-ascending, so the first open item is the most
+      // urgent — that's the brief's top priority.
+      const top: Escalation | undefined = escList.data?.pages
+        .flatMap((p) => p.data)
+        .filter((e) => e.status === 'open' || e.status === 'assigned')[0];
+      let topPriority: BriefPriority | undefined;
+      if (top) {
+        const cn = canonicalNameFor({ name: top.agentName ?? '' });
+        topPriority = {
+          severity: top.severity === 'critical' ? 'critical' : 'attention',
+          title: demoPriorityTitle(top),
+          detail: top.context,
+          recommendation:
+            'Review and decide in Approvals — Prime has a recommendation ready.',
+          agentId: cn ? ids[cn] : undefined,
+        };
+      }
+
+      const headline =
+        open > 0
+          ? `${open} ${open === 1 ? 'decision is' : 'decisions are'} waiting on you.`
+          : 'Your workforce ran clean overnight.';
+      const decisionsClause =
+        open > 0
+          ? ` ${open} ${open === 1 ? 'decision waits' : 'decisions wait'} in Approvals${
+              critical > 0 ? ` — ${critical} critical` : ''
+            }.`
+          : ' Everything is on track.';
+      const summary = `${DEMO_LEDGER.resolved7d.toLocaleString('en-US')} tasks resolved across ${activeAgents} active ${
+        activeAgents === 1 ? 'agent' : 'agents'
+      } in the ${BRIEF_WINDOW_LABEL}.${decisionsClause}`;
+
+      return {
+        greeting,
+        headline,
+        summary,
+        metrics: {
+          activeAgents,
+          totalAgents: canonical.length,
+          tasksResolved: DEMO_LEDGER.resolved7d,
+          attention: 0,
+          spendToday: DEMO_LEDGER.planSpend7d,
+          windowLabel: BRIEF_WINDOW_LABEL,
+          attentionWindowLabel: ATTENTION_WINDOW_LABEL,
+        },
+        topPriority,
+      };
+    }
+
     const m = dashboard.data?.metrics;
     const rows = analytics.data ?? [];
     const roster = rosterFrom(list.data?.pages);
@@ -334,7 +469,7 @@ export function useDailyBrief(orgId: string | null) {
           } in the ${BRIEF_WINDOW_LABEL}. Everything is on track.`;
 
     return {
-      greeting: greetingForNow(user?.name),
+      greeting,
       headline: headlineFor(attention, !!topPriority),
       summary,
       metrics: {
@@ -348,7 +483,17 @@ export function useDailyBrief(orgId: string | null) {
       },
       topPriority,
     };
-  }, [dashboard.data, analytics.data, list.data, unread, user?.name]);
+  }, [
+    dashboard.data,
+    analytics.data,
+    list.data,
+    unread,
+    user?.name,
+    user?.email,
+    escCounts.data,
+    escList.data,
+    demoStatus,
+  ]);
 
   return {
     brief,

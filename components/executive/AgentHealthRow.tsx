@@ -69,8 +69,19 @@ interface AgentHealthRowProps {
   status: AgentStatus;
   performancePct?: number;
   costPerRun?: number;
+  /** Minutes-plan monthly cost. When present it replaces the Cost/run column. */
+  costMonthly?: number;
   trend?: number[];
   onPress?: () => void;
+}
+
+/** $63,000 → "$63K" · $7,500 → "$7.5K" · $890 → "$890". */
+function fmtCompactUsd(v: number): string {
+  if (v >= 1000) {
+    const k = v / 1000;
+    return `$${Number.isInteger(k) ? k : k.toFixed(1)}K`;
+  }
+  return `$${Math.round(v)}`;
 }
 
 /** One labelled metric column. */
@@ -101,6 +112,7 @@ export function AgentHealthRow({
   status,
   performancePct,
   costPerRun,
+  costMonthly,
   trend,
   onPress,
 }: AgentHealthRowProps) {
@@ -116,7 +128,11 @@ export function AgentHealthRow({
     provenance,
     meta.label,
     performancePct != null ? `${Math.round(performancePct)} percent performance` : null,
-    costPerRun != null ? `${costPerRun.toFixed(2)} dollars per run` : null,
+    costMonthly != null
+      ? `${Math.round(costMonthly).toLocaleString('en-US')} dollars per month`
+      : costPerRun != null
+        ? `${costPerRun.toFixed(2)} dollars per run`
+        : null,
   ]
     .filter(Boolean)
     .join(', ');
@@ -167,11 +183,17 @@ export function AgentHealthRow({
                   {performancePct == null ? '—' : `${Math.round(performancePct)}%`}
                 </Text>
               </Metric>
-              <Metric label="Cost/run">
-                <Text variant="body.semibold">
-                  {costPerRun == null ? '—' : `$${costPerRun.toFixed(2)}`}
-                </Text>
-              </Metric>
+              {costMonthly != null ? (
+                <Metric label="Cost/mo">
+                  <Text variant="body.semibold">{fmtCompactUsd(costMonthly)}</Text>
+                </Metric>
+              ) : (
+                <Metric label="Cost/run">
+                  <Text variant="body.semibold">
+                    {costPerRun == null ? '—' : `$${costPerRun.toFixed(2)}`}
+                  </Text>
+                </Metric>
+              )}
               <Metric label="SLA">
                 <Text variant="body.semibold" tone={meta.tone}>
                   {meta.slaLabel}

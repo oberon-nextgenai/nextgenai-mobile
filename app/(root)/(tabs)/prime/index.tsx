@@ -18,6 +18,7 @@ import { usePrimeVoice } from '@/api/hooks/usePrimeVoice';
 import { useOperationalBriefings } from '@/api/hooks/briefingHooks';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
+import { shouldSeedPrompt } from '@/lib/prime/promptSeed';
 import type { PrimeAction } from '@/lib/primeStructuredSchema';
 
 const SUGGESTED_PROMPTS = [
@@ -97,12 +98,16 @@ export default function PrimeScreen() {
     clearMessages();
   }, [activeOrgId, clearMessages]);
 
-  // Seed the composer from a deep-linked prompt (e.g. "Ask Prime about this agent").
+  // Seed the composer from a deep-linked prompt (e.g. "Ask Prime about this
+  // agent"). `shouldSeedPrompt` guarantees a sent/same prompt never re-seeds
+  // and a new prompt never clobbers text the user typed.
   const seededPrompt = useRef<string | null>(null);
+  const inputValueRef = useRef(inputValue);
+  inputValueRef.current = inputValue;
   useEffect(() => {
-    if (prompt && seededPrompt.current !== prompt) {
-      seededPrompt.current = prompt;
-      setInputValue(prompt);
+    if (shouldSeedPrompt(prompt, seededPrompt.current, inputValueRef.current)) {
+      seededPrompt.current = prompt as string;
+      setInputValue(prompt as string);
     }
   }, [prompt, setInputValue]);
 

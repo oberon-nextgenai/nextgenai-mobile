@@ -7,10 +7,20 @@ import type { OperationalBriefing } from '@/api/services/briefings';
 jest.mock('@/api/hooks/executiveHooks', () => ({ useDailyBrief: jest.fn() }));
 jest.mock('@/api/hooks/briefingHooks', () => ({ useOperationalBriefings: jest.fn() }));
 
+// `mockPush` records every outbound navigation — `push` and `navigate` alike —
+// so assertions stay about the destination, not the verb. (Ask-Prime entry
+// points deliberately use `navigate` to reuse the live Prime instance.)
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-  router: { push: (...args: unknown[]) => mockPush(...args) },
-  useRouter: () => ({ push: (...args: unknown[]) => mockPush(...args), back: jest.fn() }),
+  router: {
+    push: (...args: unknown[]) => mockPush(...args),
+    navigate: (...args: unknown[]) => mockPush(...args),
+  },
+  useRouter: () => ({
+    push: (...args: unknown[]) => mockPush(...args),
+    navigate: (...args: unknown[]) => mockPush(...args),
+    back: jest.fn(),
+  }),
 }));
 
 jest.mock('@/store/org', () => ({

@@ -41,5 +41,10 @@ export function fmtDuration(minutes?: number | null): string {
 
 export function fmtCurrency(v?: number | null): string {
   if (v == null || Number.isNaN(v)) return '—';
-  return `$${v.toFixed(2)}`;
+  // Whole-dollar amounts of $100+ drop the cents — "$17,360" reads as money,
+  // "$17360.00" reads as a printout. Small amounts keep cents ("$0.78").
+  if (Number.isInteger(v) && Math.abs(v) >= 100) {
+    return `$${v.toLocaleString('en-US')}`;
+  }
+  return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

@@ -54,6 +54,20 @@ export async function fetchAgents(
 }
 
 export async function fetchAgent(id: string): Promise<Agent> {
+  // DEMO ONLY — DO NOT MERGE: a canonical demo agent with no real roster
+  // representative gets a synthesized record so its detail screen still opens.
+  if (id.startsWith('demo-agent-')) {
+    const name = id.replace('demo-agent-', '');
+    const display = name.charAt(0).toUpperCase() + name.slice(1);
+    return {
+      _id: id,
+      name: display,
+      description: `${display} — AI workforce agent`,
+      status: 'active',
+      type: display === 'Alex' ? 'phone' : 'text',
+      llmModel: 'gpt-4o',
+    };
+  }
   const res = await http.get<Agent>(PATHS.agents.detail(id));
   return res.data;
 }

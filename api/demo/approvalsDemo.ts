@@ -335,6 +335,41 @@ export async function demoRejectEscalation(
   return decide(id, body, 'rejected');
 }
 
+export interface DemoDecisionRecord {
+  id: string;
+  action: string;
+  decision: 'approved' | 'rejected';
+  decidedAt: string;
+  decidedByEmail?: string;
+}
+
+/**
+ * Decisions already taken on this agent's escalations, for the agent detail
+ * audit trail. Pure read — never seeds the store (no decisions exist before
+ * the queue was ever opened).
+ */
+export function demoDecisionsFor(
+  organizationId: string,
+  agentName: string,
+): DemoDecisionRecord[] {
+  const state = stores.get(organizationId);
+  if (!state) return [];
+  return state.items
+    .filter(
+      (i) =>
+        i.escalation.agentName === agentName &&
+        i.approval.decision !== 'pending' &&
+        i.approval.decidedAt,
+    )
+    .map((i) => ({
+      id: `${i.escalation._id}-decision`,
+      action: i.approval.action,
+      decision: i.approval.decision as 'approved' | 'rejected',
+      decidedAt: i.approval.decidedAt as string,
+      decidedByEmail: i.approval.decidedByEmail,
+    }));
+}
+
 /** Test helper — the app itself resets by reload (in-memory state). */
 export function resetDemoApprovals(): void {
   stores.clear();

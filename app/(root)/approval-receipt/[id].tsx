@@ -32,9 +32,20 @@ export default function ApprovalReceiptScreen() {
   const escalation = query.data?.escalation;
   const approval = query.data?.approval ?? null;
 
+  // This modal is reached via `replace`, so on the web build there is often no
+  // history behind it — Done and back both land on the inbox explicitly (where
+  // the badge just decremented), never on a dead `router.back()`.
+  const done = () => router.replace('/(root)/(tabs)/approvals' as never);
+
   const shell = (children: React.ReactNode) => (
     <Screen background="nebula">
-      <AppHeader title="Audit record" showBack showOrgPill={false} showNotifications={false} />
+      <AppHeader
+        title="Audit record"
+        showBack
+        backFallback="/(root)/(tabs)/approvals"
+        showOrgPill={false}
+        showNotifications={false}
+      />
       {children}
     </Screen>
   );
@@ -68,7 +79,7 @@ export default function ApprovalReceiptScreen() {
         title="No decision recorded"
         description="There is no audit record for this escalation yet."
         action={
-          <Button variant="secondary" onPress={() => router.back()}>
+          <Button variant="secondary" onPress={done}>
             Done
           </Button>
         }
@@ -127,7 +138,7 @@ export default function ApprovalReceiptScreen() {
       ) : null}
 
       <Animated.View entering={FadeInDown.duration(340).delay(200)} className="mt-6">
-        <Button variant="secondary" fullWidth onPress={() => router.back()}>
+        <Button variant="secondary" fullWidth onPress={done}>
           Done
         </Button>
       </Animated.View>

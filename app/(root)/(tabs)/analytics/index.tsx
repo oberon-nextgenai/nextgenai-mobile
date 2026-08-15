@@ -16,7 +16,6 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Pill } from '@/components/ui/Pill';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
-import { IconButton } from '@/components/ui/IconButton';
 import { KpiStrip } from '@/components/analytics/KpiStrip';
 import { ChartCard } from '@/components/analytics/ChartCard';
 import { NdsHero } from '@/components/analytics/NdsHero';
@@ -25,13 +24,18 @@ import { useActiveOrg } from '@/store/org';
 import {
   useAnalyticsRouting,
   useAnalyticsStream,
+  useChannelMix,
   useDashboard,
   useMmrCampaigns,
   useNdsDashboard,
 } from '@/api/hooks/analyticsHooks';
+import { CHANNEL_LABEL } from '@/api/services/channelMix';
+// DEMO ONLY — DO NOT MERGE: ledger-derived channel mix when the API has none.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { demoChannelMix } from '@/api/demo/agentProfiles';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { cn } from '@/lib/cn';
-import { fmtNumber, fmtRelative } from '@/lib/formatters';
+import { fmtNumber, fmtRelative, fmtPct } from '@/lib/formatters';
 import type { NdsPeriod, NdsVolumeTrendPoint } from '@/api/services/types';
 
 const PERIOD_OPTIONS: { value: NdsPeriod; label: string }[] = [
@@ -132,6 +136,20 @@ export default function AnalyticsScreen() {
     period,
   );
   const mmr = useMmrCampaigns(routing.view?.kind === 'mmr' ? activeOrgId : null);
+
+  // Channel mix — the server defaults its window to the last 7 days.
+  const coreOrgId =
+    routing.view?.kind === 'core' || routing.view?.kind === 'unknown'
+      ? activeOrgId
+      : null;
+  const channelMixQuery = useChannelMix(coreOrgId);
+  const channelMix = useMemo(() => {
+    const live = channelMixQuery.data;
+    if (live && live.totalInteractions > 0) return live;
+    // DEMO ONLY — DO NOT MERGE: ledger-derived fallback so the card never
+    // renders empty during the board demo.
+    return DEMO_APPROVALS ? demoChannelMix() : live;
+  }, [channelMixQuery.data]);
 
   // Core analytics charts — read the structured chart arrays the backend
   // returns (RetellDashboardData.charts) directly, so nothing is dropped.
@@ -243,7 +261,22 @@ export default function AnalyticsScreen() {
                 {periodLabel}
               </Pill>
             </Pressable>
-            <IconButton icon="options-outline" size={32} variant="surface" />
+            {/* Liveness, not a dead options button: these numbers refresh on a
+                30s staleness window and on pull-to-refresh. */}
+            <View className="flex-row items-center gap-1.5">
+              <View
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: colors.successBright }}
+              />
+              <Text variant="mono.label" tone="success">
+                Live
+              </Text>
+              {dashboard.dataUpdatedAt ? (
+                <Text variant="mono.label" tone="subtle">
+                  {`· ${fmtRelative(dashboard.dataUpdatedAt)}`}
+                </Text>
+              ) : null}
+            </View>
           </View>
 
           {routing.isPending ? (
@@ -706,6 +739,37 @@ export default function AnalyticsScreen() {
                       </Text>
                     </Pressable>
                   </View>
+
+                  {channelMix && channelMix.channels.length > 0 ? (
+                    <Card>
+                      <View className="flex-row items-center justify-between">
+                        <Text variant="mono.label" tone="subtle">
+                          Channel mix
+                        </Text>
+                        <Text variant="mono.label" tone="muted">
+                          {`${fmtNumber(channelMix.totalInteractions)} · last 7 days`}
+                        </Text>
+                      </View>
+                      <View className="mt-3 gap-2.5">
+                        {channelMix.channels.map((c) => (
+                          <View
+                            key={c.channel}
+                            className="flex-row items-center justify-between"
+                          >
+                            <Text variant="body.medium">{CHANNEL_LABEL[c.channel]}</Text>
+                            <View className="flex-row items-baseline gap-2">
+                              <Text variant="body.semibold">{fmtNumber(c.count)}</Text>
+                              {c.aiHandledPct != null ? (
+                                <Text variant="mono.label" tone="success">
+                                  {`${fmtPct(c.aiHandledPct, 0)} AI`}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    </Card>
+                  ) : null}
 
                   {performance.length > 0 ? (
                     <ChartCard title="Performance over time" subtitle="Last 30 data points">

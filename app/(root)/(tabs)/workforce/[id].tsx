@@ -22,8 +22,12 @@ import { useThemeMode } from '@/hooks/useThemeMode';
 import Toast from 'react-native-toast-message';
 import { DEMO_APPROVALS } from '@/api/demo/flags';
 import { demoAgentDetails } from '@/api/demo/metricsDemo';
+import { canonicalNameFor, profileForName } from '@/api/demo/agentProfiles';
 import { useDemoOverrides } from '@/store/demoOverrides';
-import { fmtCurrency, fmtNumber, fmtPct, fmtDuration } from '@/lib/formatters';
+import { useConversationFeed } from '@/api/hooks/conversationHooks';
+import { useAgentAudit } from '@/api/hooks/auditHooks';
+import { ConversationRow } from '@/components/executive/ConversationRow';
+import { fmtCurrency, fmtNumber, fmtPct, fmtDuration, fmtRelative } from '@/lib/formatters';
 import type { Agent } from '@/api/services/types';
 
 /**
@@ -76,6 +80,16 @@ export default function WorkforceAgentScreen() {
     detailsQuery.data ??
     (DEMO_APPROVALS && agentKey ? demoAgentDetails(agentKey) : undefined);
 
+  // DEMO ONLY — DO NOT MERGE: canonical presentation + per-agent live data.
+  const canonicalName = DEMO_APPROVALS && agent ? canonicalNameFor(agent) : null;
+  const profile = canonicalName ? profileForName(canonicalName) : undefined;
+  const conversations = useConversationFeed(activeOrgId, agentKey || undefined);
+  const audit = useAgentAudit(
+    activeOrgId,
+    agentKey || undefined,
+    canonicalName ?? agent?.name,
+  );
+
   const shell = (children: React.ReactNode) => (
     <Screen background="nebula" edges={{ top: true, bottom: false }}>
       <AppHeader title="Agent" showBack showOrgPill={false} />
@@ -121,6 +135,11 @@ export default function WorkforceAgentScreen() {
   const meta = status ? statusMeta(status) : null;
   const role = roleLabel(agent);
   const paused = status === 'paused';
+  // The demo presents canonical names — "Ava", not "Ava (Nurture Text)".
+  const displayName = canonicalName ?? agent.name;
+  const displayRole = profile?.role ?? role;
+  const recentConversations = (conversations.data ?? []).slice(0, 3);
+  const auditItems = audit.data ?? [];
 
   return shell(
     <ScrollView
@@ -130,8 +149,10 @@ export default function WorkforceAgentScreen() {
     >
       <View className="pt-4">
         <ScreenHeading
-          eyebrow={[role, agent.departmentId ? 'Assigned' : null].filter(Boolean).join(' · ')}
-          title={agent.name}
+          eyebrow={[displayRole, agent.departmentId ? 'Assigned' : null]
+            .filter(Boolean)
+            .join(' · ')}
+          title={displayName}
           subtitle={agent.description || undefined}
         />
       </View>
@@ -159,40 +180,89 @@ export default function WorkforceAgentScreen() {
           query resolves after mount; each numeral counts once, when its real value
           arrives, and a later refetch updates it in place without recounting. */}
       <Animated.View entering={enter(2)} className="mt-5 gap-3">
-        <View className="flex-row gap-3">
-          <StatTile
-            label="Success rate"
-            value={fmtPct(details?.successRate)}
-            count={{ to: details?.successRate, format: fmtPct }}
-            tone="success"
-            index={0}
-          />
-          <StatTile
-            label="Total calls"
-            value={fmtNumber(details?.totalCalls)}
-            // Rounded per step: a part-way value would otherwise render as
-            // "1,204.37" and the numeral would jitter in width as it counts.
-            count={{ to: details?.totalCalls, format: n => fmtNumber(Math.round(n)) }}
-            tone="accent"
-            index={1}
-          />
-        </View>
-        <View className="flex-row gap-3">
-          <StatTile
-            label="Avg duration"
-            value={fmtDuration(details?.averageDurationMinutes)}
-            count={{ to: details?.averageDurationMinutes, format: fmtDuration }}
-            tone="neutral"
-            index={2}
-          />
-          <StatTile
-            label="Total cost"
-            value={fmtCurrency(details?.totalCost)}
-            count={{ to: details?.totalCost, format: fmtCurrency }}
-            tone="warning"
-            index={3}
-          />
-        </View>
+        {profile ? (
+          // DEMO ONLY — DO NOT MERGE: the minutes-based plan is the cost story
+          // for the board — allowance, remaining minutes, monthly price.
+          <>
+            <View className="flex-row gap-3">
+              <StatTile
+                label="Success rate"
+                value={fmtPct(details?.successRate)}
+                count={{ to: details?.successRate, format: fmtPct }}
+                tone="success"
+                index={0}
+              />
+              <StatTile
+                label="Calls handled"
+                value={fmtNumber(profile.monthlyCalls)}
+                caption="this month"
+                count={{ to: profile.monthlyCalls, format: n => fmtNumber(Math.round(n)) }}
+                tone="accent"
+                index={1}
+              />
+            </View>
+            <View className="flex-row gap-3">
+              <StatTile
+                label="Minutes left"
+                value={fmtNumber(
+                  Math.round(profile.includedMinutes * (1 - profile.minutesUsedPct)),
+                )}
+                caption={`of ${Math.round(profile.includedMinutes / 1000)}K included`}
+                count={{
+                  to: Math.round(profile.includedMinutes * (1 - profile.minutesUsedPct)),
+                  format: n => fmtNumber(Math.round(n)),
+                }}
+                tone="neutral"
+                index={2}
+              />
+              <StatTile
+                label="Cost this month"
+                value={fmtCurrency(profile.monthlyCost)}
+                caption="minutes-based plan"
+                count={{ to: profile.monthlyCost, format: fmtCurrency }}
+                tone="warning"
+                index={3}
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <View className="flex-row gap-3">
+              <StatTile
+                label="Success rate"
+                value={fmtPct(details?.successRate)}
+                count={{ to: details?.successRate, format: fmtPct }}
+                tone="success"
+                index={0}
+              />
+              <StatTile
+                label="Total calls"
+                value={fmtNumber(details?.totalCalls)}
+                // Rounded per step: a part-way value would otherwise render as
+                // "1,204.37" and the numeral would jitter in width as it counts.
+                count={{ to: details?.totalCalls, format: n => fmtNumber(Math.round(n)) }}
+                tone="accent"
+                index={1}
+              />
+            </View>
+            <View className="flex-row gap-3">
+              <StatTile
+                label="Avg duration"
+                value={fmtDuration(details?.averageDurationMinutes)}
+                count={{ to: details?.averageDurationMinutes, format: fmtDuration }}
+                tone="neutral"
+                index={2}
+              />
+              <StatTile
+                label="Total cost"
+                value={fmtCurrency(details?.totalCost)}
+                count={{ to: details?.totalCost, format: fmtCurrency }}
+                tone="warning"
+                index={3}
+              />
+            </View>
+          </>
+        )}
       </Animated.View>
 
       {/* Configuration, in the audit-record idiom: mono label, mono value. */}
@@ -219,20 +289,86 @@ export default function WorkforceAgentScreen() {
         </Card>
       </Animated.View>
 
-      <Animated.View entering={enter(4)} className="mt-5 gap-2.5">
+      {/* What this agent has been doing — live feed, filtered to this agent. */}
+      {recentConversations.length > 0 ? (
+        <Animated.View entering={enter(4)} className="mt-4">
+          <View className="flex-row items-center justify-between mb-2">
+            <Text variant="mono.label" tone="subtle">
+              Recent conversations
+            </Text>
+            <Text
+              variant="mono.label"
+              tone="accent"
+              onPress={() =>
+                router.push({
+                  pathname: '/(root)/communications',
+                  params: { agentId: agentKey },
+                } as never)
+              }
+            >
+              View all
+            </Text>
+          </View>
+          <View className="gap-2">
+            {recentConversations.map((item) => (
+              <ConversationRow key={item.id} item={item} />
+            ))}
+          </View>
+        </Animated.View>
+      ) : null}
+
+      {/* The agent's audit trail — Prime is the orchestrator, people decide. */}
+      {auditItems.length > 0 ? (
+        <Animated.View entering={enter(5)} className="mt-4">
+          <Card>
+            <Text variant="mono.label" tone="subtle">
+              Audit trail
+            </Text>
+            <View className="mt-3 gap-3">
+              {auditItems.map((item) => (
+                <View key={item.id} className="flex-row">
+                  <View
+                    className="w-1.5 h-1.5 rounded-full mt-1.5 mr-2.5"
+                    style={{
+                      backgroundColor:
+                        item.tone === 'success'
+                          ? colors.success
+                          : item.tone === 'danger'
+                            ? colors.danger
+                            : colors.accent2,
+                    }}
+                  />
+                  <View className="flex-1 min-w-0">
+                    <Text variant="body.sm" numberOfLines={2}>
+                      {item.text}
+                    </Text>
+                    <Text variant="mono.label" tone="subtle" className="mt-0.5">
+                      {`${item.actor} · ${fmtRelative(item.at)}`}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Card>
+        </Animated.View>
+      ) : null}
+
+      <Animated.View entering={enter(6)} className="mt-5 gap-2.5">
         <GradientButton
           fullWidth
           leftIcon={<Ionicons name="sparkles" size={16} color="#FFFFFF" />}
           onPress={() =>
-            router.push({
+            // `navigate`, not `push` — pushing stacks a second Prime screen
+            // with its own empty conversation (the "chat reset" bug).
+            router.navigate({
               pathname: '/(root)/(tabs)/prime',
               params: {
-                prompt: `How is ${agent.name} performing, and what should I change?`,
+                prompt: `How is ${displayName} performing, and what should I change?`,
               },
             } as never)
           }
         >
-          {`Ask Prime about ${agent.name}`}
+          {`Ask Prime about ${displayName}`}
         </GradientButton>
 
         {DEMO_APPROVALS ? (
@@ -251,12 +387,12 @@ export default function WorkforceAgentScreen() {
                 text1: next === 'paused' ? 'Paused' : 'Resumed',
                 text2:
                   next === 'paused'
-                    ? `${agent.name} is off live traffic.`
-                    : `${agent.name} is back on live traffic.`,
+                    ? `${displayName} is off live traffic.`
+                    : `${displayName} is back on live traffic.`,
               });
             }}
           >
-            {paused ? `Resume ${agent.name}` : `Pause ${agent.name}`}
+            {paused ? `Resume ${displayName}` : `Pause ${displayName}`}
           </Button>
         ) : (
           /* Pausing an agent takes it off live traffic, so it stays on the web

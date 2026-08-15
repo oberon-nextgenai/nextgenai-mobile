@@ -48,9 +48,13 @@ export default function CommandSearchScreen() {
     [agentsQuery.data, debounced],
   );
 
-  // Navigate out of the modal (replace drops the search from history).
+  // Leave the modal without leaving it in history: dismiss first, then reuse
+  // the existing destination instance (`navigate`, never `push`/`replace` —
+  // Prime's chat state lives per-instance and a fresh instance arrives empty).
+  // The navigate is deferred a tick so the dismissal has settled on web.
   const leave = (target: Parameters<typeof router.replace>[0]) => {
-    router.replace(target);
+    if (router.canGoBack()) router.back();
+    setTimeout(() => router.navigate(target), 0);
   };
 
   const actions: QuickAction[] = [

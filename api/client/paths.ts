@@ -123,6 +123,12 @@ export const PATHS = {
   conversations: {
     /** Requires `organizationId` as a query param; returns an unpaginated array. */
     list: '/api/conversations',
+    /**
+     * Normalized cross-channel feed (agent name, channel, contact, summary).
+     * Requires `organizationId`; optional `agentId`. Fans out to live provider
+     * APIs server-side, so responses can be slow — callers set their own timeout.
+     */
+    export: '/api/conversations/export',
   },
   auditLog: {
     list: '/api/audit-log',

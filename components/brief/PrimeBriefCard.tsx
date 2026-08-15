@@ -5,7 +5,8 @@ import { Text } from '@/components/ui/Text';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { deltaTone, formatDelta } from '@/components/brief/OperationalBriefCard';
 import { useThemeMode } from '@/hooks/useThemeMode';
-import type { OperationalBriefing } from '@/api/services/briefings';
+import { fmtCurrency, fmtNumber } from '@/lib/formatters';
+import type { BriefingStat, OperationalBriefing } from '@/api/services/briefings';
 
 interface PrimeBriefCardProps {
   /**
@@ -23,6 +24,16 @@ interface PrimeBriefCardProps {
 
 /** Four is what fits two rows without the grid becoming the card. */
 const MAX_STATS = 4;
+
+/**
+ * A stat value is a bare number on the wire; how it reads is the card's job.
+ * Spend stats render as currency — "0.1" as a spend figure reads broken.
+ */
+function statValue(stat: BriefingStat): string {
+  return stat.key.toLowerCase().includes('spend')
+    ? fmtCurrency(stat.value)
+    : fmtNumber(stat.value);
+}
 
 /**
  * The morning brief — one card, not two.
@@ -88,7 +99,7 @@ export function PrimeBriefCard({
                 {stat.label}
               </Text>
               <View className="flex-row items-baseline gap-1.5">
-                <Text variant="display.sm">{String(stat.value)}</Text>
+                <Text variant="display.sm">{statValue(stat)}</Text>
                 {stat.delta !== undefined ? (
                   <Text variant="mono.label" tone={deltaTone(stat.delta)}>
                     {formatDelta(stat.delta)}

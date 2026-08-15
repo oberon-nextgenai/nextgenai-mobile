@@ -1,0 +1,99 @@
+/** DEMO ONLY — DO NOT MERGE. Specs for the canonical profiles + metric ledger. */
+import {
+  DEMO_LEDGER,
+  DEMO_PROFILES,
+  CANONICAL_AGENTS,
+  canonicalDemoRoster,
+  canonicalNameFor,
+  demoChannelMix,
+  resolveCanonicalIds,
+} from './agentProfiles';
+import type { Agent } from '@/api/services/types';
+
+function agent(overrides: Partial<Agent> & { _id: string; name: string }): Agent {
+  return { type: 'text', status: 'active', ...overrides };
+}
+
+const OEMT_ROSTER: Agent[] = [
+  agent({ _id: 'id-sophie', name: 'Sophie' }),
+  agent({ _id: 'id-ava-cold', name: 'Ava Cold Call Email' }),
+  agent({ _id: 'id-ava-nurture-text', name: 'Ava (Nurture Text)' }),
+  agent({ _id: 'id-ava-nurture', name: 'Ava (Nurture)' }),
+  agent({ _id: 'id-alex', name: 'Alex' }),
+  agent({ _id: 'id-other', name: 'Serena' }),
+];
+
+describe('the metric ledger', () => {
+  it('keeps derived values consistent with their sources', () => {
+    expect(DEMO_LEDGER.overnightAutonomous).toBe(
+      Math.round((DEMO_LEDGER.overnightInteractions * DEMO_LEDGER.resolvedPct) / 100),
+    );
+    expect(DEMO_LEDGER.resolved7d).toBe(
+      Math.round((DEMO_LEDGER.interactions7d * DEMO_LEDGER.resolvedPct) / 100),
+    );
+  });
+
+  it('keeps LLM spend a separate, smaller metric than plan spend', () => {
+    expect(DEMO_LEDGER.llmSpendToday).toBeLessThan(DEMO_LEDGER.planSpendToday);
+  });
+
+  it('splits the channel mix so counts sum to the 7-day interactions', () => {
+    const mix = demoChannelMix();
+    const sum = mix.channels.reduce((acc, c) => acc + c.count, 0);
+    expect(sum).toBe(DEMO_LEDGER.interactions7d);
+    expect(mix.totalInteractions).toBe(DEMO_LEDGER.interactions7d);
+  });
+});
+
+describe('canonicalDemoRoster', () => {
+  it('collapses the raw roster to exactly Alex, Sophie, Ava with real ids', () => {
+    const roster = canonicalDemoRoster(OEMT_ROSTER);
+    expect(roster.map((e) => e.name)).toEqual(['Alex', 'Sophie', 'Ava']);
+    expect(roster.map((e) => e.id)).toEqual(['id-alex', 'id-sophie', 'id-ava-cold']);
+  });
+
+  it('prefers an exact name match over a prefix match', () => {
+    const roster = canonicalDemoRoster([
+      agent({ _id: 'id-variant', name: 'Ava Cold Call Email' }),
+      agent({ _id: 'id-exact', name: 'Ava' }),
+    ]);
+    expect(roster.find((e) => e.name === 'Ava')?.id).toBe('id-exact');
+  });
+
+  it('synthesizes an id only when no representative exists', () => {
+    const roster = canonicalDemoRoster([agent({ _id: 'id-sophie', name: 'Sophie' })]);
+    expect(roster.find((e) => e.name === 'Alex')?.id).toBe('demo-agent-alex');
+    expect(roster.find((e) => e.name === 'Sophie')?.id).toBe('id-sophie');
+  });
+});
+
+describe('resolveCanonicalIds', () => {
+  it('binds every canonical name to the same ids the roster resolves', () => {
+    const ids = resolveCanonicalIds(OEMT_ROSTER);
+    expect(ids).toEqual({ Alex: 'id-alex', Sophie: 'id-sophie', Ava: 'id-ava-cold' });
+  });
+});
+
+describe('canonicalNameFor', () => {
+  it('maps variants to their canonical name and strangers to null', () => {
+    expect(canonicalNameFor({ name: 'Ava (Nurture Text)' })).toBe('Ava');
+    expect(canonicalNameFor({ name: 'sophie' })).toBe('Sophie');
+    expect(canonicalNameFor({ name: 'Serena' })).toBeNull();
+  });
+});
+
+describe('profiles', () => {
+  it('every canonical agent carries its own audit seeds and plan numbers', () => {
+    for (const name of CANONICAL_AGENTS) {
+      const p = DEMO_PROFILES[name];
+      expect(p.auditSeeds.length).toBeGreaterThanOrEqual(2);
+      expect(p.monthlyCost).toBeGreaterThan(0);
+      expect(p.includedMinutes).toBeGreaterThan(0);
+      expect(p.minutesUsedPct).toBeGreaterThan(0);
+      expect(p.minutesUsedPct).toBeLessThan(1);
+    }
+    expect(DEMO_PROFILES.Alex.monthlyCost).toBe(63_000);
+    expect(DEMO_PROFILES.Sophie.monthlyCost).toBe(7_500);
+    expect(DEMO_PROFILES.Ava.monthlyCost).toBe(3_900);
+  });
+});

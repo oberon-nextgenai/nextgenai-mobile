@@ -93,7 +93,9 @@ export default function BriefScreen() {
   const openDashboard = () => router.push('/(root)/(tabs)/analytics' as never);
 
   const askPrime = (prompt?: string) =>
-    router.push(
+    // `navigate`, not `push` — pushing stacks a second Prime instance with its
+    // own empty conversation (the "chat reset" bug).
+    router.navigate(
       prompt
         ? ({ pathname: '/(root)/(tabs)/prime', params: { prompt } } as never)
         : ('/(root)/(tabs)/prime' as never),

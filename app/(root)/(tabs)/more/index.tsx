@@ -91,7 +91,9 @@ export default function MoreScreen() {
   const dashboard = useDashboard(activeOrgId, SPEND_PERIOD);
 
   const beneath = useTabBeneath();
-  const go = (path: string) => () => router.push(path as never);
+  // `navigate`, not `push`: pushing a tab route stacks a second instance of
+  // that screen (Prime's chat state lives per-instance, so a push wipes it).
+  const go = (path: string) => () => router.navigate(path as never);
 
   // A tab has no drawer to dismiss, so "close" is a genuine back. When there is
   // nothing behind it — a cold deep link straight onto More — fall through to
@@ -225,6 +227,12 @@ export default function MoreScreen() {
               }
               active={beneath === 'analytics'}
               onPress={go('/(root)/(tabs)/analytics')}
+            />
+            <MoreMenuRow
+              icon="chatbubbles-outline"
+              label="Communications"
+              description="Live conversations across your agents"
+              onPress={go('/(root)/communications')}
             />
             <MoreMenuRow
               icon="grid-outline"

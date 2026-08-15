@@ -47,7 +47,7 @@ export default function CallsScreen() {
   const { colors } = useThemeMode();
   const calls = useCalls(activeOrgId);
 
-  const [range, setRange] = useState<CallDateRange>('30d');
+  const [range, setRange] = useState<CallDateRange>('7d');
   const [statusFilter, setStatusFilter] = useState<CallStatusFilter>('all');
   const [selected, setSelected] = useState<AnalyticsCallSummary | null>(null);
 
