@@ -5,6 +5,7 @@ import {
   CANONICAL_AGENTS,
   canonicalDemoRoster,
   canonicalNameFor,
+  demoAgentWork7d,
   demoChannelMix,
   resolveCanonicalIds,
 } from './agentProfiles';
@@ -52,6 +53,18 @@ describe('the metric ledger', () => {
     const sum = mix.channels.reduce((acc, c) => acc + c.count, 0);
     expect(sum).toBe(DEMO_LEDGER.interactions7d);
     expect(mix.totalInteractions).toBe(DEMO_LEDGER.interactions7d);
+  });
+
+  it('splits who-did-the-work so counts sum to the 7-day interactions', () => {
+    const sum = demoAgentWork7d().reduce((acc, r) => acc + r.interactions, 0);
+    expect(sum).toBe(DEMO_LEDGER.interactions7d);
+  });
+
+  it('keeps voice minutes plausible for the call channel (2–5 min average)', () => {
+    const calls = demoChannelMix().channels.find((c) => c.channel === 'calls')!.count;
+    const avg = DEMO_LEDGER.voiceMinutes7d / calls;
+    expect(avg).toBeGreaterThan(2);
+    expect(avg).toBeLessThan(5);
   });
 });
 

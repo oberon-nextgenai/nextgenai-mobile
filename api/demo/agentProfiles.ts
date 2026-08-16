@@ -95,6 +95,12 @@ export const DEMO_LEDGER = {
   planSpendToday: 590, // = round((6,300 + 7,500 + 3,900) / 30)
   planSpend7d: 4_130, // = 590 × 7
   llmSpendToday: 80,
+  /**
+   * 7-day voice minutes: 195 calls (the ledger's call channel) × ~3.5 min
+   * average. The only absolute-minutes figure the demo ever claims — the
+   * Outcomes headline replaces its dollar figure with this.
+   */
+  voiceMinutes7d: 680,
 } as const;
 
 export function profileForName(name: string): DemoAgentProfile | undefined {
@@ -118,6 +124,20 @@ export function demoChannelMix(): {
       { channel: 'email', count: 565, aiHandledPct: 91 },
     ],
   };
+}
+
+/**
+ * "Who did the work" split of the ledger's 7-day interactions, proportional to
+ * each profile's monthly volumes (Alex 2,143 · Ava 730 · Sophie 410 of 3,283).
+ * Counts sum to `interactions7d` exactly so the Outcomes card and the
+ * headline can never disagree.
+ */
+export function demoAgentWork7d(): { name: CanonicalAgentName; interactions: number }[] {
+  return [
+    { name: 'Alex', interactions: 496 },
+    { name: 'Ava', interactions: 169 },
+    { name: 'Sophie', interactions: 95 },
+  ];
 }
 
 /** 'Ava Cold Call Email' → 'Ava'; 'sophie' → 'Sophie'; anything else → null. */

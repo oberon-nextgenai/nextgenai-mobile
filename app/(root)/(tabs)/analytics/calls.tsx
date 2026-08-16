@@ -12,6 +12,9 @@ import { CallFilters, type CallDateRange, type CallStatusFilter } from '@/compon
 import { CallTranscriptModal } from '@/components/analytics/CallTranscriptModal';
 import { useActiveOrg } from '@/store/org';
 import { useCalls } from '@/api/hooks/analyticsHooks';
+// DEMO ONLY — DO NOT MERGE: canonical agent names + no per-call spend on stage.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { canonicalNameFor } from '@/api/demo/agentProfiles';
 import { fmtDateTime, fmtDuration, fmtCurrency } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type { AnalyticsCallSummary } from '@/api/services/types';
@@ -112,6 +115,12 @@ export default function CallsScreen() {
               const status = statusOf(c);
               const start = c.startedAt;
               const minutes = c.durationSec != null ? c.durationSec / 60 : undefined;
+              // Demo build: variants like "Alex (Voice) - Staging" collapse to
+              // the canonical trio; unknown names pass through untouched.
+              const displayName =
+                DEMO_APPROVALS && c.agentName
+                  ? (canonicalNameFor({ name: c.agentName }) ?? c.agentName)
+                  : c.agentName;
               const transcriptExcerpt = c.summary;
               const hasRecording = Boolean(c.recordingUrl);
               return (
@@ -124,7 +133,7 @@ export default function CallsScreen() {
                   <Card padding="sm">
                     <View className="flex-row items-center justify-between mb-1">
                       <Text variant="body.semibold" numberOfLines={1}>
-                        {c.agentName ?? fmtDateTime(start)}
+                        {displayName ?? fmtDateTime(start)}
                       </Text>
                       <Tag label={status.label} tone={TONE_TAG[status.tone]} />
                     </View>
@@ -137,9 +146,13 @@ export default function CallsScreen() {
                       <Text variant="mono.sm" tone="muted">
                         Duration · {fmtDuration(minutes)}
                       </Text>
-                      <Text variant="mono.sm" tone="muted">
-                        Cost · {fmtCurrency(c.cost)}
-                      </Text>
+                      {/* Per-call spend is internal metering, not customer
+                          pricing — the demo shows flat plans only. */}
+                      {DEMO_APPROVALS ? null : (
+                        <Text variant="mono.sm" tone="muted">
+                          Cost · {fmtCurrency(c.cost)}
+                        </Text>
+                      )}
                       {hasRecording ? (
                         <View className="flex-row items-center">
                           <Ionicons name="play-circle-outline" size={12} color={colors.accent} />

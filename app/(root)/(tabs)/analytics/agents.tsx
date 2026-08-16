@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import { useAgentsAnalytics } from '@/api/hooks/analyticsHooks';
+// DEMO ONLY — DO NOT MERGE: no per-agent spend on stage (flat plans only).
+import { DEMO_APPROVALS } from '@/api/demo/flags';
 import { fmtNumber, fmtPct, fmtDuration, fmtCurrency } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
@@ -69,9 +71,11 @@ export default function AgentsAnalyticsScreen() {
                     <Text variant="mono.sm" tone="muted">
                       Avg dur · {fmtDuration(avgMinutes)}
                     </Text>
-                    <Text variant="mono.sm" tone="muted">
-                      Cost · {fmtCurrency(a.totalCost)}
-                    </Text>
+                    {DEMO_APPROVALS ? null : (
+                      <Text variant="mono.sm" tone="muted">
+                        Cost · {fmtCurrency(a.totalCost)}
+                      </Text>
+                    )}
                   </View>
                 </Card>
               );

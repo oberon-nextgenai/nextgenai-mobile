@@ -14,6 +14,12 @@ import { useChannelMix, useDashboard } from '@/api/hooks/analyticsHooks';
 import { ChannelMixCard } from '@/components/analytics/ChannelMixCard';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
+// DEMO ONLY — DO NOT MERGE: this screen presents the ledger's board-scale
+// numbers (same figures the brief, analytics tab, and workforce quote) instead
+// of the tiny live sample, and swaps dollar spend for plan minutes.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { DEMO_LEDGER, demoAgentWork7d, demoChannelMix } from '@/api/demo/agentProfiles';
+import type { AnalyticsMetric } from '@/api/services/types';
 import { fmtCurrency, fmtNumber, fmtPct } from '@/lib/formatters';
 
 /**
@@ -62,8 +68,21 @@ export default function OutcomesScreen() {
   // null when the backend could count no channel at all.
   const channelMix = useChannelMix(activeOrgId);
 
-  const metrics = data?.metrics;
+  const liveMetrics = data?.metrics;
   const charts = data?.charts;
+
+  // DEMO ONLY — DO NOT MERGE. Deterministic ledger metrics: totalCost stays
+  // undefined so no dollar figure can render anywhere on this screen.
+  const metrics = useMemo<AnalyticsMetric | undefined>(() => {
+    if (!DEMO_APPROVALS) return liveMetrics;
+    return {
+      totalCalls: DEMO_LEDGER.interactions7d,
+      successfulCalls: DEMO_LEDGER.resolved7d,
+      failedCalls: DEMO_LEDGER.interactions7d - DEMO_LEDGER.resolved7d,
+      callSuccessRate: (DEMO_LEDGER.resolved7d / DEMO_LEDGER.interactions7d) * 100,
+      activeAgents: 3,
+    };
+  }, [liveMetrics]);
 
   // `lineData` is the only time series in the payload. Each point carries `calls`
   // and an optional `successRate`; a tile gets a sparkline only if its own series
@@ -82,6 +101,17 @@ export default function OutcomesScreen() {
   // Share-of-work by agent, derived from `charts.barData`. Sorted so the card
   // reads top-down as "who carried this week".
   const mix = useMemo(() => {
+    if (DEMO_APPROVALS) {
+      // Ledger split — proportional to each agent's monthly volumes and
+      // summing exactly to the headline's interaction count.
+      const rows = demoAgentWork7d().map((r, i) => ({
+        name: r.name,
+        calls: r.interactions,
+        share: r.interactions / DEMO_LEDGER.interactions7d,
+        color: colors.chartSeries[i % colors.chartSeries.length],
+      }));
+      return { rows, total: DEMO_LEDGER.interactions7d };
+    }
     const bars = (charts?.barData ?? []).filter((b) => (b.calls ?? 0) > 0);
     const total = bars.reduce((sum, b) => sum + b.calls, 0);
     if (bars.length === 0 || total <= 0) return null;
@@ -119,7 +149,8 @@ export default function OutcomesScreen() {
             ? `${fmtNumber(resolved)} of ${fmtNumber(handled)}`
             : undefined,
         tone: resolutionTone(rate),
-        trend: series.success,
+        // Demo: the tiny live sparkline would sit under a ledger-scale number.
+        trend: DEMO_APPROVALS ? undefined : series.success,
       });
     }
 
@@ -130,13 +161,27 @@ export default function OutcomesScreen() {
         value: fmtNumber(handled),
         caption: metrics.activeAgents != null ? `${fmtNumber(metrics.activeAgents)} agents` : undefined,
         tone: 'accent',
-        trend: series.calls,
+        trend: DEMO_APPROVALS ? undefined : series.calls,
+      });
+    }
+
+    // Demo build: minutes-based plans, so the third tile is minutes — never a
+    // dollar figure.
+    if (DEMO_APPROVALS) {
+      const demoCalls = demoChannelMix().channels.find((c) => c.channel === 'calls')?.count;
+      out.push({
+        key: 'minutes',
+        label: 'Voice minutes',
+        value: fmtNumber(DEMO_LEDGER.voiceMinutes7d),
+        caption: demoCalls != null ? `across ${fmtNumber(demoCalls)} calls` : undefined,
+        tone: 'neutral',
       });
     }
 
     // Cost per outcome is spend divided by the interactions that actually
     // resolved — both operands come from the payload, and the tile is skipped
-    // outright if either is missing or nothing resolved.
+    // outright if either is missing or nothing resolved. (Demo metrics carry
+    // no cost, so this never renders on stage.)
     if (cost != null && resolved != null && resolved > 0) {
       out.push({
         key: 'cost',
@@ -172,7 +217,13 @@ export default function OutcomesScreen() {
         : 'Outcomes';
 
     let subtitle: string | undefined;
-    if (rate != null && cost != null) {
+    if (DEMO_APPROVALS && rate != null) {
+      // Minutes, not dollars: the plans are minutes-based and no per-run spend
+      // is customer pricing.
+      subtitle = `Your workforce resolved ${fmtPct(rate)} of what it handled, in ${fmtNumber(
+        DEMO_LEDGER.voiceMinutes7d,
+      )} voice minutes.`;
+    } else if (rate != null && cost != null) {
       subtitle = `Your workforce resolved ${fmtPct(rate)} of what it handled, at ${fmtCurrency(cost)}.`;
     } else if (rate != null) {
       subtitle = `Your workforce resolved ${fmtPct(rate)} of what it handled.`;
@@ -194,7 +245,9 @@ export default function OutcomesScreen() {
 
   if (!activeOrgId) return shell(<EmptyState title="Choose an organization" />);
 
-  if (isPending) {
+  // Demo metrics need nothing from the network — render instantly rather than
+  // spinning while the live endpoint answers.
+  if (isPending && !DEMO_APPROVALS) {
     return shell(
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator color={colors.accent} />
@@ -202,7 +255,9 @@ export default function OutcomesScreen() {
     );
   }
 
-  if (isError) {
+  // Demo build renders the ledger even when the live endpoint fails — nothing
+  // spins or errors for the room.
+  if (isError && !DEMO_APPROVALS) {
     return shell(
       <ErrorState
         message={(error as Error)?.message ?? 'Could not load outcomes'}
@@ -238,9 +293,11 @@ export default function OutcomesScreen() {
         subtitle={heading.subtitle}
       />
 
-      {channelMix.data ? (
+      {DEMO_APPROVALS || channelMix.data ? (
         <Animated.View entering={FadeInDown.duration(340).delay(60)} className="mt-5">
-          <ChannelMixCard data={channelMix.data} />
+          {/* Same substitution the Analytics tab makes — the two screens can
+              never quote different channel numbers. */}
+          <ChannelMixCard data={DEMO_APPROVALS ? demoChannelMix() : channelMix.data!} />
         </Animated.View>
       ) : null}
 
