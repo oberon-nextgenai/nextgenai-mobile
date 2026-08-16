@@ -43,7 +43,7 @@ describe('sanitizeDemoText', () => {
   });
 
   it('leaves ordinary text alone', () => {
-    const s = 'Approve the technician dispatch — 124 failed reads at 3 sites.';
+    const s = 'Approve the outreach wave — 78 devices across 24 accounts are overdue.';
     expect(sanitizeDemoText(s)).toBe(s);
   });
 });

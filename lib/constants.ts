@@ -62,6 +62,9 @@ export const QUERY_KEYS = {
     ['conversations', orgId, 'feed', agentId ?? 'all'] as const,
   dashboardRender: (orgId: string, preset: string) =>
     ['analytics', 'dashboard-render', orgId, preset] as const,
+  /** All-time by design — key says so, so it can never collide with a preset render. */
+  alexAssignedMeters: (orgId: string) =>
+    ['analytics', 'adhoc', 'mmr-devices', orgId, 'all'] as const,
   orgData: (orgId: string) => ['org-data', orgId] as const,
   auditLog: (orgId: string, filters?: Record<string, unknown>) =>
     ['audit-log', orgId, filters ?? {}] as const,

@@ -53,6 +53,46 @@ export async function fetchDashboardRender(
 }
 
 /**
+ * DEMO ONLY — DO NOT MERGE: the id of the Alex voice agent, exactly as the
+ * platform's own dashboard script pins it. MMR campaigns attach to the VOICE
+ * assistant, so this scope resolves Alex's campaigns — without it the count
+ * would include every MMR campaign in the organization.
+ */
+const ALEX_VOICE_AGENT_ID = '69ea742cabad44eb6a5e52bd';
+
+interface AdhocQueryResult {
+  resource: string;
+  rows: Record<string, unknown>[];
+  meta?: { organizationId?: string; limit?: number; rowCount?: number };
+}
+
+/**
+ * All-time count of meter assignments (device rows) on Alex's MMR campaigns,
+ * via `POST /api/analytics-engine/query/:orgId`. Deliberately UNWINDOWED:
+ * `mmr_devices` time-scopes on campaign `createdAt`, so any weekly/monthly
+ * window would count campaigns created in the window — a different cohort
+ * from readings collected in it. All-time is the only honest presentation.
+ * Returns null on error or zero — callers hide the tile entirely.
+ */
+export async function fetchAlexAssignedMeters(
+  organizationId: string,
+): Promise<number | null> {
+  const { data } = await http.post<AdhocQueryResult>(
+    PATHS.analyticsEngine.query(organizationId),
+    {
+      query: {
+        resource: 'mmr_devices',
+        measures: [{ id: 'count', op: 'count' }],
+        agentScope: { agentIds: [ALEX_VOICE_AGENT_ID], mode: 'include' },
+      },
+    },
+    DEMO_APPROVALS ? { timeout: DEMO_TIMEOUT_MS, suppressErrorToast: true } : {},
+  );
+  const n = Number(data?.rows?.[0]?.count);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
  * Row conventions (mirrors the web renderer): measure keys are
  * `count | avg_duration | sum_duration | min_duration | max_duration`;
  * percent KPIs carry `percent`; any other key is the dimension label.

@@ -23,7 +23,11 @@ export function WidgetTile({ widget }: { widget: RenderWidget }) {
   if (widget.type === 'kpi') {
     const value = widgetKpiValue(widget);
     if (value == null) return null;
-    const display = widget.display?.ratio ? fmtPct(value, 0) : fmtNumber(Math.round(value));
+    const isPercent = widget.display?.format === 'percent' || !!widget.display?.ratio;
+    // A ratio whose numerator and denominator cover different cohorts can
+    // legitimately exceed 100% — that is a data artifact, not a stat. Hide it.
+    if (isPercent && (value < 0 || value > 100)) return null;
+    const display = isPercent ? fmtPct(value, 0) : fmtNumber(Math.round(value));
     return (
       <Card padding="sm" className="flex-1">
         <Text variant="mono.label" tone="subtle" numberOfLines={2}>

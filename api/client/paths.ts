@@ -137,6 +137,8 @@ export const PATHS = {
     /** Widget schema + computed values in one call. `?preset=7d|30d|90d`. */
     render: (orgId: string) =>
       `/api/analytics-engine/dashboards/${encodeURIComponent(orgId)}/render`,
+    /** Ad-hoc allowlisted QuerySpec — same row shape as a widget's data. */
+    query: (orgId: string) => `/api/analytics-engine/query/${encodeURIComponent(orgId)}`,
   },
   orgData: {
     /** Org-owned Postgres aggregates: `{ meterFleet, leasing }`, each nullable. */

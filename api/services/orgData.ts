@@ -17,6 +17,10 @@ export interface MeterFleetSection {
     readings: number;
     /** Sum of each device's latest cumulative counter. */
     fleetLifetimePages: number;
+    /** Devices whose latest reading is >90 days older than the fleet's newest. */
+    devicesStale90d: number;
+    /** Distinct customers owning those stale devices. */
+    staleAccounts: number;
   };
   readingsBySource: { source: string; count: number }[];
   pagesByMonth: { month: string; pages: number }[];
@@ -26,6 +30,10 @@ export interface MeterFleetSection {
 
 export interface LeasingSection {
   pipeline: { opportunities: number; monthlyTotal: number; avgTermMonths: number };
+  /** Open-opportunity mix by playbook scenario (upgrade / nurture). */
+  opportunitiesByScenario: { scenario: string; count: number }[];
+  /** SUM of positive projected GP across upgrade-scenario opportunities. */
+  upgradeGpProjected: number;
   renewalsDue: {
     accountName: string;
     model: string | null;

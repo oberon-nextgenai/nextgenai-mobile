@@ -75,7 +75,7 @@ interface AgentHealthRowProps {
   onPress?: () => void;
 }
 
-/** $63,000 → "$63K" · $7,500 → "$7.5K" · $890 → "$890". */
+/** $6,300 → "$6.3K" · $7,500 → "$7.5K" · $890 → "$890". */
 function fmtCompactUsd(v: number): string {
   if (v >= 1000) {
     const k = v / 1000;

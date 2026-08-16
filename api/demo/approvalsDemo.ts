@@ -2,18 +2,24 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * DEMO ONLY — DO NOT MERGE.
  *
- * In-memory escalation/approval fixtures for the Toshiba board demo: one
- * decision-ready item per demo agent (Alex · meter collection, Sophie ·
- * leasing, Ava · SDR) plus a watching-rail item, served through the exact
- * contracts of `api/services/escalations.ts` so the inbox, decision screen,
- * audit receipt, and tab badge run unchanged.
+ * In-memory escalation/approval fixtures for the Toshiba board demo: two
+ * decision-ready items per demo agent (Alex · meter collection, Sophie ·
+ * leasing, Ava · SDR), served through the exact contracts of
+ * `api/services/escalations.ts` so the inbox, decision screen, audit receipt,
+ * and tab badge run unchanged.
  *
  * Deliberate behaviors:
  * - State is per-organization and in-memory: a page reload (the web build's
  *   "cold launch") resets the queue — predictable for rehearsals.
  * - SLA clocks are anchored to module init, so countdowns tick live.
- * - Customer names are fictional. The audience is Toshiba's own board, so no
- *   fixture ever frames Toshiba as the account at risk.
+ * - FACTS REAL, ACTIONS PROPOSED: every account name, dollar figure, device
+ *   count and playbook trigger below was verified read-only against the org's
+ *   own `toshiba`/`esolution` databases (2026-08-16). The agent ACTIONS are
+ *   proposals on those true states — no fixture claims an incident the data
+ *   does not show, and nothing here invents probabilities or policy IDs.
+ * - `impactAmount` stays 0 everywhere: the UI renders any positive value as
+ *   "$X at risk", which would mislabel GP projections and quote values. The
+ *   dollars live in the copy with their correct labels.
  * - Decisions record `authMethod: 'sso'` — the demo runs as a web build, where
  *   the app's biometric flow does not exist.
  * ═══════════════════════════════════════════════════════════════════════════
@@ -67,108 +73,131 @@ interface FixtureSpec {
   status: Escalation['status'];
   assigneeId?: string;
   action: string;
-  policyRef: string;
+  /** Only when a REAL policy/flag exists in the org's data — never invented. */
+  policyRef?: string;
   recommendation: string;
-  projections: { label: string; probability: number }[];
+  /** Forecast probabilities are never invented; most items carry none. */
+  projections?: { label: string; probability: number }[];
 }
 
 /**
  * Ordered here for readability only — the list endpoint re-sorts by SLA
  * pressure then dollar impact, exactly like the real queue.
+ *
+ * COUNTS CONSTRAINT: `slaRisk` is time-derived (due < 60 min). Exactly one
+ * item (the first) may have `slaMinutes < 60`; every other item must stay at
+ * 60+ or the seeded counts (and their specs) silently change.
  */
 const FIXTURES: FixtureSpec[] = [
   {
-    id: 'demo-esc-alex-dispatch',
+    id: 'demo-esc-alex-overdue-wave',
     ref: 'ESC-3101',
     severity: 'critical',
     kind: 'sla_risk',
-    title: 'Approve emergency technician dispatch — 124 failed meter reads',
+    title: 'Meter collection gap — 78 devices unread for 90+ days',
     context:
-      'Batch read RUN-B7E2 exhausted auto-retries at 3 sites. The billing cycle closes at 22:00 tonight.',
+      '78 devices across 24 accounts have no meter reading in over 90 days. Alpine Medical Group, Quantum Manufacturing, OrionTech Solutions and Vista Healthcare Systems lead with 5 each; the longest gap is 668 days at Stellar Financial Services. Alex proposes an outreach wave to all 24 account contacts.',
     agentName: 'Alex',
-    accountName: 'Meridian Facilities Group',
-    impactAmount: 18_400,
-    slaMinutes: 38,
-    ageMinutes: 12,
+    impactAmount: 0,
+    slaMinutes: 45,
+    ageMinutes: 25,
     status: 'open',
-    action: 'approve_technician_dispatch',
-    policyRef: 'POL-FLD-07',
+    action: 'approve_overdue_outreach_wave',
     recommendation:
-      'Dispatch the on-call field technician to Site B and re-run the batch after the modem reset. Waiting past the 22:00 billing close would push 3 accounts onto estimated invoices.',
-    projections: [
-      { label: 'Reads recovered before billing close', probability: 0.92 },
-      { label: 'Estimated invoices if deferred to tomorrow', probability: 0.41 },
-    ],
+      'Approve the outreach wave. Alex works the 24 account contacts this week — calls and email — and collected readings land in the fleet dashboard as they arrive.',
   },
   {
-    id: 'demo-esc-sophie-renewal',
+    id: 'demo-esc-sophie-ct-upgrade',
     ref: 'ESC-3098',
     severity: 'high',
     kind: 'policy_exception',
-    title: 'Approve lease renewal — discount 4 pts over policy cap',
+    title: 'Upgrade proposal ready — CT Accounting & Tax Services',
     context:
-      'Northwind asked for a 12% loyalty discount against the 8% policy cap. Sophie drafted the 3-year renewal at 12% and held it for approval.',
+      'Sophie priced an e-STUDIO400AC upgrade for CT ACCOUNTING AND TAX SERVICES (Charlotte): $217.73 → $114.23 per month, projected GP +$1,824. The playbook marks this proposal "manager check required" before it goes to the client.',
     agentName: 'Sophie',
-    accountName: 'Northwind Logistics',
-    impactAmount: 48_000,
-    slaMinutes: 2 * 60 + 10,
+    accountName: 'CT ACCOUNTING AND TAX SERVICES (Charlotte)',
+    impactAmount: 0,
+    slaMinutes: 2 * 60 + 30,
     ageMinutes: 55,
     // Pre-assigned to the caller so the Mine and Watching chips have content.
     status: 'assigned',
     assigneeId: 'me',
-    action: 'approve_policy_exception_renewal',
-    policyRef: 'POL-LEASE-08',
+    action: 'approve_upgrade_proposal',
+    // The one real policy flag in the data: LeaseOpportunity.managerCheckRequired.
+    policyRef: 'managerCheckRequired',
     recommendation:
-      'Approve the exception. Northwind renews 3-year at $48K ARR; two comparable accounts churned this year over smaller gaps. Margin impact is $3.8K/yr against the retained contract.',
-    projections: [
-      { label: 'Renewal closes this week with exception', probability: 0.87 },
-      { label: 'Renewal at risk if held to policy cap', probability: 0.34 },
-    ],
+      'Approve sending the proposal. The playbook trigger reads "Propose to the client, target a solution like ESPM" — this manager check is the only gate left.',
   },
   {
-    id: 'demo-esc-ava-sequence',
+    id: 'demo-esc-ava-elah-handoff',
     ref: 'ESC-3095',
     severity: 'high',
     kind: 'customer',
-    title: 'Approve outbound sequence to 42 named enterprise accounts',
+    title: 'SDR hand-off from Sophie — Elah Baptist Church',
     context:
-      'Two targets in the list have open Sev-1 support tickets. Ava paused the send pending review.',
+      'Rep GP on the renewal is negative (−$264) but the marketplace GP is positive, so the playbook moves ELAH BAPTIST CHURCH (Leland) to the SDR team. Ava proposes testing an upgrade-this-month offer; Sophie recommends holding.',
     agentName: 'Ava',
+    accountName: 'ELAH BAPTIST CHURCH (Leland)',
     impactAmount: 0,
     slaMinutes: 4 * 60,
     ageMinutes: 95,
     status: 'open',
-    action: 'approve_outbound_sequence',
-    policyRef: 'POL-OUT-03',
+    action: 'approve_sdr_handoff_outreach',
     recommendation:
-      'Approve with exclusions — drop the 2 accounts with open Sev-1 tickets and send to the remaining 40. Sequence copy passed brand review yesterday.',
-    projections: [
-      { label: 'Positive reply rate with exclusions', probability: 0.86 },
-      { label: 'Brand-risk flag if sent unfiltered', probability: 0.22 },
-    ],
+      'Decide the play: approve Ava’s upgrade-this-month test offer, or reject to hold per Sophie’s read and revisit next cycle.',
   },
   {
-    id: 'demo-esc-alex-anomaly',
+    id: 'demo-esc-sophie-multiunit',
+    ref: 'ESC-3092',
+    severity: 'medium',
+    kind: 'policy_exception',
+    title: 'Multi-equipment lease — escalate to the rep',
+    context:
+      'HOMES BY DICKERSON (Chapel Hill) prices at negative GP (−$8,371) and BILTMORE BAPTIST CHURCH (Brevard) is also multi-equipment. The playbook routes both to the rep instead of an automated proposal.',
+    agentName: 'Sophie',
+    accountName: 'HOMES BY DICKERSON (Chapel Hill)',
+    impactAmount: 0,
+    slaMinutes: 8 * 60,
+    ageMinutes: 3 * 60,
+    status: 'open',
+    action: 'approve_rep_escalation',
+    recommendation:
+      'Approve the escalation so the rep prices both multi-equipment deals by hand — the playbook is explicit that these are not automated proposals.',
+  },
+  {
+    id: 'demo-esc-ava-acme-followup',
+    ref: 'ESC-3090',
+    severity: 'medium',
+    kind: 'customer',
+    title: 'Quote follow-up — Acme Manufacturing (value $5,085)',
+    context:
+      'The $5,085 Acme Manufacturing quote is still pending internal approval and its manager-approval SLA has passed. Ava proposes a follow-up nudge to the internal approver and the account.',
+    agentName: 'Ava',
+    accountName: 'Acme Manufacturing',
+    impactAmount: 0,
+    slaMinutes: 24 * 60,
+    ageMinutes: 5 * 60,
+    status: 'open',
+    action: 'approve_quote_followup',
+    recommendation:
+      'Approve the nudge. The quote is valid until December 31 — the block is the internal manager approval, not the customer.',
+  },
+  {
+    id: 'demo-esc-alex-newly-stale',
     ref: 'ESC-3088',
     severity: 'medium',
-    kind: 'cost_anomaly',
-    title: 'Site D consumption +212% vs seasonal baseline — verify before invoicing',
+    kind: 'sla_risk',
+    title: '2 devices crossed the 30-day reading mark',
     context:
-      'Alex flagged the jump during overnight reconciliation. Could be a meter fault or genuine usage; invoicing runs Friday.',
+      'Two devices moved into the 31–60 day window with no reading. Alex proposes adding them to this week’s follow-up batch before they age into the 90-day backlog.',
     agentName: 'Alex',
-    accountName: 'Harborview Estates',
-    impactAmount: 6_200,
-    slaMinutes: 22 * 60,
-    ageMinutes: 6 * 60,
+    impactAmount: 0,
+    slaMinutes: 30 * 60,
+    ageMinutes: 2 * 60,
     status: 'open',
-    action: 'approve_consumption_review',
-    policyRef: 'POL-BIL-11',
+    action: 'approve_followup_batch_add',
     recommendation:
-      'Hold Site D off Friday’s invoice run and schedule a meter verification. Invoicing on an unverified 3× spike risks a dispute that costs more than the delay.',
-    projections: [
-      { label: 'Clean verification before Friday', probability: 0.78 },
-      { label: 'Billing dispute if invoiced as-is', probability: 0.44 },
-    ],
+      'Approve adding both devices to this week’s batch — cheap to catch now, expensive after 90 days.',
   },
 ];
 
@@ -200,7 +229,7 @@ function seedState(organizationId: string): DemoState {
         action: f.action,
         policyRef: f.policyRef,
         recommendation: f.recommendation,
-        projections: f.projections,
+        projections: f.projections ?? [],
         decision: 'pending',
         createdAt: new Date(now - f.ageMinutes * MIN).toISOString(),
       },

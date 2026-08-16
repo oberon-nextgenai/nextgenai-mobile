@@ -4,8 +4,8 @@
  *
  * Fallback fixtures for the org-data endpoint, used ONLY when the live call
  * errors or times out. Every number below was VERIFIED against the real
- * Toshiba databases (read-only queries, 2026-08-15): these are facts, not
- * inventions — which is why real customer names are allowed here.
+ * Toshiba databases (read-only queries, re-verified 2026-08-16): these are
+ * facts, not inventions — which is why real customer names are allowed here.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 import type { OrgDataResult } from '@/api/services/orgData';
@@ -21,6 +21,8 @@ export function demoOrgData(organizationId: string): OrgDataResult {
         devicesTotal: 90,
         readings: 1_334,
         fleetLifetimePages: 12_085_858,
+        devicesStale90d: 78,
+        staleAccounts: 24,
       },
       readingsBySource: [
         { source: 'manual', count: 367 },
@@ -30,20 +32,25 @@ export function demoOrgData(organizationId: string): OrgDataResult {
       ],
       pagesByMonth: [],
       topCustomers: [
-        { name: 'Vista Healthcare Systems', pages: 1_240_000 },
-        { name: 'OrionTech Solutions', pages: 1_105_000 },
-        { name: 'Quantum Manufacturing', pages: 987_000 },
-        { name: 'Alpine Medical Group', pages: 902_000 },
+        { name: 'OrionTech Solutions', pages: 864_219 },
+        { name: 'Vista Healthcare Systems', pages: 754_383 },
+        { name: 'Alpine Medical Group', pages: 743_965 },
+        { name: 'Quantum Manufacturing', pages: 741_374 },
       ],
       devicesByModel: [
-        { model: 'e-STUDIO 6515AC', count: 6 },
-        { model: 'e-STUDIO 4505AC', count: 6 },
         { model: 'e-STUDIO 2505AC', count: 6 },
         { model: 'e-STUDIO 3515AC', count: 6 },
+        { model: 'e-STUDIO 4505AC', count: 6 },
+        { model: 'e-STUDIO 4508A', count: 6 },
       ],
     },
     leasing: {
       pipeline: { opportunities: 9, monthlyTotal: 1_472.07, avgTermMonths: 60 },
+      opportunitiesByScenario: [
+        { scenario: 'upgrade', count: 5 },
+        { scenario: 'nurture', count: 4 },
+      ],
+      upgradeGpProjected: 7_757.22,
       renewalsDue: [
         {
           accountName: 'ELAH BAPTIST CHURCH (Leland)',

@@ -1,4 +1,5 @@
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -26,9 +27,10 @@ import { canonicalNameFor, profileForName } from '@/api/demo/agentProfiles';
 import { useDemoOverrides } from '@/store/demoOverrides';
 import { useConversationFeed } from '@/api/hooks/conversationHooks';
 import { useAgentAudit } from '@/api/hooks/auditHooks';
-import { useDashboardRender, useOrgData } from '@/api/hooks/orgDataHooks';
+import { useAlexAssignedMeters, useDashboardRender, useOrgData } from '@/api/hooks/orgDataHooks';
 import { WidgetTile } from '@/components/analytics/WidgetTile';
-import { LeasingCard, MeterFleetCard } from '@/components/analytics/OrgDataCards';
+import type { RenderWidget } from '@/api/services/analyticsEngine';
+import { LeasingCard, MeterFleetCard, NewBusinessCard } from '@/components/analytics/OrgDataCards';
 import { ConversationRow } from '@/components/executive/ConversationRow';
 import { fmtCurrency, fmtNumber, fmtPct, fmtDuration, fmtRelative } from '@/lib/formatters';
 import type { Agent } from '@/api/services/types';
@@ -93,19 +95,42 @@ export default function WorkforceAgentScreen() {
     canonicalName ?? agent?.name,
   );
   // Per-agent performance sources: Alex ← the platform query engine's real
-  // widgets; Alex + Sophie ← org-owned database aggregates. Ava is fixture-only.
-  const renderQuery = useDashboardRender(canonicalName === 'Alex' ? activeOrgId : null, '30d');
-  const orgData = useOrgData(
-    canonicalName === 'Alex' || canonicalName === 'Sophie' ? activeOrgId : null,
+  // widgets (+ an all-time assignment count); Alex/Sophie/Ava ← org-owned
+  // database aggregates (meter fleet · leasing · new-business queue).
+  // Presets are ROLLING windows, so the toggle says "Last N days" — never
+  // "Weekly"/"Monthly".
+  const [kpiPreset, setKpiPreset] = useState<'7d' | '30d'>('30d');
+  const windowLabel = kpiPreset === '7d' ? 'last 7 days' : 'last 30 days';
+  const renderQuery = useDashboardRender(canonicalName === 'Alex' ? activeOrgId : null, kpiPreset);
+  const assignedMeters = useAlexAssignedMeters(canonicalName === 'Alex' ? activeOrgId : null);
+  const orgData = useOrgData(canonicalName ? activeOrgId : null);
+  const sectionWidgets = (renderQuery.data?.widgets ?? []).filter(
+    (w) =>
+      !w.error &&
+      (w.data?.rows?.length ?? 0) > 0 &&
+      (w.display?.section === 'alex' || w.display?.section === 'contacts'),
   );
-  const agentWidgets = (renderQuery.data?.widgets ?? [])
-    .filter(
-      (w) =>
-        !w.error &&
-        (w.data?.rows?.length ?? 0) > 0 &&
-        (w.display?.section === 'alex' || w.display?.section === 'contacts'),
-    )
-    .slice(0, 6);
+  // Matt's KPI groups: Assignment (all-time, its own unwindowed query) ·
+  // phone & email activity · contact updates. Unknown 'alex' widgets land in
+  // the activity group — never dropped silently.
+  const activityWidgets = sectionWidgets.filter((w) => w.display?.section === 'alex').slice(0, 8);
+  const contactWidgets = sectionWidgets
+    .filter((w) => w.display?.section === 'contacts')
+    .slice(0, 4);
+  const kpiRows = (widgets: RenderWidget[]) => {
+    const kpis = widgets.filter((w) => w.type === 'kpi');
+    return Array.from({ length: Math.ceil(kpis.length / 2) }, (_, i) => {
+      const pair = kpis.slice(i * 2, i * 2 + 2);
+      return (
+        <View key={pair[0]?.widgetId ?? i} className="flex-row gap-3">
+          {pair.map((w) => (
+            <WidgetTile key={w.widgetId} widget={w} />
+          ))}
+          {pair.length === 1 ? <View className="flex-1" /> : null}
+        </View>
+      );
+    });
+  };
 
   const shell = (children: React.ReactNode) => (
     <Screen background="nebula" edges={{ top: true, bottom: false }}>
@@ -284,38 +309,99 @@ export default function WorkforceAgentScreen() {
       </Animated.View>
 
       {/* Performance — real per-agent data: Alex from the platform query
-          engine + meter database, Sophie from the leasing database. */}
-      {canonicalName === 'Alex' && agentWidgets.length > 0 ? (
+          engine + meter database, Sophie from the leasing database, Ava from
+          the new-business queue. Alex's KPI layout follows Toshiba's own
+          requested groups (assignment · phone & email · contact updates). */}
+      {canonicalName === 'Alex' && sectionWidgets.length > 0 ? (
         <Animated.View entering={enter(3)} className="mt-4 gap-3">
           <View className="flex-row items-center justify-between">
             <Text variant="mono.label" tone="subtle">
-              Performance · last 30 days
+              Performance
             </Text>
-            <Text variant="mono.label" tone="muted">
-              platform query engine
-            </Text>
+            <View className="flex-row gap-1">
+              {(['7d', '30d'] as const).map((p) => (
+                <Pressable
+                  key={p}
+                  onPress={() => setKpiPreset(p)}
+                  className="rounded-full px-2.5 py-1"
+                  style={{
+                    backgroundColor: kpiPreset === p ? colors.surface2 : 'transparent',
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: kpiPreset === p }}
+                >
+                  <Text variant="mono.label" tone={kpiPreset === p ? undefined : 'muted'}>
+                    {p === '7d' ? 'Last 7 days' : 'Last 30 days'}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
-          {Array.from(
-            { length: Math.ceil(agentWidgets.filter((w) => w.type === 'kpi').length / 2) },
-            (_, i) => {
-              const kpis = agentWidgets.filter((w) => w.type === 'kpi');
-              const pair = kpis.slice(i * 2, i * 2 + 2);
-              return (
-                <View key={`agent-kpi-${i}`} className="flex-row gap-3">
-                  {pair.map((w) => (
-                    <WidgetTile key={w.widgetId} widget={w} />
-                  ))}
-                  {pair.length === 1 ? <View className="flex-1" /> : null}
-                </View>
-              );
-            },
-          )}
-          {agentWidgets
-            .filter((w) => w.type !== 'kpi')
-            .slice(0, 2)
-            .map((w) => (
-              <WidgetTile key={w.widgetId} widget={w} />
-            ))}
+          {assignedMeters.data != null ? (
+            <>
+              <Text variant="mono.label" tone="muted">
+                Assignment · all-time
+              </Text>
+              <View className="flex-row gap-3">
+                <StatTile
+                  label="Meter assignments in Alex campaigns"
+                  value={fmtNumber(assignedMeters.data)}
+                  caption="all-time"
+                  tone="accent"
+                />
+                <View className="flex-1" />
+              </View>
+            </>
+          ) : null}
+          {activityWidgets.length > 0 ? (
+            <>
+              <Text variant="mono.label" tone="muted">
+                {`Alex activity — phone & email · ${windowLabel}`}
+              </Text>
+              {kpiRows(activityWidgets)}
+              {activityWidgets
+                .filter((w) => w.type !== 'kpi')
+                .slice(0, 2)
+                .map((w) => (
+                  <WidgetTile key={w.widgetId} widget={w} />
+                ))}
+            </>
+          ) : null}
+          {contactWidgets.length > 0 ? (
+            <>
+              <Text variant="mono.label" tone="muted">
+                {`Contact updates · ${windowLabel}`}
+              </Text>
+              {kpiRows(contactWidgets)}
+            </>
+          ) : null}
+        </Animated.View>
+      ) : null}
+      {canonicalName === 'Alex' &&
+      profile &&
+      !renderQuery.isPending &&
+      sectionWidgets.length === 0 ? (
+        // Query engine unreachable: only the two ledger-verified 30-day
+        // numbers, pinned to their real window no matter the toggle. Nothing
+        // else is invented — the other KPI groups simply do not render.
+        <Animated.View entering={enter(3)} className="mt-4 gap-3">
+          <Text variant="mono.label" tone="subtle">
+            Verified 30-day snapshot
+          </Text>
+          <View className="flex-row gap-3">
+            <StatTile
+              label="Calls handled"
+              value={fmtNumber(profile.monthlyCalls)}
+              caption="last 30 days"
+              tone="accent"
+            />
+            <StatTile
+              label="Emails handled"
+              value={fmtNumber(profile.monthlyEmails)}
+              caption="last 30 days"
+              tone="neutral"
+            />
+          </View>
         </Animated.View>
       ) : null}
       {canonicalName === 'Alex' && orgData.data?.meterFleet ? (
@@ -326,6 +412,11 @@ export default function WorkforceAgentScreen() {
       {canonicalName === 'Sophie' && orgData.data?.leasing ? (
         <Animated.View entering={enter(3)} className="mt-4">
           <LeasingCard leasing={orgData.data.leasing} />
+        </Animated.View>
+      ) : null}
+      {canonicalName === 'Ava' && orgData.data?.leasing ? (
+        <Animated.View entering={enter(3)} className="mt-4">
+          <NewBusinessCard leasing={orgData.data.leasing} />
         </Animated.View>
       ) : null}
 

@@ -37,6 +37,16 @@ describe('the metric ledger', () => {
     expect(DEMO_LEDGER.llmSpendToday).toBeLessThan(DEMO_LEDGER.planSpendToday);
   });
 
+  it('derives plan spend from the sum of the flat monthly plans', () => {
+    const monthlyTotal = CANONICAL_AGENTS.reduce(
+      (acc, n) => acc + DEMO_PROFILES[n].monthlyCost,
+      0,
+    );
+    expect(monthlyTotal).toBe(17_700); // 6,300 + 7,500 + 3,900
+    expect(DEMO_LEDGER.planSpendToday).toBe(Math.round(monthlyTotal / 30));
+    expect(DEMO_LEDGER.planSpend7d).toBe(DEMO_LEDGER.planSpendToday * 7);
+  });
+
   it('splits the channel mix so counts sum to the 7-day interactions', () => {
     const mix = demoChannelMix();
     const sum = mix.channels.reduce((acc, c) => acc + c.count, 0);
@@ -92,7 +102,7 @@ describe('profiles', () => {
       expect(p.planUtilizationPct).toBeLessThan(1);
       expect(p.monthlyCalls + p.monthlyEmails).toBeGreaterThan(0);
     }
-    expect(DEMO_PROFILES.Alex.monthlyCost).toBe(63_000);
+    expect(DEMO_PROFILES.Alex.monthlyCost).toBe(6_300);
     expect(DEMO_PROFILES.Sophie.monthlyCost).toBe(7_500);
     expect(DEMO_PROFILES.Ava.monthlyCost).toBe(3_900);
     // Alex's volumes are the real 30-day platform dashboard numbers.

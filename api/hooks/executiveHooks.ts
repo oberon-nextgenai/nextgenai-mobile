@@ -359,7 +359,7 @@ export function useDailyBrief(orgId: string | null) {
           title: demoPriorityTitle(top),
           detail: top.context,
           recommendation:
-            'Review and decide in Approvals — Prime has a recommendation ready.',
+            'Open the agent for full context — the decision itself waits in Approvals.',
           agentId: cn ? ids[cn] : undefined,
         };
       }

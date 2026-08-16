@@ -39,14 +39,14 @@ export const DEMO_PROFILES: Record<CanonicalAgentName, DemoAgentProfile> = {
   Alex: {
     name: 'Alex',
     role: 'Meter collection',
-    monthlyCost: 63_000,
+    monthlyCost: 6_300,
     planUtilizationPct: 0.62,
     // Real 30-day platform numbers (Alex Meter Collection dashboard).
     monthlyCalls: 830,
     monthlyEmails: 1_313,
     auditSeeds: [
-      'Prime tuned retry policy after 3 failed reads',
-      'Prime paused batch RUN-B7E2 pending approval',
+      'Prime staged the 90-day overdue outreach wave for approval',
+      'Prime added 2 newly stale devices to the follow-up batch',
     ],
   },
   Sophie: {
@@ -57,8 +57,8 @@ export const DEMO_PROFILES: Record<CanonicalAgentName, DemoAgentProfile> = {
     monthlyCalls: 60,
     monthlyEmails: 350,
     auditSeeds: [
-      'Prime drafted renewal at 12% and held for approval',
-      'Policy check POL-LEASE-08 evaluated',
+      'Prime queued the CT Accounting upgrade proposal for manager check',
+      'Playbook trigger evaluated: multi-equipment lease → escalate to rep',
     ],
   },
   Ava: {
@@ -69,7 +69,7 @@ export const DEMO_PROFILES: Record<CanonicalAgentName, DemoAgentProfile> = {
     monthlyCalls: 0,
     monthlyEmails: 730,
     auditSeeds: [
-      'Prime paused outbound sequence — 2 open Sev-1 targets',
+      'Prime held the Elah Baptist SDR hand-off pending your decision',
       'Sequence copy passed brand review',
     ],
   },
@@ -92,8 +92,8 @@ export const DEMO_LEDGER = {
   overnightAutonomous: 119, // = round(124 × 0.96)
   interactions7d: 760,
   resolved7d: 730, // = round(760 × 0.96)
-  planSpendToday: 2_480,
-  planSpend7d: 17_360,
+  planSpendToday: 590, // = round((6,300 + 7,500 + 3,900) / 30)
+  planSpend7d: 4_130, // = 590 × 7
   llmSpendToday: 80,
 } as const;
 

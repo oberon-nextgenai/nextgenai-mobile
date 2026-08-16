@@ -49,6 +49,12 @@ export function MeterFleetCard({ fleet }: { fleet: MeterFleetSection }) {
         />
         <Row label="Lifetime pages collected" value={fmtCompact(fleet.summary.fleetLifetimePages)} />
         <Row label="Meter readings on file" value={fmtNumber(fleet.summary.readings)} />
+        {fleet.summary.devicesStale90d > 0 ? (
+          <Row
+            label="Overdue 90+ days"
+            value={`${fmtNumber(fleet.summary.devicesStale90d)} devices · ${fmtNumber(fleet.summary.staleAccounts)} accounts`}
+          />
+        ) : null}
       </View>
       {fleet.readingsBySource.length > 0 ? (
         <View className="mt-3">
@@ -100,6 +106,20 @@ export function LeasingCard({ leasing }: { leasing: LeasingSection }) {
       <View className="mt-3 gap-2">
         <Row label="Monthly lease total" value={`${fmtCurrency(leasing.pipeline.monthlyTotal)}/mo`} />
         <Row label="Lease opportunities" value={fmtNumber(leasing.pipeline.opportunities)} />
+        {leasing.opportunitiesByScenario.length > 0 ? (
+          <Row
+            label="Scenario mix"
+            value={leasing.opportunitiesByScenario
+              .map(s => `${s.scenario} ${s.count}`)
+              .join(' · ')}
+          />
+        ) : null}
+        {leasing.upgradeGpProjected > 0 ? (
+          <Row
+            label="Projected GP · upgrade proposals"
+            value={fmtCurrency(leasing.upgradeGpProjected)}
+          />
+        ) : null}
         <Row label="Renewals in window" value={fmtNumber(leasing.renewalsDue.length)} />
         <Row label="Order revenue" value={fmtCurrency(leasing.orders.revenue)} />
       </View>
@@ -116,6 +136,58 @@ export function LeasingCard({ leasing }: { leasing: LeasingSection }) {
                 </Text>
                 <Text variant="mono.sm" tone="warning">
                   {`${r.paymentsRemaining} payments left`}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+/**
+ * Live quotes + orders from the organization's commerce database, framed as a
+ * QUEUE the SDR can work — never as Ava's own pipeline: no record in the org's
+ * data attributes these quotes or orders to Ava.
+ */
+export function NewBusinessCard({ leasing }: { leasing: LeasingSection }) {
+  return (
+    <Card>
+      <View className="flex-row items-center justify-between">
+        <Text variant="mono.label" tone="subtle">
+          New business queue
+        </Text>
+        <Text variant="mono.label" tone="muted">
+          live · org database
+        </Text>
+      </View>
+      <Text variant="body.sm" tone="muted" className="mt-1">
+        Available for SDR follow-up
+      </Text>
+      <View className="mt-3 gap-2">
+        <Row
+          label="Open quotes"
+          value={`${fmtNumber(leasing.quotes.count)} · ${fmtCurrency(leasing.quotes.totalValue)}`}
+        />
+        <Row
+          label="Orders in flight"
+          value={`${fmtNumber(leasing.orders.count)} · ${fmtCurrency(leasing.orders.revenue)}`}
+        />
+      </View>
+      {leasing.orders.recent.length > 0 ? (
+        <View className="mt-3">
+          <Text variant="mono.label" tone="subtle">
+            Recent orders
+          </Text>
+          <View className="mt-2 gap-2">
+            {leasing.orders.recent.slice(0, 3).map(o => (
+              <View key={o.orderNumber} className="flex-row items-center justify-between">
+                <Text variant="body.sm" numberOfLines={1} className="flex-1 pr-2">
+                  {`${o.orderNumber} · ${o.customerName}`}
+                </Text>
+                <Text variant="mono.sm" tone="muted" numberOfLines={1}>
+                  {o.status.toLowerCase().replace(/_/g, ' ')}
                 </Text>
               </View>
             ))}
