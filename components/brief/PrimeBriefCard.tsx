@@ -6,6 +6,7 @@ import { GradientButton } from '@/components/ui/GradientButton';
 import { deltaTone, formatDelta } from '@/components/brief/OperationalBriefCard';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { fmtCurrency, fmtNumber } from '@/lib/formatters';
+import { BRIEF_LABEL_BY_PART, dayPart } from '@/lib/dayPart';
 import type { BriefingStat, OperationalBriefing } from '@/api/services/briefings';
 
 interface PrimeBriefCardProps {
@@ -64,8 +65,9 @@ export function PrimeBriefCard({
   return (
     <Card variant="prime" gloss>
       <View className="flex-row items-center justify-between">
+        {/* Same clock as the greeting — a 00:15 open reads "Evening brief". */}
         <Text variant="mono.label" tone="accent">
-          Prime · Morning brief
+          {`Prime · ${BRIEF_LABEL_BY_PART[dayPart()]}`}
         </Text>
         <View className="flex-row items-center">
           {briefing ? (

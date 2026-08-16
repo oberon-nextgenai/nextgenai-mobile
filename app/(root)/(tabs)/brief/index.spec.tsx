@@ -93,11 +93,18 @@ function setBriefings(briefings: OperationalBriefing[] = [], unavailable: unknow
   });
 }
 
+// The hero's eyebrow reads the device clock — pin it to mid-morning so
+// "Prime · Morning brief" stays deterministic whenever the suite runs.
+let hourSpy: jest.SpyInstance;
+
 beforeEach(() => {
+  hourSpy = jest.spyOn(Date.prototype, 'getHours').mockReturnValue(9);
   mockPush.mockClear();
   setBrief();
   setBriefings();
 });
+
+afterEach(() => hourSpy.mockRestore());
 
 describe('BriefScreen with no operational briefing', () => {
   it('renders the hero on Prime’s own summary, exactly as it did before', () => {

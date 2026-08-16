@@ -3,6 +3,7 @@ import { useDashboard, useAgentsAnalytics } from './analyticsHooks';
 import { useAgentsList } from './agentHooks';
 import { useNotifications } from '@/store/notifications';
 import { useAuthStore } from '@/store/auth';
+import { GREETING_BY_PART, dayPart } from '@/lib/dayPart';
 // DEMO ONLY — DO NOT MERGE: metric gap-fill + local pause state for the demo.
 import { DEMO_APPROVALS } from '@/api/demo/flags';
 import { demoAgentMetrics } from '@/api/demo/metricsDemo';
@@ -265,8 +266,8 @@ const BRIEF_WINDOW_LABEL = WINDOW_LABELS[BRIEF_PERIOD];
 const ATTENTION_WINDOW_LABEL = WINDOW_LABELS['30d'];
 
 function greetingForNow(name?: string): string {
-  const h = new Date().getHours();
-  const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  // Device-local day part — 00:15 greets as an evening, never a morning.
+  const part = GREETING_BY_PART[dayPart()];
   const first = name?.trim().split(' ')[0];
   return first ? `${part}, ${first}.` : `${part}.`;
 }

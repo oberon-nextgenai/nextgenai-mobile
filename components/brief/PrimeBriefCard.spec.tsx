@@ -26,6 +26,14 @@ const BRIEFING: OperationalBriefing = {
 
 const SUMMARY = '12 tasks resolved across 4 active agents. Everything is on track.';
 
+// The eyebrow reads the device clock — pin it to mid-morning so
+// "Prime · Morning brief" stays deterministic whenever the suite runs.
+let hourSpy: jest.SpyInstance;
+beforeEach(() => {
+  hourSpy = jest.spyOn(Date.prototype, 'getHours').mockReturnValue(9);
+});
+afterEach(() => hourSpy.mockRestore());
+
 function renderCard(props: Partial<React.ComponentProps<typeof PrimeBriefCard>> = {}) {
   return render(
     <PrimeBriefCard
