@@ -21,13 +21,16 @@ import { useThemeMode } from '@/hooks/useThemeMode';
 import { shouldSeedPrompt } from '@/lib/prime/promptSeed';
 // DEMO ONLY — DO NOT MERGE: "new chat" signal from the Prime tab button.
 import { usePrimeSession } from '@/store/primeSession';
+import { DEMO_APPROVALS } from '@/api/demo/flags';
 import type { PrimeAction } from '@/lib/primeStructuredSchema';
 
 const SUGGESTED_PROMPTS = [
   'Summarize what happened overnight',
   'Which agents need my attention?',
   'Draft a board update',
-  'Show me the biggest cost drivers',
+  // DEMO ONLY — DO NOT MERGE: no cost prompt on stage; usage is quoted in
+  // minutes and interactions, never metered dollars.
+  ...(DEMO_APPROVALS ? [] : ['Show me the biggest cost drivers']),
 ];
 
 /** Empty-state entrance beat — same cadence the Brief screen uses. */

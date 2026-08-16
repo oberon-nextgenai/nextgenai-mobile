@@ -15,7 +15,11 @@ import { invalidateForTool } from '@/lib/toolInvalidations';
 import { isEnvelopeFailure } from '@/lib/mcpEnvelope';
 // DEMO ONLY — DO NOT MERGE: presentation belt over Prime's rendered output.
 import { DEMO_APPROVALS } from '@/api/demo/flags';
-import { sanitizeDemoText, sanitizePrimeStructured } from '@/lib/prime/demoPresentation';
+import {
+  sanitizeDemoMarkdown,
+  sanitizeDemoText,
+  sanitizePrimeStructured,
+} from '@/lib/prime/demoPresentation';
 import { useToolResults } from '@/store/toolResults';
 import { useNotifications } from '@/store/notifications';
 import type { ToolAvailable } from '@/api/services/types';
@@ -365,14 +369,18 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
               (event as { data?: unknown }).data ??
               event;
             const parsed = tryParsePrimeStructured(raw);
-            if (parsed) {
-              // DEMO ONLY — DO NOT MERGE: presentation belt over every string.
-              finalStructured = DEMO_APPROVALS ? sanitizePrimeStructured(parsed) : parsed;
+            // DEMO ONLY — DO NOT MERGE: presentation belt over every string.
+            // The belt can reject a card outright (all-metering content) —
+            // then fall through to the payload's markdown, scrubbed the same.
+            const presented =
+              parsed && DEMO_APPROVALS ? sanitizePrimeStructured(parsed) : parsed;
+            if (presented) {
+              finalStructured = presented;
             } else {
               const fallback = pickFallbackMarkdown(raw);
               if (fallback) {
                 finalFallbackMarkdown = DEMO_APPROVALS
-                  ? sanitizeDemoText(fallback)
+                  ? sanitizeDemoMarkdown(fallback)
                   : fallback;
               }
             }
@@ -541,18 +549,21 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
               }).message;
             if (!finalStructured && completeMsg?.structured) {
               const parsed = tryParsePrimeStructured(completeMsg.structured);
-              if (parsed) {
-                finalStructured = DEMO_APPROVALS ? sanitizePrimeStructured(parsed) : parsed;
+              // Same belt + rejection fallback as the streaming path above.
+              const presented =
+                parsed && DEMO_APPROVALS ? sanitizePrimeStructured(parsed) : parsed;
+              if (presented) {
+                finalStructured = presented;
               } else {
                 const fb = pickFallbackMarkdown(completeMsg.structured);
                 if (fb) {
-                  finalFallbackMarkdown = DEMO_APPROVALS ? sanitizeDemoText(fb) : fb;
+                  finalFallbackMarkdown = DEMO_APPROVALS ? sanitizeDemoMarkdown(fb) : fb;
                 }
               }
             }
             if (!finalFallbackMarkdown && completeMsg?.fallbackMarkdown) {
               finalFallbackMarkdown = DEMO_APPROVALS
-                ? sanitizeDemoText(completeMsg.fallbackMarkdown)
+                ? sanitizeDemoMarkdown(completeMsg.fallbackMarkdown)
                 : completeMsg.fallbackMarkdown;
             }
             setMessages((prev) =>

@@ -16,6 +16,10 @@ import { useNotifications } from '@/store/notifications';
 import { useEscalationCounts } from '@/api/hooks/escalationHooks';
 import { useWorkforce } from '@/api/hooks/executiveHooks';
 import { useDashboard } from '@/api/hooks/analyticsHooks';
+// DEMO ONLY — DO NOT MERGE: menu depth rows quote the ledger, and the spend
+// figure maps to plan minutes — metered dollars never reach the menu.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { DEMO_LEDGER, demoChannelMix } from '@/api/demo/agentProfiles';
 
 /**
  * Nothing new here — this screen is a menu, and a menu should be legible before
@@ -88,7 +92,8 @@ export default function MoreScreen() {
   const workforce = useWorkforce(activeOrgId);
   // One dashboard read covers both depth rows: spend for Outcomes, volume for
   // Analytics. Its own cache key, so it does not disturb either screen.
-  const dashboard = useDashboard(activeOrgId, SPEND_PERIOD);
+  // Demo build: the rows quote the ledger instead, so skip the fetch entirely.
+  const dashboard = useDashboard(DEMO_APPROVALS ? null : activeOrgId, SPEND_PERIOD);
 
   const beneath = useTabBeneath();
   // `navigate`, not `push`: pushing a tab route stacks a second instance of
@@ -108,6 +113,10 @@ export default function MoreScreen() {
 
   const pending = escalations.data?.total;
   const metrics = dashboard.data?.metrics;
+  // DEMO ONLY — DO NOT MERGE: same call count the channel-mix cards quote.
+  const demoCalls = DEMO_APPROVALS
+    ? (demoChannelMix().channels.find((c) => c.channel === 'calls')?.count ?? 0)
+    : 0;
 
   return (
     <Screen background="nebula" edges={{ top: true, bottom: false }}>
@@ -211,9 +220,12 @@ export default function MoreScreen() {
               icon="trending-up-outline"
               label="Outcomes"
               description={
-                metrics?.totalCost != null
-                  ? `${fmtCurrency(metrics.totalCost)} spend · ${SPEND_LABEL}`
-                  : 'What the workforce achieved, and at what cost'
+                // Demo: minutes, not dollars — plans are flat, usage is minutes.
+                DEMO_APPROVALS
+                  ? `${fmtNumber(DEMO_LEDGER.voiceMinutes7d)} voice minutes · last 7 days`
+                  : metrics?.totalCost != null
+                    ? `${fmtCurrency(metrics.totalCost)} spend · ${SPEND_LABEL}`
+                    : 'What the workforce achieved, and at what cost'
               }
               onPress={go('/(root)/outcomes')}
             />
@@ -221,9 +233,13 @@ export default function MoreScreen() {
               icon="bar-chart-outline"
               label="Analytics"
               description={
-                metrics?.totalCalls != null
-                  ? `${fmtNumber(metrics.totalCalls)} calls · ${SPEND_LABEL}`
-                  : 'Calls · agents · trends'
+                // Demo: the ledger's call count — a live 30-day figure would
+                // contradict the channel mix every other screen quotes.
+                DEMO_APPROVALS
+                  ? `${fmtNumber(demoCalls)} calls · last 7 days`
+                  : metrics?.totalCalls != null
+                    ? `${fmtNumber(metrics.totalCalls)} calls · ${SPEND_LABEL}`
+                    : 'Calls · agents · trends'
               }
               active={beneath === 'analytics'}
               onPress={go('/(root)/(tabs)/analytics')}
