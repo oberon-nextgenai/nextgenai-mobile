@@ -9,6 +9,7 @@ import { GlassSurface } from '@/components/ui/GlassSurface';
 import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
 import { useEscalationCounts } from '@/api/hooks/escalationHooks';
+import { useEscalationsStream } from '@/api/hooks/escalationStreamHooks';
 import { useActiveOrg } from '@/store/org';
 // DEMO ONLY — DO NOT MERGE: pressing the Prime tab always opens a new chat.
 import { usePrimeSession } from '@/store/primeSession';
@@ -43,6 +44,9 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   // Cached ~20s server-side and client-side, so this is cheap despite living on
   // every screen. It is the one number the app is always showing you.
   const { data: counts } = useEscalationCounts(activeOrgId);
+  // …and the SSE stream is what moves that number the moment an escalation is
+  // created or decided, instead of on the next 20s staleness or refocus.
+  useEscalationsStream(activeOrgId);
 
   return (
     <GlassSurface border="top" radius={0} elevation="lg" intensity={40}>

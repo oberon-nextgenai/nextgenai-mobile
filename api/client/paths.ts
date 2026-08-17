@@ -114,6 +114,7 @@ export const PATHS = {
   },
   escalations: {
     list: '/api/escalations',
+    stream: (orgId: string) => `/api/escalations/stream/${encodeURIComponent(orgId)}`,
     counts: '/api/escalations/counts',
     detail: (id: string) => `/api/escalations/${encodeURIComponent(id)}`,
     assign: (id: string) => `/api/escalations/${encodeURIComponent(id)}/assign`,
@@ -146,6 +147,7 @@ export const PATHS = {
   },
   devices: {
     register: '/api/devices/register',
+    vapidPublicKey: '/api/devices/vapid-public-key',
     list: '/api/devices',
     preferences: '/api/devices/preferences',
     unregister: (token: string) => `/api/devices/${encodeURIComponent(token)}`,

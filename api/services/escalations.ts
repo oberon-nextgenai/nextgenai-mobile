@@ -20,17 +20,24 @@ import {
  */
 
 export type EscalationSeverity = 'critical' | 'high' | 'medium' | 'low';
-export type EscalationStatus = 'open' | 'assigned' | 'resolved' | 'expired';
+export type EscalationStatus = 'open' | 'assigned' | 'resolved' | 'rejected' | 'expired';
 export type EscalationKind =
   | 'customer'
   | 'cost_anomaly'
   | 'sla_risk'
   | 'policy_exception'
   | 'compliance'
-  | 'workflow_failure';
+  | 'workflow_failure'
+  /** A HITL-gated tool waiting on a one-time grant (ND-1353). */
+  | 'tool_approval';
 
 export type ApprovalDecision = 'pending' | 'approved' | 'rejected';
 export type ApprovalAuthMethod = 'password' | 'sso' | 'biometric_sso' | 'api_key';
+
+/** `approval.action` value that marks a HITL tool grant, vs. a manager handoff. */
+export const TOOL_GRANT_ACTION = 'tool_grant';
+
+export type GrantStatus = 'none' | 'issued' | 'consumed' | 'expired' | 'revoked';
 
 export interface Escalation {
   _id: string;
@@ -75,6 +82,19 @@ export interface Approval {
   reverseWindowEndsAt?: string;
   auditId?: string;
   createdAt: string;
+  // ── HITL tool grants (present when action === TOOL_GRANT_ACTION) ─────────
+  /** The gated tool awaiting a grant, e.g. `send_new_email`. */
+  toolName?: string;
+  /**
+   * Frozen tool args at request time. Server-redacted for display; the client
+   * redacts again before rendering as a belt. `grantToken` is agent-only and
+   * never appears in client responses.
+   */
+  actionPayload?: Record<string, unknown>;
+  payloadHash?: string;
+  grantStatus?: GrantStatus;
+  consumedAt?: string;
+  executionType?: 'email' | 'chat' | 'voice' | 'api' | 'other';
 }
 
 export interface EscalationCounts {

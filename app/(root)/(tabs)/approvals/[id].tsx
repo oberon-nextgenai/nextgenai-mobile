@@ -14,9 +14,11 @@ import { Button } from '@/components/ui/Button';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { useDecideEscalation, useEscalation } from '@/api/hooks/escalationHooks';
 import { useActiveOrg } from '@/store/org';
+import { useAuthStore } from '@/store/auth';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { fmtDateTime, fmtPct, fmtRelative } from '@/lib/formatters';
-import type { Escalation } from '@/api/services/escalations';
+import { redactSensitiveDeep } from '@/lib/redactSensitive';
+import { TOOL_GRANT_ACTION, type Approval, type Escalation } from '@/api/services/escalations';
 
 /** `cost_anomaly` → `cost anomaly`. The Tag uppercases it. */
 function kindLabel(kind: string): string {
@@ -46,6 +48,11 @@ export default function ApprovalDetailScreen() {
   const escalation = query.data?.escalation;
   const approval = query.data?.approval ?? null;
   const decide = useDecideEscalation(activeOrgId);
+
+  // The backend enforces org-admin-only decide (`hitlGrants.assertOrgAdmin`);
+  // this mirrors it so non-admins see the truth instead of a button that 403s.
+  const role = useAuthStore((s) => s.user?.role);
+  const canDecide = role === 'org_admin' || role === 'superadmin';
 
   const shell = (children: React.ReactNode) => (
     <Screen background="nebula" edges={{ top: true, bottom: false }}>
@@ -144,6 +151,12 @@ export default function ApprovalDetailScreen() {
         </Card>
       </Animated.View>
 
+      {approval?.action === TOOL_GRANT_ACTION ? (
+        <Animated.View entering={FadeInDown.duration(340).delay(150)} className="mt-4">
+          <ProposedActionCard approval={approval} />
+        </Animated.View>
+      ) : null}
+
       {approval ? (
         <Animated.View entering={FadeInDown.duration(340).delay(180)} className="mt-4">
           <Card variant="prime" gloss>
@@ -187,7 +200,20 @@ export default function ApprovalDetailScreen() {
         </Animated.View>
       ) : null}
 
-      {pending ? (
+      {pending && !canDecide ? (
+        // Read-only for org members: the decision is real work product, and the
+        // backend would 403 the buttons anyway.
+        <Animated.View entering={FadeInDown.duration(340).delay(240)} className="mt-5">
+          <Card>
+            <View className="flex-row items-center gap-2.5">
+              <Ionicons name="lock-closed-outline" size={16} color={colors.fgMuted} />
+              <Text variant="body.sm" tone="muted" className="flex-1">
+                An organization admin decides this approval.
+              </Text>
+            </View>
+          </Card>
+        </Animated.View>
+      ) : pending ? (
         <Animated.View entering={FadeInDown.duration(340).delay(240)} className="mt-5 gap-2.5">
           <GradientButton
             tone="success"
@@ -238,5 +264,68 @@ function DetailRow({ label, value }: { label: string; value: string }) {
         {value}
       </Text>
     </View>
+  );
+}
+
+/** A grant's lifecycle, phrased for the person deciding, not the state machine. */
+const GRANT_STATUS_LABEL: Record<string, { label: string; tone: 'success' | 'danger' | undefined }> = {
+  none: { label: 'awaiting decision', tone: undefined },
+  issued: { label: 'grant issued', tone: 'success' },
+  consumed: { label: 'action executed', tone: 'success' },
+  expired: { label: 'grant expired', tone: 'danger' },
+  revoked: { label: 'grant revoked', tone: 'danger' },
+};
+
+/** A frozen argument, rendered flat; nested shapes come through as compact JSON. */
+function argValue(value: unknown): string {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '[unrenderable]';
+  }
+}
+
+/**
+ * What a HITL tool approval is actually asking: the gated tool and the exact
+ * frozen arguments it will run with. Approving mints a one-time grant bound to
+ * this payload's hash — the agent cannot swap arguments after the fact, which
+ * is what makes showing them here meaningful.
+ *
+ * Values are server-redacted and re-redacted client-side before render.
+ */
+function ProposedActionCard({ approval }: { approval: Approval }) {
+  const payload = (redactSensitiveDeep(approval.actionPayload) ?? {}) as Record<string, unknown>;
+  const entries = Object.entries(payload);
+  const status = approval.grantStatus ? GRANT_STATUS_LABEL[approval.grantStatus] : undefined;
+
+  return (
+    <Card>
+      <View className="flex-row items-center justify-between">
+        <Text variant="mono.label" tone="subtle">
+          Proposed action
+        </Text>
+        {status ? <Tag label={status.label} tone={status.tone} /> : null}
+      </View>
+
+      <View className="mt-3 gap-2.5">
+        {approval.toolName ? <DetailRow label="Tool" value={approval.toolName} /> : null}
+        {entries.map(([key, value]) => (
+          <View key={key} className="flex-row items-start justify-between">
+            <Text variant="mono.sm" tone="subtle" className="pr-3">
+              {key}
+            </Text>
+            <Text variant="mono.value" className="flex-1 text-right" numberOfLines={3}>
+              {argValue(value)}
+            </Text>
+          </View>
+        ))}
+        {approval.consumedAt ? (
+          <DetailRow label="Executed" value={fmtDateTime(approval.consumedAt)} />
+        ) : null}
+      </View>
+    </Card>
   );
 }

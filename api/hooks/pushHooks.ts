@@ -8,6 +8,7 @@ import Toast from 'react-native-toast-message';
 import { QUERY_KEYS } from '@/lib/constants';
 import {
   fetchDevices,
+  fetchVapidPublicKey,
   registerDevice,
   unregisterDevice,
   updateDevicePreferences,
@@ -15,6 +16,11 @@ import {
   type UpdateDevicePreferencesBody,
 } from '@/api/services/devices';
 import { deviceLabel, getExpoPushToken, routeForNotification } from '@/lib/push/pushTokens';
+import { getWebPushEndpoint, subscribeWebPush, webPushSupported } from '@/lib/push/webPush';
+import { useInvalidateEscalations } from '@/api/hooks/escalationHooks';
+// DEMO ONLY — DO NOT MERGE: while the fixture deck serves the Approvals tab,
+// the live web-push pipeline stays inert so nothing real interrupts the board.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
 import { useActiveOrg } from '@/store/org';
 import { useAuthStore } from '@/store/auth';
 
@@ -54,6 +60,37 @@ export function usePushRegistration(): void {
     let cancelled = false;
 
     void (async () => {
+      if (Platform.OS === 'web') {
+        // Silent path only: succeeds when the user already granted permission
+        // via the Approvals tab's enable card on a previous visit. The prompt
+        // itself needs a user gesture, so it never fires from a mount effect.
+        if (DEMO_APPROVALS || !webPushSupported()) return;
+        const result = await subscribeWebPush({
+          getVapidPublicKey: fetchVapidPublicKey,
+          requestPermission: false,
+        });
+        if (!result.ok || cancelled) return;
+
+        const key = `${activeOrgId}:${result.subscription.endpoint}`;
+        if (registeredRef.current === key) return;
+
+        try {
+          await registerDevice({
+            organizationId: activeOrgId,
+            platform: 'web',
+            webPushSubscription: result.subscription,
+            appVersion: Constants.expoConfig?.version,
+            deviceName: deviceLabel() ?? 'Web browser',
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          });
+          if (!cancelled) registeredRef.current = key;
+        } catch {
+          // Same contract as native: a failed registration never disturbs the
+          // session, and the next launch retries.
+        }
+        return;
+      }
+
       const result = await getExpoPushToken();
       if (!result.ok || cancelled) return;
 
@@ -81,6 +118,39 @@ export function usePushRegistration(): void {
       cancelled = true;
     };
   }, [token, activeOrgId]);
+}
+
+/**
+ * Bridges service-worker messages into the app (web only).
+ *
+ * The worker (`public/sw.js`) posts two message types: `escalation` when a push
+ * arrives — the badge and list refresh immediately, even if the user ignores
+ * the OS notification — and `navigate` when a notification is clicked while a
+ * tab is already open, so the SPA routes itself instead of reloading.
+ */
+export function useWebPushMessages(): void {
+  const router = useRouter();
+  const { activeOrgId } = useActiveOrg();
+  const invalidate = useInvalidateEscalations(activeOrgId);
+  const invalidateRef = useRef(invalidate);
+  invalidateRef.current = invalidate;
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !webPushSupported()) return;
+
+    const onMessage = (event: MessageEvent) => {
+      const message = event.data as { type?: unknown; path?: unknown } | null;
+      if (!message || typeof message !== 'object') return;
+      if (message.type === 'escalation') {
+        invalidateRef.current();
+      } else if (message.type === 'navigate' && typeof message.path === 'string') {
+        router.push(message.path as never);
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, [router]);
 }
 
 /**
@@ -156,6 +226,12 @@ export function useUpdateDevicePreferences() {
  */
 export async function unregisterThisDevice(): Promise<void> {
   try {
+    if (Platform.OS === 'web') {
+      // The endpoint is the web device's pushToken server-side.
+      const endpoint = await getWebPushEndpoint();
+      if (endpoint) await unregisterDevice(endpoint);
+      return;
+    }
     const result = await getExpoPushToken();
     if (result.ok) await unregisterDevice(result.token);
   } catch {

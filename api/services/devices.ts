@@ -4,19 +4,25 @@ import { PATHS } from '@/api/client/paths';
 /**
  * Device registry for push notifications.
  *
- * Mirrors `oberon-nextgenai-api/src/modules/devices`. Delivery goes through the
- * Expo Push API server-side, so the only thing the client owns is its token and
- * its preferences.
- *
- * Note: obtaining the token requires `expo-notifications`, which is not yet a
- * dependency. These calls are ready for it; see `registerDevice`.
+ * Mirrors `oberon-nextgenai-api/src/modules/devices`. Delivery is server-side —
+ * the Expo Push API for native, VAPID Web Push for `platform: 'web'` — so the
+ * only thing the client owns is its token (or subscription) and its preferences.
  */
 
 /** The five classes the backend fans out. Each is separately mutable by the user. */
 export const NOTIFICATION_CLASSES = ['critical', 'cost', 'sla_risk', 'workflow', 'brief'] as const;
 export type NotificationClass = (typeof NOTIFICATION_CLASSES)[number];
 
-export type DevicePlatform = 'ios' | 'android';
+export type DevicePlatform = 'ios' | 'android' | 'web';
+
+/** A browser PushSubscription as serialized by `subscription.toJSON()`. */
+export interface WebPushSubscriptionJson {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
 
 export interface Device {
   _id: string;
@@ -38,9 +44,15 @@ export interface Device {
 
 export interface RegisterDeviceBody {
   organizationId: string;
-  /** Must be an Expo token — the backend rejects anything else. */
-  pushToken: string;
+  /** Expo token — required for native platforms, absent for web. */
+  pushToken?: string;
   platform: DevicePlatform;
+  /**
+   * Required for `platform: 'web'`. The backend keys the device row by the
+   * subscription's endpoint, so the endpoint doubles as this device's pushToken
+   * for preferences and unregister.
+   */
+  webPushSubscription?: WebPushSubscriptionJson;
   appVersion?: string;
   deviceName?: string;
   /** IANA zone, used to interpret the quiet-hours window. */
@@ -81,4 +93,21 @@ export async function updateDevicePreferences(
 export async function unregisterDevice(pushToken: string): Promise<{ removed: boolean }> {
   const { data } = await http.delete<{ removed: boolean }>(PATHS.devices.unregister(pushToken));
   return data;
+}
+
+/**
+ * The VAPID public key browsers subscribe with. Served by the API rather than
+ * baked into the build so rotating the pair never needs a web redeploy. Null
+ * when the deployment has web push unconfigured — callers treat that as
+ * "web push unavailable", not an error.
+ */
+export async function fetchVapidPublicKey(): Promise<string | null> {
+  try {
+    const { data } = await http.get<{ publicKey: string }>(PATHS.devices.vapidPublicKey, {
+      suppressErrorToast: true,
+    });
+    return data.publicKey || null;
+  } catch {
+    return null;
+  }
 }

@@ -80,7 +80,7 @@ export function useEscalation(orgId: string | null, id: string | undefined) {
  * embeds the same counts, so it invalidates alongside — otherwise its 5-minute
  * staleness leaves the brief quoting a queue the badge no longer shows.
  */
-function useInvalidateEscalations(orgId: string | null) {
+export function useInvalidateEscalations(orgId: string | null) {
   const qc = useQueryClient();
   return () => {
     if (!orgId) return;
@@ -130,16 +130,23 @@ export function useDecideEscalation(orgId: string | null) {
       });
     },
     onError: error => {
-      // A 404 here means someone else already decided it — worth saying plainly
-      // rather than showing a generic failure.
+      // 404: someone else already decided it. 403: the backend's org-admin gate
+      // — reachable via deep link even though the UI hides the buttons. Both are
+      // worth saying plainly rather than showing a generic failure.
       const status = (error as { response?: { status?: number } })?.response?.status;
+      const known =
+        status === 404
+          ? { text1: 'Already decided', text2: 'Someone else answered this one first.' }
+          : status === 403
+            ? {
+                text1: 'Admins decide approvals',
+                text2: 'Only an organization admin can approve or reject.',
+              }
+            : null;
       Toast.show({
         type: 'error',
-        text1: status === 404 ? 'Already decided' : 'Could not record your decision',
-        text2:
-          status === 404
-            ? 'Someone else answered this one first.'
-            : (error as Error)?.message,
+        text1: known?.text1 ?? 'Could not record your decision',
+        text2: known?.text2 ?? (error as Error)?.message,
       });
     },
   });

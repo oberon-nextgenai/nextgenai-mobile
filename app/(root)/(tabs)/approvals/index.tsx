@@ -7,6 +7,7 @@ import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
 import { ScreenHeading } from '@/components/common/ScreenHeading';
 import { EscalationCard } from '@/components/executive/EscalationCard';
+import { EnableNotificationsCard } from '@/components/approvals/EnableNotificationsCard';
 import { FilterChipRow, type FilterOption } from '@/components/ui/FilterChipRow';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -104,6 +105,11 @@ export default function ApprovalsScreen() {
   const shell = (children: React.ReactNode) => (
     <Screen background="nebula" edges={{ top: true, bottom: false }}>
       <AppHeader title="Approvals" />
+      {/* Web-only, renders exactly while the browser permission is still
+          undecided — including over an empty queue, which is when a new org
+          admin is most likely setting notifications up. Carries its own
+          padding so the native build (where it is null) gains no phantom gap. */}
+      {activeOrgId ? <EnableNotificationsCard organizationId={activeOrgId} /> : null}
       {children}
     </Screen>
   );

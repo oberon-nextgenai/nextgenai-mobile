@@ -4,7 +4,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 import { useOrgStore } from '@/store/org';
 import { useMeQuery, useOrganizationsQuery } from '@/api/hooks/authHooks';
-import { usePushDeepLinks, usePushRegistration } from '@/api/hooks/pushHooks';
+import { usePushDeepLinks, usePushRegistration, useWebPushMessages } from '@/api/hooks/pushHooks';
 import { useBiometricUnlock } from '@/hooks/useBiometricUnlock';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { BiometricGate } from '@/components/common/BiometricGate';
@@ -34,11 +34,13 @@ export default function RootAreaLayout() {
     }
   }, [orgsQuery.data, meQuery.data, reconcile]);
 
-  // Registers this device for push and routes tapped notifications. Both are
+  // Registers this device for push and routes tapped notifications. All are
   // hooks, so they must run before any early return — they no-op until there is
-  // a session and an active organization.
+  // a session and an active organization. The third bridges service-worker
+  // messages (web push arrivals and notification clicks) into the app.
   usePushRegistration();
   usePushDeepLinks();
+  useWebPushMessages();
 
   if (!token) {
     return <Redirect href="/(auth)/sign-in" />;
