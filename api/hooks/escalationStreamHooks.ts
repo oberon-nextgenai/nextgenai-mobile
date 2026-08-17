@@ -4,10 +4,10 @@ import {
   type EscalationsStreamHandle,
 } from '@/api/client/escalationsStream';
 import { useInvalidateEscalations } from '@/api/hooks/escalationHooks';
-// DEMO ONLY — DO NOT MERGE: while the fixture deck serves the Approvals tab
-// there is nothing live to stream, and a real event mid-demo would contradict
-// the rehearsed queue.
-import { DEMO_APPROVALS } from '@/api/demo/flags';
+// DEMO ONLY — DO NOT MERGE: the stream follows the live approvals pipeline —
+// under the overlay it keeps the merged badge honest the moment a real
+// escalation lands; with everything on fixtures there is nothing to stream.
+import { APPROVALS_PIPELINE_LIVE } from '@/api/demo/flags';
 import { useAuthStore } from '@/store/auth';
 
 /** First retry after a second; doubles to a ceiling so an API deploy doesn't hammer. */
@@ -34,7 +34,7 @@ export function useEscalationsStream(orgId: string | null): void {
   invalidateRef.current = invalidate;
 
   useEffect(() => {
-    if (DEMO_APPROVALS || !orgId || !token) return;
+    if (!APPROVALS_PIPELINE_LIVE || !orgId || !token) return;
 
     let closed = false;
     let handle: EscalationsStreamHandle | null = null;

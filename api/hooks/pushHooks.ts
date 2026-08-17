@@ -18,9 +18,9 @@ import {
 import { deviceLabel, getExpoPushToken, routeForNotification } from '@/lib/push/pushTokens';
 import { getWebPushEndpoint, subscribeWebPush, webPushSupported } from '@/lib/push/webPush';
 import { useInvalidateEscalations } from '@/api/hooks/escalationHooks';
-// DEMO ONLY — DO NOT MERGE: while the fixture deck serves the Approvals tab,
-// the live web-push pipeline stays inert so nothing real interrupts the board.
-import { DEMO_APPROVALS } from '@/api/demo/flags';
+// DEMO ONLY — DO NOT MERGE: web push follows the live approvals pipeline —
+// active for the overlay (placeholders + real approvals) and fully live builds.
+import { APPROVALS_PIPELINE_LIVE } from '@/api/demo/flags';
 import { useActiveOrg } from '@/store/org';
 import { useAuthStore } from '@/store/auth';
 
@@ -64,7 +64,7 @@ export function usePushRegistration(): void {
         // Silent path only: succeeds when the user already granted permission
         // via the Approvals tab's enable card on a previous visit. The prompt
         // itself needs a user gesture, so it never fires from a mount effect.
-        if (DEMO_APPROVALS || !webPushSupported()) return;
+        if (!APPROVALS_PIPELINE_LIVE || !webPushSupported()) return;
         const result = await subscribeWebPush({
           getVapidPublicKey: fetchVapidPublicKey,
           requestPermission: false,

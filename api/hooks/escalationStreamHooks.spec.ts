@@ -2,9 +2,8 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useEscalationsStream } from './escalationStreamHooks';
 import type { OpenEscalationsStreamOptions } from '@/api/client/escalationsStream';
 
-// The hook is real-pipeline code: with the fixture deck on it must stay inert,
-// which the last test pins — every other test runs with the flag off.
-jest.mock('@/api/demo/flags', () => ({ DEMO_APPROVALS: false }));
+// The hook follows the live approvals pipeline; these tests run with it on.
+jest.mock('@/api/demo/flags', () => ({ APPROVALS_PIPELINE_LIVE: true }));
 
 const mockClose = jest.fn();
 const mockOpen = jest.fn();

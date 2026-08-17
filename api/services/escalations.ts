@@ -1,7 +1,7 @@
 import { http } from '@/api/client/http';
 import { PATHS } from '@/api/client/paths';
 // DEMO ONLY — DO NOT MERGE: local fixtures for the Toshiba board demo.
-import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { APPROVALS_PIPELINE_LIVE, DEMO_APPROVALS } from '@/api/demo/flags';
 import {
   demoApproveEscalation,
   demoAssignEscalation,
@@ -10,6 +10,17 @@ import {
   demoFetchEscalations,
   demoRejectEscalation,
 } from '@/api/demo/approvalsDemo';
+
+/**
+ * DEMO ONLY — DO NOT MERGE: overlay routing.
+ *
+ * With both flags on, the queue is fixtures ∪ live: every fixture id starts
+ * with `demo-`, real ids are Mongo ObjectIds, so one prefix test routes any
+ * per-item call (detail/assign/decide) to the right world. List and counts
+ * merge both; a live-side failure falls back to fixtures alone — the board
+ * demo must survive a backend outage.
+ */
+const isDemoId = (id: string) => id.startsWith('demo-');
 
 /**
  * Escalations + approvals — the human triage queue.
@@ -133,25 +144,94 @@ export interface ListEscalationsParams {
   limit?: number;
 }
 
-export async function fetchEscalations(params: ListEscalationsParams): Promise<EscalationPage> {
-  if (DEMO_APPROVALS) return demoFetchEscalations(params); // DEMO ONLY — DO NOT MERGE
-  const { data } = await http.get<EscalationPage>(PATHS.escalations.list, { params });
+async function fetchLiveEscalations(params: ListEscalationsParams): Promise<EscalationPage> {
+  const { data } = await http.get<EscalationPage>(PATHS.escalations.list, {
+    params,
+    suppressErrorToast: DEMO_APPROVALS, // overlay: a live outage degrades silently to fixtures
+  });
   return data;
 }
 
-export async function fetchEscalationCounts(organizationId: string): Promise<EscalationCounts> {
-  if (DEMO_APPROVALS) return demoFetchEscalationCounts(organizationId); // DEMO ONLY — DO NOT MERGE
-  const { data } = await http.get<EscalationCounts>(PATHS.escalations.counts, {
-    params: { organizationId },
+/**
+ * Merged queue idiom: same ordering the server uses — SLA pressure first, then
+ * dollar impact — so fixture and live items interleave where they belong
+ * instead of one world stacking on top of the other.
+ */
+function sortQueue(items: Escalation[]): Escalation[] {
+  return [...items].sort((a, b) => {
+    const dueDelta = new Date(a.slaDueAt).getTime() - new Date(b.slaDueAt).getTime();
+    if (dueDelta !== 0) return dueDelta;
+    return b.impactAmount - a.impactAmount;
   });
-  return data;
+}
+
+export async function fetchEscalations(params: ListEscalationsParams): Promise<EscalationPage> {
+  if (!DEMO_APPROVALS) {
+    const { data } = await http.get<EscalationPage>(PATHS.escalations.list, { params });
+    return data;
+  }
+  if (!APPROVALS_PIPELINE_LIVE) return demoFetchEscalations(params); // DEMO ONLY — DO NOT MERGE
+
+  // DEMO ONLY — DO NOT MERGE: fixtures ∪ live. Fixtures are injected on the
+  // first page only — cursor pages are the live keyset continuing, and
+  // re-injecting the deck there would duplicate it.
+  if (params.cursor) {
+    return fetchLiveEscalations(params).catch(() => ({ data: [], nextCursor: null }));
+  }
+  const [demo, live] = await Promise.allSettled([
+    demoFetchEscalations(params),
+    fetchLiveEscalations(params),
+  ]);
+  const demoPage = demo.status === 'fulfilled' ? demo.value : { data: [], nextCursor: null };
+  if (live.status !== 'fulfilled') return demoPage;
+  return {
+    data: sortQueue([...demoPage.data, ...live.value.data]),
+    nextCursor: live.value.nextCursor,
+  };
+}
+
+export async function fetchEscalationCounts(organizationId: string): Promise<EscalationCounts> {
+  if (!DEMO_APPROVALS) {
+    const { data } = await http.get<EscalationCounts>(PATHS.escalations.counts, {
+      params: { organizationId },
+    });
+    return data;
+  }
+  if (!APPROVALS_PIPELINE_LIVE) return demoFetchEscalationCounts(organizationId); // DEMO ONLY — DO NOT MERGE
+
+  // DEMO ONLY — DO NOT MERGE: the badge counts both worlds.
+  const [demo, live] = await Promise.allSettled([
+    demoFetchEscalationCounts(organizationId),
+    http
+      .get<EscalationCounts>(PATHS.escalations.counts, {
+        params: { organizationId },
+        suppressErrorToast: true,
+      })
+      .then(r => r.data),
+  ]);
+  const demoCounts =
+    demo.status === 'fulfilled'
+      ? demo.value
+      : { total: 0, critical: 0, slaRisk: 0, mine: 0, watching: 0 };
+  if (live.status !== 'fulfilled') return demoCounts;
+  return {
+    total: demoCounts.total + live.value.total,
+    critical: demoCounts.critical + live.value.critical,
+    slaRisk: demoCounts.slaRisk + live.value.slaRisk,
+    mine: demoCounts.mine + live.value.mine,
+    watching: demoCounts.watching + live.value.watching,
+  };
 }
 
 export async function fetchEscalation(
   organizationId: string,
   id: string,
 ): Promise<EscalationDetail> {
-  if (DEMO_APPROVALS) return demoFetchEscalation(organizationId, id); // DEMO ONLY — DO NOT MERGE
+  // DEMO ONLY — DO NOT MERGE: demo ids stay fixture-served even with the
+  // overlay on; real ids (push deep links) go live when the pipeline is up.
+  if (DEMO_APPROVALS && (isDemoId(id) || !APPROVALS_PIPELINE_LIVE)) {
+    return demoFetchEscalation(organizationId, id);
+  }
   const { data } = await http.get<EscalationDetail>(PATHS.escalations.detail(id), {
     params: { organizationId },
   });
@@ -162,7 +242,9 @@ export async function assignEscalation(
   id: string,
   body: { organizationId: string; assigneeId?: string },
 ): Promise<Escalation> {
-  if (DEMO_APPROVALS) return demoAssignEscalation(id, body); // DEMO ONLY — DO NOT MERGE
+  if (DEMO_APPROVALS && (isDemoId(id) || !APPROVALS_PIPELINE_LIVE)) {
+    return demoAssignEscalation(id, body); // DEMO ONLY — DO NOT MERGE
+  }
   const { data } = await http.post<Escalation>(PATHS.escalations.assign(id), body);
   return data;
 }
@@ -178,7 +260,9 @@ export async function approveEscalation(
   id: string,
   body: DecideEscalationBody,
 ): Promise<EscalationDecisionResult> {
-  if (DEMO_APPROVALS) return demoApproveEscalation(id, body); // DEMO ONLY — DO NOT MERGE
+  if (DEMO_APPROVALS && (isDemoId(id) || !APPROVALS_PIPELINE_LIVE)) {
+    return demoApproveEscalation(id, body); // DEMO ONLY — DO NOT MERGE
+  }
   const { data } = await http.post<EscalationDecisionResult>(PATHS.escalations.approve(id), body);
   return data;
 }
@@ -187,7 +271,9 @@ export async function rejectEscalation(
   id: string,
   body: DecideEscalationBody,
 ): Promise<EscalationDecisionResult> {
-  if (DEMO_APPROVALS) return demoRejectEscalation(id, body); // DEMO ONLY — DO NOT MERGE
+  if (DEMO_APPROVALS && (isDemoId(id) || !APPROVALS_PIPELINE_LIVE)) {
+    return demoRejectEscalation(id, body); // DEMO ONLY — DO NOT MERGE
+  }
   const { data } = await http.post<EscalationDecisionResult>(PATHS.escalations.reject(id), body);
   return data;
 }

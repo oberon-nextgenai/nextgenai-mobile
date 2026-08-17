@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { fetchVapidPublicKey, registerDevice } from '@/api/services/devices';
 import { subscribeWebPush, webNotificationPermission } from '@/lib/push/webPush';
 import { deviceLabel } from '@/lib/push/pushTokens';
-// DEMO ONLY — DO NOT MERGE: the fixture build must never show a permission
-// prompt mid-presentation.
-import { DEMO_APPROVALS } from '@/api/demo/flags';
+// DEMO ONLY — DO NOT MERGE: the card follows the live pipeline — on for the
+// overlay (placeholders + real approvals) and for a fully live build alike.
+import { APPROVALS_PIPELINE_LIVE } from '@/api/demo/flags';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
 /**
@@ -26,7 +26,10 @@ import { useThemeMode } from '@/hooks/useThemeMode';
 export function EnableNotificationsCard({ organizationId }: { organizationId: string }) {
   const { colors } = useThemeMode();
   const [visible, setVisible] = useState(
-    () => Platform.OS === 'web' && !DEMO_APPROVALS && webNotificationPermission() === 'default',
+    () =>
+      Platform.OS === 'web' &&
+      APPROVALS_PIPELINE_LIVE &&
+      webNotificationPermission() === 'default',
   );
   const [busy, setBusy] = useState(false);
 
