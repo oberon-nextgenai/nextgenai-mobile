@@ -54,6 +54,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   web: {
     bundler: 'metro',
+    // 'static' is what makes app/+html.tsx the HTML shell — the default
+    // 'single' mode ignores it, which shipped an index.html with no manifest
+    // or touch-icon links (generic globe on Add-to-Home-Screen).
+    output: 'static',
   },
   plugins: [
     'expo-router',
