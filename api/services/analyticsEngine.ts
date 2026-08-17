@@ -42,12 +42,24 @@ export async function fetchDashboardRender(
   organizationId: string,
   preset: RenderPreset,
 ): Promise<DashboardRender> {
+  // DEMO ONLY — DO NOT MERGE: zero KPI values get ledger numbers overlaid
+  // (real non-zero data and chart widgets pass through untouched); if the
+  // engine is unreachable the whole dashboard falls back to fixtures.
+  if (DEMO_APPROVALS) {
+    const { applyDemoRenderOverlay, demoDashboardRender } = await import('@/api/demo/analyticsDemo');
+    try {
+      const { data } = await http.get<DashboardRender>(
+        PATHS.analyticsEngine.render(organizationId),
+        { params: { preset }, timeout: DEMO_TIMEOUT_MS, suppressErrorToast: true },
+      );
+      return applyDemoRenderOverlay(data);
+    } catch {
+      return demoDashboardRender(organizationId, preset);
+    }
+  }
   const { data } = await http.get<DashboardRender>(
     PATHS.analyticsEngine.render(organizationId),
-    {
-      params: { preset },
-      ...(DEMO_APPROVALS ? { timeout: DEMO_TIMEOUT_MS, suppressErrorToast: true } : {}),
-    },
+    { params: { preset } },
   );
   return data;
 }

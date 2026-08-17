@@ -33,9 +33,6 @@ import { CHANNEL_LABEL } from '@/api/services/channelMix';
 import { useDashboardRender, useOrgData } from '@/api/hooks/orgDataHooks';
 import { WidgetTile } from '@/components/analytics/WidgetTile';
 import { LeasingCard, MeterFleetCard } from '@/components/analytics/OrgDataCards';
-// DEMO ONLY — DO NOT MERGE: ledger-derived channel mix when the API has none.
-import { DEMO_APPROVALS } from '@/api/demo/flags';
-import { demoChannelMix } from '@/api/demo/agentProfiles';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { cn } from '@/lib/cn';
 import { fmtNumber, fmtRelative, fmtPct } from '@/lib/formatters';
@@ -160,14 +157,10 @@ export default function AnalyticsScreen() {
     routing.view?.kind === 'core' || routing.view?.kind === 'unknown'
       ? activeOrgId
       : null;
+  // Demo-vs-live routing lives in the service (`fetchChannelMix`), like every
+  // other spine — the screen just renders what the hook returns.
   const channelMixQuery = useChannelMix(coreOrgId);
-  const channelMix = useMemo(() => {
-    const live = channelMixQuery.data;
-    if (live && live.totalInteractions > 0) return live;
-    // DEMO ONLY — DO NOT MERGE: ledger-derived fallback so the card never
-    // renders empty during the board demo.
-    return DEMO_APPROVALS ? demoChannelMix() : live;
-  }, [channelMixQuery.data]);
+  const channelMix = channelMixQuery.data;
 
   // Core analytics charts — read the structured chart arrays the backend
   // returns (RetellDashboardData.charts) directly, so nothing is dropped.

@@ -1,5 +1,8 @@
 import { http } from '@/api/client/http';
 import { PATHS } from '@/api/client/paths';
+// DEMO ONLY — DO NOT MERGE: canonical 760-interaction mix for the board demo.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { demoChannelMix } from '@/api/demo/agentProfiles';
 
 /**
  * Channel mix — how many interactions each channel handled, and where the source
@@ -41,6 +44,10 @@ export async function fetchChannelMix(
   organizationId: string,
   params: ChannelMixParams = {},
 ): Promise<ChannelMix> {
+  // DEMO ONLY — DO NOT MERGE: the live mix (a handful of test SMS threads)
+  // used to outvote the ledger because "totalInteractions > 0" preferred it;
+  // on the demo build the 195-calls / 565-emails story always wins.
+  if (DEMO_APPROVALS) return demoChannelMix();
   const { data } = await http.get<ChannelMix>(PATHS.analytics.channelMix(organizationId), {
     params,
   });

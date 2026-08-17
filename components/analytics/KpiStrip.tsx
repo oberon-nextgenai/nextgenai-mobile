@@ -1,6 +1,10 @@
 import { View } from 'react-native';
 import { MetricCard } from './MetricCard';
 import { fmtNumber, fmtPct, fmtDuration, fmtCurrency } from '@/lib/formatters';
+// DEMO ONLY — DO NOT MERGE: metering dollars never render on the demo build;
+// the cost tile maps to voice minutes, like the More menu's Outcomes row.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { DEMO_LEDGER } from '@/api/demo/agentProfiles';
 import type { AnalyticsMetric, DashboardCharts } from '@/api/services/types';
 
 interface KpiStripProps {
@@ -89,12 +93,22 @@ export function KpiStrip({ metrics, charts }: KpiStripProps) {
 
       {/* Cost + eval row */}
       <View className="flex-row gap-2.5">
-        <MetricCard
-          variant="compact"
-          label="Total Cost"
-          value={fmtCurrency(metrics.totalCost)}
-          icon="cash-outline"
-        />
+        {DEMO_APPROVALS ? (
+          // DEMO ONLY — DO NOT MERGE: usage, not metering dollars.
+          <MetricCard
+            variant="compact"
+            label="Voice Minutes"
+            value={fmtNumber(DEMO_LEDGER.voiceMinutes7d)}
+            icon="mic-outline"
+          />
+        ) : (
+          <MetricCard
+            variant="compact"
+            label="Total Cost"
+            value={fmtCurrency(metrics.totalCost)}
+            icon="cash-outline"
+          />
+        )}
         {hasEval ? (
           <MetricCard
             variant="compact"

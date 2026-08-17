@@ -1,5 +1,8 @@
 import { http } from '../client/http';
 import { PATHS } from '../client/paths';
+// DEMO ONLY — DO NOT MERGE: ledger-coherent dashboard fixtures.
+import { DEMO_APPROVALS } from '../demo/flags';
+import { demoAnalyticsDashboard } from '../demo/analyticsDemo';
 import type {
   AnalyticsDashboard,
   AnalyticsCallSummary,
@@ -14,6 +17,16 @@ export async function fetchDashboard(
   orgId: string,
   params?: { from?: string; to?: string },
 ): Promise<AnalyticsDashboard> {
+  // DEMO ONLY — DO NOT MERGE: the deck's numbers are the ledger's, always.
+  // The live Retell dashboard reports a near-empty org (8 calls, $ metering)
+  // that contradicts every other tab; determinism beats freshness on stage.
+  if (DEMO_APPROVALS) {
+    const days =
+      params?.from && params?.to
+        ? (new Date(params.to).getTime() - new Date(params.from).getTime()) / 86_400_000
+        : 7;
+    return demoAnalyticsDashboard(days > 20 ? '30d' : '7d');
+  }
   const res = await http.get<AnalyticsDashboard>(PATHS.analytics.dashboard(orgId), { params });
   return res.data;
 }

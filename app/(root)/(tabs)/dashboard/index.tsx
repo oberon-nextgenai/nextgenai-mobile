@@ -13,7 +13,10 @@ import { TopAgentsRow } from '@/components/dashboard/TopAgentsRow';
 import { useActiveOrg } from '@/store/org';
 import { useDashboard } from '@/api/hooks/analyticsHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
-import { fmtCurrency } from '@/lib/formatters';
+import { fmtCurrency, fmtNumber } from '@/lib/formatters';
+// DEMO ONLY — DO NOT MERGE: cost maps to voice minutes on the demo build.
+import { DEMO_APPROVALS } from '@/api/demo/flags';
+import { DEMO_LEDGER } from '@/api/demo/agentProfiles';
 
 export default function DashboardScreen() {
   const { activeOrgId } = useActiveOrg();
@@ -75,10 +78,18 @@ export default function DashboardScreen() {
                 label: 'Live sessions',
                 value: String(dashboard.data?.metrics?.liveActiveSessions ?? 0),
               },
-              {
-                label: 'Total cost',
-                value: fmtCurrency(dashboard.data?.metrics?.totalCost ?? 0),
-              },
+              // DEMO ONLY — DO NOT MERGE: metering dollars never render; the
+              // plan covers usage, so the tile reports usage.
+              DEMO_APPROVALS
+                ? {
+                    label: 'Voice minutes',
+                    value: fmtNumber(DEMO_LEDGER.voiceMinutes7d),
+                    hint: 'last 7 days',
+                  }
+                : {
+                    label: 'Total cost',
+                    value: fmtCurrency(dashboard.data?.metrics?.totalCost ?? 0),
+                  },
             ]}
           />
 
