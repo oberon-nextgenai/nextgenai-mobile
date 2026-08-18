@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useThemeMode } from '@/hooks/useThemeMode';
+import { useWebKeyboardInset } from '@/hooks/useWebKeyboardInset';
 import { GlassSurface } from '@/components/ui/GlassSurface';
 import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
@@ -47,6 +48,12 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   // …and the SSE stream is what moves that number the moment an escalation is
   // created or decided, instead of on the next 20s staleness or refocus.
   useEscalationsStream(activeOrgId);
+  // Web only: the tab bar is a sibling of the scene, so Screen's keyboard pad
+  // can't lift it — while the soft keyboard is up it would sit under the
+  // keyboard leaving a dead band. Drop it so the composer seats on the keyboard
+  // (iOS-Messages behavior). Always 0 on native → the bar never hides there.
+  const kbInset = useWebKeyboardInset();
+  if (kbInset > 0) return null;
 
   return (
     <GlassSurface border="top" radius={0} elevation="lg" intensity={40}>
