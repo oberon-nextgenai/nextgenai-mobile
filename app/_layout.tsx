@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import 'react-native-url-polyfill/auto';
 import '@/global.css';
-import { ActivityIndicator, View, AppState, AppStateStatus } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { ActivityIndicator, Pressable, Text, View, AppState, AppStateStatus } from 'react-native';
+import { Stack, useRouter, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -46,6 +46,45 @@ focusManager.setEventListener((handleFocus) => {
   const sub = AppState.addEventListener('change', onChange);
   return () => sub.remove();
 });
+
+/**
+ * Root crash screen. Without this, any uncaught render error unmounts the whole
+ * tree — on web that is a plain white page, mid-demo, with no way back but a
+ * reload. Deliberately self-contained: no theme hook, no styled components —
+ * nothing here may depend on state that might itself be what crashed.
+ */
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: '#0B0F19',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 32,
+      }}
+    >
+      <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
+        Something went wrong
+      </Text>
+      <Text style={{ color: '#9BA0AE', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
+        A screen failed to render. Your data is safe.
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => void retry()}
+        style={{
+          backgroundColor: '#5B3DF5',
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          borderRadius: 999,
+        }}
+      >
+        <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600' }}>Try again</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export default function RootLayout() {
   const storesReady = useAppInit();

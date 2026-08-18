@@ -605,10 +605,20 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             break;
           }
           case 'error': {
+            // The backend's error event may carry a STRING or a serialized
+            // error OBJECT ({response, status, message, …}). An object put
+            // into `content` reaches JSX and crashes the whole tree
+            // ("Objects are not valid as a React child") — coerce hard.
+            const rawError =
+              (event as { error?: unknown }).error ?? (event as { message?: unknown }).message;
             const msg =
-              (event as { error?: string; message?: string }).error ??
-              (event as { message?: string }).message ??
-              'Prime encountered an error.';
+              typeof rawError === 'string'
+                ? rawError
+                : rawError !== null &&
+                    typeof rawError === 'object' &&
+                    typeof (rawError as { message?: unknown }).message === 'string'
+                  ? (rawError as { message: string }).message
+                  : 'Prime encountered an error.';
             Toast.show({ type: 'error', text1: 'Prime error', text2: msg });
             setMessages((prev) =>
               prev.map((m) =>
