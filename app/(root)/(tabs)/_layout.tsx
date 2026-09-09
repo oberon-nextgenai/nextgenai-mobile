@@ -10,6 +10,8 @@ import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
 import { useEscalationCounts } from '@/api/hooks/escalationHooks';
 import { useActiveOrg } from '@/store/org';
+import { useAuthStore } from '@/store/auth';
+import { tabsForRole, canSeeApprovals, type TabRole } from '@/lib/tabsForRole';
 
 /**
  * The CEO command app exposes five calm destinations. Admin surfaces
@@ -38,9 +40,14 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const activeName = state.routes[state.index]?.name;
   const { activeOrgId } = useActiveOrg();
+  const role = useAuthStore((s) => s.user?.role) as TabRole;
+  const visibleTabs = tabsForRole(TABS, role);
   // Cached ~20s server-side and client-side, so this is cheap despite living on
-  // every screen. It is the one number the app is always showing you.
-  const { data: counts } = useEscalationCounts(activeOrgId);
+  // every screen. It is the one number the app is always showing you — but the
+  // queue is admin-only, so a non-admin must not poll it at all: the hook is
+  // already `enabled: !!orgId`, so passing null disables the query outright
+  // rather than firing a request that 403s and toasts.
+  const { data: counts } = useEscalationCounts(canSeeApprovals(role) ? activeOrgId : null);
 
   return (
     <GlassSurface border="top" radius={0} elevation="lg" intensity={40}>
@@ -48,7 +55,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         className="flex-row px-1.5 pt-2"
         style={{ paddingBottom: Math.max(insets.bottom, 8) }}
       >
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const focused = tab.name === activeName;
           const onPress = () => {
             if (Platform.OS !== 'web') void Haptics.selectionAsync();
@@ -114,6 +121,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
+  const role = useAuthStore((s) => s.user?.role) as TabRole;
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
@@ -123,7 +131,10 @@ export default function TabsLayout() {
       <Tabs.Screen name="brief" options={{ title: 'Brief' }} />
       <Tabs.Screen name="workforce" options={{ title: 'Workforce' }} />
       <Tabs.Screen name="prime" options={{ title: 'Prime' }} />
-      <Tabs.Screen name="approvals" options={{ title: 'Approvals' }} />
+      <Tabs.Screen
+        name="approvals"
+        options={{ title: 'Approvals', href: canSeeApprovals(role) ? undefined : null }}
+      />
       <Tabs.Screen name="more" options={{ title: 'More' }} />
       {/* Registered but hidden — reachable from More, deep links preserved */}
       <Tabs.Screen name="dashboard" options={{ title: 'Home' }} />
