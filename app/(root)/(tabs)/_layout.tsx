@@ -10,8 +10,8 @@ import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
 import { useEscalationCounts } from '@/api/hooks/escalationHooks';
 import { useActiveOrg } from '@/store/org';
-import { useAuthStore } from '@/store/auth';
-import { tabsForRole, canSeeApprovals, type TabRole } from '@/lib/tabsForRole';
+import { useTabRole } from '@/hooks/useTabRole';
+import { tabsForRole, canSeeApprovals } from '@/lib/tabsForRole';
 
 /**
  * The CEO command app exposes five calm destinations. Admin surfaces
@@ -40,7 +40,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const activeName = state.routes[state.index]?.name;
   const { activeOrgId } = useActiveOrg();
-  const role = useAuthStore((s) => s.user?.role) as TabRole;
+  const role = useTabRole();
   const visibleTabs = tabsForRole(TABS, role);
   // Cached ~20s server-side and client-side, so this is cheap despite living on
   // every screen. It is the one number the app is always showing you — but the
@@ -121,7 +121,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
-  const role = useAuthStore((s) => s.user?.role) as TabRole;
+  const role = useTabRole();
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
