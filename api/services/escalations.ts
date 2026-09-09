@@ -10,14 +10,40 @@ import { PATHS } from '@/api/client/paths';
  */
 
 export type EscalationSeverity = 'critical' | 'high' | 'medium' | 'low';
-export type EscalationStatus = 'open' | 'assigned' | 'resolved' | 'expired';
-export type EscalationKind =
-  | 'customer'
-  | 'cost_anomaly'
-  | 'sla_risk'
-  | 'policy_exception'
-  | 'compliance'
-  | 'workflow_failure';
+
+/**
+ * Mirrors `ESCALATION_KINDS` in the backend's
+ * `src/modules/escalations/escalations.types.ts`. Kept as a const array rather
+ * than a bare union so `escalations.spec.ts` can assert the two agree —
+ * a hand-written union drifts silently, which is how 'tool_approval' went
+ * missing here for an entire release.
+ */
+export const ESCALATION_KINDS = [
+  'customer',
+  'cost_anomaly',
+  'sla_risk',
+  'policy_exception',
+  'compliance',
+  'workflow_failure',
+  /** Agent requested a one-time grant to run a gated tool (ND-1353). */
+  'tool_approval',
+] as const;
+export type EscalationKind = (typeof ESCALATION_KINDS)[number];
+
+export const ESCALATION_STATUSES = [
+  'open',
+  'assigned',
+  /** Approved — the proposed action was allowed to proceed. */
+  'resolved',
+  /** Rejected. Also a completed decision, but the opposite one. */
+  'rejected',
+  'expired',
+] as const;
+export type EscalationStatus = (typeof ESCALATION_STATUSES)[number];
+
+/** Mirrors `GRANT_STATUSES` in the backend's `hitl-grant.util.ts`. */
+export const GRANT_STATUSES = ['none', 'issued', 'consumed', 'expired', 'revoked'] as const;
+export type GrantStatus = (typeof GRANT_STATUSES)[number];
 
 export type ApprovalDecision = 'pending' | 'approved' | 'rejected';
 export type ApprovalAuthMethod = 'password' | 'sso' | 'biometric_sso' | 'api_key';
@@ -64,6 +90,32 @@ export interface Approval {
   note?: string;
   reverseWindowEndsAt?: string;
   auditId?: string;
+
+  // ── HITL tool-grant fields (ND-1353) ────────────────────────────────────
+  // Present only when `action === 'tool_grant'` — i.e. an agent asked for a
+  // one-time grant to run a gated tool. `grantToken` and `grantTokenHash` are
+  // deliberately absent: the backend strips the token from human-facing
+  // responses, so a human client must never expect or hold one.
+
+  /** The gated tool the agent wants to run, e.g. `send_template_email`. */
+  toolName?: string;
+  /** Frozen tool args captured at request time; secrets already redacted. */
+  actionPayload?: Record<string, unknown>;
+  /** sha256 of the canonical `actionPayload` — redeem must match exactly. */
+  payloadHash?: string;
+  grantStatus?: GrantStatus;
+  /** ISO timestamp. */
+  consumedAt?: string;
+  executionId?: string;
+  executionType?: 'email' | 'chat' | 'voice' | 'api' | 'other';
+  /** Callback / job handle used to resume an API invoke after a decision. */
+  resumeHandle?: string;
+  /** ISO timestamp. At-most-once agent wake after decide. */
+  agentNotifiedAt?: string;
+  resumeJobId?: string;
+  /** Agent that owns this tool-grant; set on request, used when redeeming. */
+  agentId?: string;
+
   createdAt: string;
 }
 
