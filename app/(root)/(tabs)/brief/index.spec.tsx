@@ -108,7 +108,7 @@ describe('BriefScreen with no operational briefing', () => {
   it('still renders the rest of the screen — the briefings query gates nothing', () => {
     render(<BriefScreen />);
 
-    expect(screen.getByText(/Good (morning|afternoon|evening), Sara/)).toBeTruthy();
+    expect(screen.getByText('Good morning, Sara.')).toBeTruthy();
     expect(screen.getByText('Agents active')).toBeTruthy();
     expect(screen.getByText('Tasks resolved')).toBeTruthy();
   });

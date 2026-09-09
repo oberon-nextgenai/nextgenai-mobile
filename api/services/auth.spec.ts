@@ -13,8 +13,8 @@ describe('fetchOrganizations', () => {
 
   it('returns the array when the response is an array of organizations', async () => {
     const orgs: Organization[] = [
-      { _id: 'org_1', name: 'Org One', createdAt: new Date().toISOString() },
-      { _id: 'org_2', name: 'Org Two', createdAt: new Date().toISOString() },
+      { _id: 'org_1', name: 'Org One' },
+      { _id: 'org_2', name: 'Org Two' },
     ];
     mockGet.mockResolvedValue({ data: orgs });
 

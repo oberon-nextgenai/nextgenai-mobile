@@ -1,4 +1,5 @@
-import { useOrgStore } from './org';
+import { renderHook } from '@testing-library/react-native';
+import { useActiveOrg, useOrgStore } from './org';
 import type { Organization } from '@/api/services/types';
 
 describe('useOrgStore — asOrgArray guard', () => {
@@ -10,8 +11,8 @@ describe('useOrgStore — asOrgArray guard', () => {
   describe('setOrganizations', () => {
     it('stores an array of organizations unchanged', () => {
       const orgs: Organization[] = [
-        { _id: 'org_1', name: 'Org One', createdAt: new Date().toISOString() },
-        { _id: 'org_2', name: 'Org Two', createdAt: new Date().toISOString() },
+        { _id: 'org_1', name: 'Org One' },
+        { _id: 'org_2', name: 'Org Two' },
       ];
 
       useOrgStore.getState().setOrganizations(orgs);
@@ -55,9 +56,7 @@ describe('useOrgStore — asOrgArray guard', () => {
 
   describe('reconcile', () => {
     it('updates organizations when passed an array', async () => {
-      const orgs: Organization[] = [
-        { _id: 'org_1', name: 'Org One', createdAt: new Date().toISOString() },
-      ];
+      const orgs: Organization[] = [{ _id: 'org_1', name: 'Org One' }];
 
       await useOrgStore.getState().reconcile({ organizations: orgs });
 
@@ -87,6 +86,23 @@ describe('useOrgStore — asOrgArray guard', () => {
 
       expect(useOrgStore.getState().organizations).toEqual([]);
       expect(Array.isArray(useOrgStore.getState().organizations)).toBe(true);
+    });
+  });
+
+  describe('useActiveOrg', () => {
+    it('never throws and normalizes to [] even when the store was poisoned directly, bypassing setOrganizations/reconcile', () => {
+      // Neither writer guard runs here — this simulates a bad value already
+      // sitting in the store (e.g. from a rehydrated snapshot), which is
+      // exactly the case the hook's own `asOrgArray` call exists to catch.
+      useOrgStore.setState({
+        organizations: '<html><body>Starting up...</body></html>' as unknown as Organization[],
+      });
+
+      const { result } = renderHook(() => useActiveOrg());
+
+      expect(result.current.organizations).toEqual([]);
+      expect(Array.isArray(result.current.organizations)).toBe(true);
+      expect(result.current.active).toBeNull();
     });
   });
 });

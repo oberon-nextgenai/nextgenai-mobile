@@ -53,7 +53,11 @@ focusManager.setEventListener((handleFocus) => {
  * reload. Deliberately self-contained: no theme hook, no styled components —
  * nothing here may depend on state that might itself be what crashed.
  */
-export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  // No logger/Sentry wired up in this repo yet — this is the only record of
+  // the crash, so it must not be silently dropped.
+  console.error('[root] uncaught render error', error);
+
   return (
     <View
       style={{
@@ -70,6 +74,11 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
       <Text style={{ color: '#9BA0AE', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
         A screen failed to render. Your data is safe.
       </Text>
+      {__DEV__ ? (
+        <Text style={{ color: '#F87171', fontSize: 12, textAlign: 'center', marginBottom: 24 }}>
+          {error.message}
+        </Text>
+      ) : null}
       <Pressable
         accessibilityRole="button"
         onPress={() => void retry()}
