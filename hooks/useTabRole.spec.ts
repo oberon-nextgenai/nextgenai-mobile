@@ -42,4 +42,19 @@ describe('useTabRole', () => {
 
     expect(result.current).toBeUndefined();
   });
+
+  it('denies an unrecognised role rather than passing it through', () => {
+    // `PublicUser.role` is typed `... | string`, so the backend can hand back
+    // a role this client has never heard of. A bare `as TabRole` cast would
+    // let that string through unchanged — silently widening TabRole's own
+    // union and defeating any exhaustive `switch` downstream. The real
+    // narrowing here must fall back to `undefined`, the same fail-closed
+    // value an unauthenticated user gets, so an unknown role is denied
+    // rather than trusted.
+    setUser({ role: 'contractor' });
+
+    const { result } = renderHook(() => useTabRole());
+
+    expect(result.current).toBeUndefined();
+  });
 });

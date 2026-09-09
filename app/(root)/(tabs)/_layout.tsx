@@ -27,15 +27,30 @@ const TABS: {
   icon: keyof typeof Ionicons.glyphMap;
   /** Renders the live count of items waiting on a decision. */
   badge?: boolean;
+  /**
+   * Gated by `tabsForRole` — hidden from the bar (and its badge poll
+   * skipped) unless `canSeeApprovals(role)`. Drives `tabsForRole` by this
+   * flag rather than by `name`, so renaming this tab's route can't
+   * silently reopen it to everyone.
+   */
+  adminOnly?: boolean;
 }[] = [
   { name: 'brief', title: 'Brief', icon: 'today-outline' },
   { name: 'workforce', title: 'Workforce', icon: 'people-outline' },
   { name: 'prime', title: 'Prime', icon: 'sparkles-outline' },
-  { name: 'approvals', title: 'Approvals', icon: 'checkmark-circle-outline', badge: true },
+  {
+    name: 'approvals',
+    title: 'Approvals',
+    icon: 'checkmark-circle-outline',
+    badge: true,
+    adminOnly: true,
+  },
   { name: 'more', title: 'More', icon: 'apps-outline' },
 ];
 
-function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+/** Exported so its regression test can render it directly with a stubbed
+ * `BottomTabBarProps`, rather than mounting the whole `<Tabs>` navigator. */
+export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const { colors } = useThemeMode();
   const insets = useSafeAreaInsets();
   const activeName = state.routes[state.index]?.name;
@@ -133,7 +148,19 @@ export default function TabsLayout() {
       <Tabs.Screen name="prime" options={{ title: 'Prime' }} />
       <Tabs.Screen
         name="approvals"
-        options={{ title: 'Approvals', href: canSeeApprovals(role) ? undefined : null }}
+        options={{
+          title: 'Approvals',
+          // Safety net, not the actual gate: Expo Router turns `href: null`
+          // into `tabBarItemStyle: { display: 'none' }` / `tabBarButton: () =>
+          // null` on React Navigation's *default* BottomTabBar. This screen
+          // renders `tabBar={(props) => <CustomTabBar {...props} />}` above,
+          // and `CustomTabBar` reads only `state`/`navigation` — never
+          // `descriptors` — so this line changes nothing today. The actual
+          // hiding is `tabsForRole` inside `CustomTabBar`. Left in so the tab
+          // would still hide correctly if the custom bar were ever dropped in
+          // favor of the default one.
+          href: canSeeApprovals(role) ? undefined : null,
+        }}
       />
       <Tabs.Screen name="more" options={{ title: 'More' }} />
       {/* Registered but hidden — reachable from More, deep links preserved */}

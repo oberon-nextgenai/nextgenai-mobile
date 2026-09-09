@@ -48,6 +48,13 @@ function setRole(role: 'user' | 'org_admin' | 'superadmin' | undefined) {
 beforeEach(() => {
   jest.clearAllMocks();
 
+  // `user.role` is intentionally pinned to 'org_admin' here while `setRole()`
+  // (below) drives the gate independently via the mocked `useTabRole`. That
+  // divergence is load-bearing, not an inconsistency to "clean up": it's what
+  // proves the Approvals gating in this screen reads `useTabRole`, not
+  // `user.role` — `user.role` is only ever used for the `affiliation` display
+  // string. Making the two agree would let a regression that reads the wrong
+  // source pass every test in this file unnoticed.
   mockUseAuthStore.mockImplementation(
     ((selector: (s: { user: unknown }) => unknown) =>
       selector({
@@ -74,8 +81,9 @@ beforeEach(() => {
 
 describe('MoreScreen — Approvals gating for non-admins', () => {
   // ND-1353 made the escalations queue org_admin/superadmin-only server-side.
-  // This is the second poll site the tab-bar fix missed: the menu reads the
-  // same counts to show a live badge on its own Approvals row.
+  // This is the second of three call sites (see `_layout.tsx` for the first,
+  // `approvals/index.tsx` for the third, deliberately-ungated one): the menu
+  // reads the same counts to show a live badge on its own Approvals row.
   it('disables the escalation-count poll for a plain user', () => {
     setRole('user');
 

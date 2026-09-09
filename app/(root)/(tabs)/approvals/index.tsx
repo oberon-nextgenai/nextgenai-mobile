@@ -77,6 +77,26 @@ export default function ApprovalsScreen() {
   const { colors } = useThemeMode();
   const [filter, setFilter] = useState<Filter>('all');
 
+  // Deliberately NOT gated on role, unlike the tab bar (`_layout.tsx`) and
+  // the More menu (`more/index.tsx`), which both disable their escalation
+  // poll for a non-admin. Both of those are the only ways into this screen
+  // in normal navigation and already hide the entry point, so reaching this
+  // screen at all as a non-admin means a deep link — an edge case, not the
+  // steady state those two comments are guarding against.
+  //
+  // Gating these two queries the same way looks like the obvious remaining
+  // fix, but it isn't one: TanStack Query v5 gives a `null`-disabled query
+  // `isPending: true` with `fetchStatus: 'idle'` forever (it never
+  // transitions to `isError`), and `list.isPending` below (see the
+  // `ActivityIndicator` branch) renders a bare spinner on that state. Gating
+  // without also rewriting that render branch would trade four
+  // "Access denied" toasts for one permanent spinner — a worse dead end,
+  // because the toasts at least stop and the spinner never resolves.
+  //
+  // As it stands, a non-admin who deep-links here gets a real 403 from the
+  // server, `list.isError` is true, and the screen renders `ErrorState` with
+  // the backend's own message — a legible outcome instead of an infinite
+  // spinner.
   const counts = useEscalationCounts(activeOrgId);
   const list = useEscalationList(activeOrgId, FILTER_QUERY[filter]);
 

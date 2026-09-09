@@ -17,7 +17,23 @@ export function canSeeApprovals(role: TabRole): boolean {
   return role === 'org_admin' || role === 'superadmin';
 }
 
-export function tabsForRole<T extends { name: string }>(tabs: readonly T[], role: TabRole): T[] {
+/**
+ * Filters a tab descriptor list for a role.
+ *
+ * Keyed off the descriptor's own `adminOnly` flag rather than a tab's
+ * `name` — a rule keyed on the literal string `'approvals'` would silently
+ * stop applying the moment the route were renamed, or would silently apply
+ * to an unrelated tab that happened to be named `'approvals'`, and neither
+ * TypeScript nor this rule's own spec would notice: the spec would keep
+ * passing against its own hand-copied fixture while the real bar failed
+ * open. Reading `adminOnly` off the same object the bar renders from makes
+ * the fixture and the production list structurally the same shape, so a
+ * rename or a reordering can't desync them.
+ */
+export function tabsForRole<T extends { adminOnly?: boolean }>(
+  tabs: readonly T[],
+  role: TabRole,
+): T[] {
   const allowed = canSeeApprovals(role);
-  return tabs.filter((tab) => tab.name !== 'approvals' || allowed);
+  return tabs.filter((tab) => !tab.adminOnly || allowed);
 }
