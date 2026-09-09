@@ -363,3 +363,89 @@ describe('usePrimeChat — stopStreaming', () => {
     expect(mockToastShow).not.toHaveBeenCalled();
   });
 });
+
+describe('usePrimeChat — stream error coercion guard', () => {
+  it('handles a plain string error without crashing on "Objects are not valid as a React child"', async () => {
+    const onMessage = await submitAndCaptureStream();
+
+    act(() => {
+      onMessage({
+        type: 'error',
+        error: 'Network timeout',
+      });
+    });
+
+    // The error must be coerced to a string before reaching JSX
+    expect(mockToastShow).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error', text1: 'Prime error', text2: 'Network timeout' }),
+    );
+  });
+
+  it('extracts .message from an error object with a message property', async () => {
+    const onMessage = await submitAndCaptureStream();
+
+    act(() => {
+      onMessage({
+        type: 'error',
+        error: {
+          response: { status: 500 },
+          status: 500,
+          message: 'Server error occurred',
+        },
+      });
+    });
+
+    // The .message string is extracted
+    expect(mockToastShow).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error', text1: 'Prime error', text2: 'Server error occurred' }),
+    );
+  });
+
+  it('falls back to default message when error is neither string nor object with message', async () => {
+    const onMessage = await submitAndCaptureStream();
+
+    act(() => {
+      onMessage({
+        type: 'error',
+        error: { response: { status: 500 }, status: 500 }, // no message property
+      });
+    });
+
+    // Falls back to the safe default
+    expect(mockToastShow).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error', text1: 'Prime error', text2: 'Prime encountered an error.' }),
+    );
+  });
+
+  it('handles null or undefined error gracefully', async () => {
+    const onMessage = await submitAndCaptureStream();
+
+    act(() => {
+      onMessage({
+        type: 'error',
+        error: null,
+      });
+    });
+
+    // Must not crash; falls back to default
+    expect(mockToastShow).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error', text1: 'Prime error', text2: 'Prime encountered an error.' }),
+    );
+  });
+
+  it('uses .message from the `message` field when `error` is not present', async () => {
+    const onMessage = await submitAndCaptureStream();
+
+    act(() => {
+      onMessage({
+        type: 'error',
+        message: 'Alternative error path',
+      });
+    });
+
+    // Falls back to .message if error is undefined
+    expect(mockToastShow).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error', text1: 'Prime error', text2: 'Alternative error path' }),
+    );
+  });
+});
