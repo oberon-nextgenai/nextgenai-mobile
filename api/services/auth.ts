@@ -35,6 +35,13 @@ export async function logout(): Promise<void> {
 
 export async function fetchOrganizations(): Promise<Organization[]> {
   const res = await http.get<Organization[]>(PATHS.orgs.list);
+  // A gateway mid-deploy can answer 200 with an HTML "starting up" page.
+  // Storing that poisoned the org store (`organizations.map is not a
+  // function`) and white-screened the app — a non-array is a failed fetch,
+  // never data.
+  if (!Array.isArray(res.data)) {
+    throw new Error('Unexpected /orgs response shape');
+  }
   return res.data;
 }
 

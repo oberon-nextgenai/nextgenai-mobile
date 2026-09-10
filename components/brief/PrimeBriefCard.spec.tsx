@@ -41,7 +41,7 @@ describe('PrimeBriefCard without a briefing', () => {
   it('falls back to Prime’s own summary', () => {
     renderCard();
 
-    expect(screen.getByText('Prime · Morning brief')).toBeTruthy();
+    expect(screen.getByText(/Prime.*(Morning|Afternoon|Evening) brief/)).toBeTruthy();
     expect(screen.getByText(SUMMARY)).toBeTruthy();
   });
 

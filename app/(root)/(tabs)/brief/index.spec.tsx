@@ -93,7 +93,7 @@ describe('BriefScreen with no operational briefing', () => {
   it('renders the hero on Prime’s own summary, exactly as it did before', () => {
     render(<BriefScreen />);
 
-    expect(screen.getByText('Prime · Morning brief')).toBeTruthy();
+    expect(screen.getByText(/Prime.*(Morning|Afternoon|Evening) brief/)).toBeTruthy();
     expect(screen.getByText(SUMMARY)).toBeTruthy();
     expect(screen.getByText('Live')).toBeTruthy();
   });
@@ -232,7 +232,7 @@ describe('BriefScreen gates', () => {
     });
     render(<BriefScreen />);
 
-    expect(screen.queryByText('Prime · Morning brief')).toBeNull();
+    expect(screen.queryByText(/Prime.*(Morning|Afternoon|Evening) brief/)).toBeNull();
   });
 
   it('fails only on the core dashboard, never on the briefings query', () => {
