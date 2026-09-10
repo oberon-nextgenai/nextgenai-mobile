@@ -10,12 +10,14 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
 import { fmtCurrency, fmtNumber } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
+import { useTabRole } from '@/hooks/useTabRole';
 import { useAuthStore } from '@/store/auth';
 import { useActiveOrg } from '@/store/org';
 import { useNotifications } from '@/store/notifications';
 import { useEscalationCounts } from '@/api/hooks/escalationHooks';
 import { useWorkforce } from '@/api/hooks/executiveHooks';
 import { useDashboard } from '@/api/hooks/analyticsHooks';
+import { canSeeApprovals } from '@/lib/tabsForRole';
 
 /**
  * Nothing new here — this screen is a menu, and a menu should be legible before
@@ -78,11 +80,14 @@ export default function MoreScreen() {
   const router = useRouter();
   const { colors } = useThemeMode();
   const user = useAuthStore(s => s.user);
+  const role = useTabRole();
   const { activeOrgId, active } = useActiveOrg();
   const unread = useNotifications(s => s.unreadCount());
   // Same cached counts the tab badge reads — the menu answers "what needs me?"
-  // before you tap anything.
-  const escalations = useEscalationCounts(activeOrgId);
+  // before you tap anything. The queue is admin-only, so a non-admin must not
+  // poll it here either: passing null disables the query outright rather than
+  // firing a request that 403s and toasts, same as the tab bar's own poll.
+  const escalations = useEscalationCounts(canSeeApprovals(role) ? activeOrgId : null);
   // The fleet size the Workforce screen itself reports, so the row and the
   // screen it opens never disagree.
   const workforce = useWorkforce(activeOrgId);
@@ -178,16 +183,18 @@ export default function MoreScreen() {
               active={beneath === 'prime'}
               onPress={go('/(root)/(tabs)/prime')}
             />
-            <MoreMenuRow
-              icon="checkmark-circle-outline"
-              label="Approvals"
-              description={
-                pending != null ? `${pending} awaiting decision` : 'Decisions waiting on you'
-              }
-              badge={pending ? String(pending) : undefined}
-              active={beneath === 'approvals'}
-              onPress={go('/(root)/(tabs)/approvals')}
-            />
+            {canSeeApprovals(role) ? (
+              <MoreMenuRow
+                icon="checkmark-circle-outline"
+                label="Approvals"
+                description={
+                  pending != null ? `${pending} awaiting decision` : 'Decisions waiting on you'
+                }
+                badge={pending ? String(pending) : undefined}
+                active={beneath === 'approvals'}
+                onPress={go('/(root)/(tabs)/approvals')}
+              />
+            ) : null}
             <MoreMenuRow
               icon="people-outline"
               label="AI Workforce"
@@ -284,12 +291,14 @@ export default function MoreScreen() {
             />
             {/* Same destination as the Approvals row above, entered for its
                 record rather than its queue — so it carries no count. */}
-            <MoreMenuRow
-              icon="receipt-outline"
-              label="Approvals & audit"
-              description="Every decision and its receipt"
-              onPress={go('/(root)/(tabs)/approvals')}
-            />
+            {canSeeApprovals(role) ? (
+              <MoreMenuRow
+                icon="receipt-outline"
+                label="Approvals & audit"
+                description="Every decision and its receipt"
+                onPress={go('/(root)/(tabs)/approvals')}
+              />
+            ) : null}
           </Card>
         </Animated.View>
 

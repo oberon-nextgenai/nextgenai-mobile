@@ -10,6 +10,8 @@ import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
 import { useEscalationCounts } from '@/api/hooks/escalationHooks';
 import { useActiveOrg } from '@/store/org';
+import { useTabRole } from '@/hooks/useTabRole';
+import { tabsForRole, canSeeApprovals } from '@/lib/tabsForRole';
 
 /**
  * The CEO command app exposes five calm destinations. Admin surfaces
@@ -25,22 +27,42 @@ const TABS: {
   icon: keyof typeof Ionicons.glyphMap;
   /** Renders the live count of items waiting on a decision. */
   badge?: boolean;
+  /**
+   * Gated by `tabsForRole` — hidden from the bar (and its badge poll
+   * skipped) unless `canSeeApprovals(role)`. Drives `tabsForRole` by this
+   * flag rather than by `name`, so renaming this tab's route can't
+   * silently reopen it to everyone.
+   */
+  adminOnly?: boolean;
 }[] = [
   { name: 'brief', title: 'Brief', icon: 'today-outline' },
   { name: 'workforce', title: 'Workforce', icon: 'people-outline' },
   { name: 'prime', title: 'Prime', icon: 'sparkles-outline' },
-  { name: 'approvals', title: 'Approvals', icon: 'checkmark-circle-outline', badge: true },
+  {
+    name: 'approvals',
+    title: 'Approvals',
+    icon: 'checkmark-circle-outline',
+    badge: true,
+    adminOnly: true,
+  },
   { name: 'more', title: 'More', icon: 'apps-outline' },
 ];
 
-function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+/** Exported so its regression test can render it directly with a stubbed
+ * `BottomTabBarProps`, rather than mounting the whole `<Tabs>` navigator. */
+export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const { colors } = useThemeMode();
   const insets = useSafeAreaInsets();
   const activeName = state.routes[state.index]?.name;
   const { activeOrgId } = useActiveOrg();
+  const role = useTabRole();
+  const visibleTabs = tabsForRole(TABS, role);
   // Cached ~20s server-side and client-side, so this is cheap despite living on
-  // every screen. It is the one number the app is always showing you.
-  const { data: counts } = useEscalationCounts(activeOrgId);
+  // every screen. It is the one number the app is always showing you — but the
+  // queue is admin-only, so a non-admin must not poll it at all: the hook is
+  // already `enabled: !!orgId`, so passing null disables the query outright
+  // rather than firing a request that 403s and toasts.
+  const { data: counts } = useEscalationCounts(canSeeApprovals(role) ? activeOrgId : null);
 
   return (
     <GlassSurface border="top" radius={0} elevation="lg" intensity={40}>
@@ -48,7 +70,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         className="flex-row px-1.5 pt-2"
         style={{ paddingBottom: Math.max(insets.bottom, 8) }}
       >
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const focused = tab.name === activeName;
           const onPress = () => {
             if (Platform.OS !== 'web') void Haptics.selectionAsync();
@@ -114,6 +136,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
+  const role = useTabRole();
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
@@ -123,7 +146,22 @@ export default function TabsLayout() {
       <Tabs.Screen name="brief" options={{ title: 'Brief' }} />
       <Tabs.Screen name="workforce" options={{ title: 'Workforce' }} />
       <Tabs.Screen name="prime" options={{ title: 'Prime' }} />
-      <Tabs.Screen name="approvals" options={{ title: 'Approvals' }} />
+      <Tabs.Screen
+        name="approvals"
+        options={{
+          title: 'Approvals',
+          // Safety net, not the actual gate: Expo Router turns `href: null`
+          // into `tabBarItemStyle: { display: 'none' }` / `tabBarButton: () =>
+          // null` on React Navigation's *default* BottomTabBar. This screen
+          // renders `tabBar={(props) => <CustomTabBar {...props} />}` above,
+          // and `CustomTabBar` reads only `state`/`navigation` — never
+          // `descriptors` — so this line changes nothing today. The actual
+          // hiding is `tabsForRole` inside `CustomTabBar`. Left in so the tab
+          // would still hide correctly if the custom bar were ever dropped in
+          // favor of the default one.
+          href: canSeeApprovals(role) ? undefined : null,
+        }}
+      />
       <Tabs.Screen name="more" options={{ title: 'More' }} />
       {/* Registered but hidden — reachable from More, deep links preserved */}
       <Tabs.Screen name="dashboard" options={{ title: 'Home' }} />
