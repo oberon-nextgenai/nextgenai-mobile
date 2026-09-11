@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { ErrorBoundary } from './_layout';
+import { ErrorBoundary } from '@/app/_layout';
 
 // `_layout.tsx` imports the Tailwind entry point for its side effect (nativewind
 // picks it up at build time); Jest has no CSS transform, so stub it here.

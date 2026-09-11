@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import ToolResultScreen from './[id]';
+import ToolResultScreen from '@/app/(root)/tool-result/[id]';
 import { useToolResults } from '@/store/toolResults';
 import type { ToolResultRecord } from '@/store/toolResults';
 import { useLocalSearchParams } from 'expo-router';

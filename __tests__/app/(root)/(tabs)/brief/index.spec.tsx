@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import BriefScreen from './index';
+import BriefScreen from '@/app/(root)/(tabs)/brief/index';
 import { useDailyBrief } from '@/api/hooks/executiveHooks';
 import { useOperationalBriefings } from '@/api/hooks/briefingHooks';
 import type { OperationalBriefing } from '@/api/services/briefings';

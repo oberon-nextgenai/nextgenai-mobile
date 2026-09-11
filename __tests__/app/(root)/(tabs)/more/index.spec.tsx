@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import MoreScreen from './index';
+import MoreScreen from '@/app/(root)/(tabs)/more/index';
 import { useAuthStore } from '@/store/auth';
 import { useTabRole } from '@/hooks/useTabRole';
 import { useActiveOrg } from '@/store/org';

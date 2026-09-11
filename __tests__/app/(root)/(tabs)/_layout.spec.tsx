@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import { CustomTabBar, type TabBarProps } from './_layout';
+import { CustomTabBar, type TabBarProps } from '@/app/(root)/(tabs)/_layout';
 import { useTabRole } from '@/hooks/useTabRole';
 import { useActiveOrg } from '@/store/org';
 import { useEscalationCounts } from '@/api/hooks/escalationHooks';
