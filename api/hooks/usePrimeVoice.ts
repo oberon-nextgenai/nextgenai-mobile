@@ -47,6 +47,9 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
   const [callActive, setCallActive] = useState(false);
   const [phase, setPhase] = useState<PrimeVoicePhase>('idle');
 
+  // Recording lives on a hook now (expo-audio only builds recorders that way).
+  const recorder = audio.useVoiceRecorder();
+
   const sessionRef = useRef(0);
   const callActiveRef = useRef(false);
   const phaseRef = useRef<PrimeVoicePhase>('idle');
@@ -86,9 +89,9 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
   const stopSpeaking = useCallback(async () => {
     abortVoiceNetwork();
     bargeActiveRef.current = false;
-    await audio.cancelRecording();
+    await recorder.cancel();
     await audio.stopPlayback();
-  }, [abortVoiceNetwork]);
+  }, [abortVoiceNetwork, recorder]);
 
   const endCall = useCallback(() => {
     sessionRef.current += 1;
@@ -97,9 +100,9 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
     meterHandlingRef.current = false;
     bargeActiveRef.current = false;
     abortVoiceNetwork();
-    void audio.teardownCallAudioMode();
+    void recorder.cancel().then(() => audio.teardownCallAudioMode());
     setPhaseSafe('idle');
-  }, [abortVoiceNetwork, setPhaseSafe]);
+  }, [abortVoiceNetwork, setPhaseSafe, recorder]);
 
   submitRecordingRef.current = async (session: number, uri: string) => {
     const currentOrg = orgIdRef.current;
@@ -145,14 +148,14 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
     }
 
     try {
-      await audio.cancelRecording();
+      await recorder.cancel();
       if (!isLive(session) || isThinkingRef.current) return;
 
       vadRef.current = createVadState();
       meterHandlingRef.current = false;
       setPhaseSafe('listening');
 
-      await audio.startMeteredRecording((meteringDb) => {
+      await recorder.startMetered((meteringDb) => {
         if (!isLive(session)) return;
         if (phaseRef.current !== 'listening') return;
         if (isThinkingRef.current) return;
@@ -169,7 +172,7 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
         if (event.type === 'idle_rotate') {
           meterHandlingRef.current = true;
           void (async () => {
-            await audio.cancelRecording();
+            await recorder.cancel();
             meterHandlingRef.current = false;
             if (isLive(session) && !isThinkingRef.current) {
               await startListeningLoopRef.current(session);
@@ -183,7 +186,7 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
           void (async () => {
             let uri: string | null = null;
             try {
-              uri = await audio.stopRecording();
+              uri = await recorder.stop();
             } catch {
               uri = null;
             }
@@ -211,7 +214,7 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
       vadRef.current = createVadState();
 
       try {
-        await audio.startMeteredRecording((meteringDb) => {
+        await recorder.startMetered((meteringDb) => {
           if (!isLive(session) || !bargeActiveRef.current) return;
           if (phaseRef.current !== 'speaking') return;
           if (meterHandlingRef.current) return;
@@ -228,7 +231,7 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
           bargeActiveRef.current = false;
           void (async () => {
             // Discard monitor audio — never send to Whisper.
-            await audio.cancelRecording();
+            await recorder.cancel();
             await audio.stopPlayback();
             meterHandlingRef.current = false;
             if (!isLive(session)) return;
@@ -255,7 +258,7 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
 
       meterHandlingRef.current = false;
       bargeActiveRef.current = false;
-      await audio.cancelRecording();
+      await recorder.cancel();
       await audio.stopPlayback();
       if (!isLive(session)) return;
 
@@ -291,7 +294,7 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
       try {
         const result = await audio.playBase64Mp3(audioBase64);
         bargeActiveRef.current = false;
-        await audio.cancelRecording();
+        await recorder.cancel();
         if (!isLive(session)) return;
         if (result === 'completed') {
           await startListeningLoopRef.current(session);
@@ -299,7 +302,7 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
         // interrupted → barge-in or endCall already owns next phase
       } catch {
         bargeActiveRef.current = false;
-        await audio.cancelRecording();
+        await recorder.cancel();
         if (isLive(session)) await startListeningLoopRef.current(session);
       }
     },
@@ -347,7 +350,7 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
 
     if (isThinking) {
       if (phaseRef.current === 'listening' || phaseRef.current === 'transcribing') {
-        void audio.cancelRecording();
+        void recorder.cancel();
         meterHandlingRef.current = false;
         setPhaseSafe('thinking');
       } else if (phaseRef.current !== 'speaking') {
@@ -395,9 +398,9 @@ export function usePrimeVoice(options: UsePrimeVoiceOptions): UsePrimeVoice {
       sessionRef.current += 1;
       callActiveRef.current = false;
       abortVoiceNetwork();
-      void audio.teardownCallAudioMode();
+      void recorder.cancel().then(() => audio.teardownCallAudioMode());
     };
-  }, [abortVoiceNetwork]);
+  }, [abortVoiceNetwork, recorder]);
 
   return {
     callActive,

@@ -56,18 +56,34 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundler: 'metro',
   },
   plugins: [
+    // Google Play requires targetSdk 36 (Android 16) since 31 Aug 2026. Expo SDK
+    // 54's autolinking plugin still defaults to 35, so pin it explicitly here.
+    [
+      'expo-build-properties',
+      {
+        android: {
+          compileSdkVersion: 36,
+          targetSdkVersion: 36,
+        },
+      },
+    ],
     'expo-router',
     'expo-secure-store',
     'expo-local-authentication',
     'expo-font',
     'expo-apple-authentication',
+    'expo-asset',
+    'expo-audio',
+    'expo-web-browser',
     // Notification channels are created at runtime (lib/push/pushTokens.ts);
     // the plugin is what wires the native module into the build.
     'expo-notifications',
   ],
   experiments: {
-    // TODO(ND-1527): re-enable at SDK 54. expo-router 5.1.11 typegen emits a
-    // routeless stub, so typed Href literals fail to compile.
+    // Still off: expo-router's typegen emits a routeless stub for this route
+    // tree (getRoutes() resolves 31 children, but groupRouteNodes() returns
+    // empty, so every Href literal fails to compile). Unchanged from SDK 53 to
+    // 54 -- needs its own fix, tracked separately from the SDK upgrade.
     typedRoutes: false,
   },
   extra: {

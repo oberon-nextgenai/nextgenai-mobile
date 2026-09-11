@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
@@ -29,7 +29,7 @@ interface ChatListProps {
  * the list out from under you.
  */
 export function ChatList({ messages, streamingContent, onAction }: ChatListProps) {
-  const ref = useRef<FlashList<PrimeMessage>>(null);
+  const ref = useRef<FlashListRef<PrimeMessage>>(null);
   const { colors } = useThemeMode();
   const nearBottomRef = useRef(true);
   const [showReturnPill, setShowReturnPill] = useState(false);
@@ -75,7 +75,6 @@ export function ChatList({ messages, streamingContent, onAction }: ChatListProps
             onAction={onAction}
           />
         )}
-        estimatedItemSize={120}
         contentContainerStyle={{ paddingVertical: 12 }}
         ItemSeparatorComponent={() => <View className="h-1" />}
         onScroll={handleScroll}

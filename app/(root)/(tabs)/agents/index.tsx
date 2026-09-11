@@ -135,7 +135,6 @@ export default function AgentsScreen() {
                     }
                   />
                 )}
-                estimatedItemSize={72}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 60 }}
                 onEndReached={() => {
                   if (query.hasNextPage && !query.isFetchingNextPage) {
