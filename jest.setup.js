@@ -1,6 +1,11 @@
 /* eslint-env jest */
 
-// Reanimated ships a jest mock; without it every animated component throws.
+// Reanimated 4 delegates to react-native-worklets, whose native half cannot
+// initialise under Jest and throws on import. Mock worklets with the stub it
+// ships; real Reanimated then loads fine on top of it.
+jest.mock('react-native-worklets', () =>
+  require('react-native-worklets/lib/module/mock'),
+);
 require('react-native-reanimated').setUpTests?.();
 
 /**
