@@ -20,6 +20,14 @@ export function RadialBackground() {
   return (
     <Svg
       style={StyleSheet.absoluteFill}
+      // `absoluteFill` only sets inset; it gives the element no intrinsic size.
+      // react-native-svg measures the host view on native, but on react-native-web
+      // the <svg> gets no width/height and collapses to the browser default of
+      // 300x150 -- which shows up as a light rectangle in the corner of every
+      // screen, since Screen.tsx renders this behind all of them. Sizing it
+      // explicitly is correct on both platforms.
+      width="100%"
+      height="100%"
       pointerEvents="none"
       // fill the parent regardless of aspect ratio
       preserveAspectRatio="xMidYMid slice"
