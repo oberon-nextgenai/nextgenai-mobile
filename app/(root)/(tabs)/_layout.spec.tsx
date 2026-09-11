@@ -1,6 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { CustomTabBar } from './_layout';
+import { CustomTabBar, type TabBarProps } from './_layout';
 import { useTabRole } from '@/hooks/useTabRole';
 import { useActiveOrg } from '@/store/org';
 import { useEscalationCounts } from '@/api/hooks/escalationHooks';
@@ -29,7 +28,7 @@ const ORG = 'org_1';
 const stubProps = {
   state: { index: 0, routes: [] },
   navigation: { emit: () => ({}), navigate: () => {} },
-} as unknown as BottomTabBarProps;
+} as unknown as TabBarProps;
 
 beforeEach(() => {
   jest.clearAllMocks();

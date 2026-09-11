@@ -1,9 +1,9 @@
 import { Platform, Pressable, View } from 'react-native';
+import type { ComponentProps } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { GlassSurface } from '@/components/ui/GlassSurface';
 import { Text } from '@/components/ui/Text';
@@ -50,7 +50,17 @@ const TABS: {
 
 /** Exported so its regression test can render it directly with a stubbed
  * `BottomTabBarProps`, rather than mounting the whole `<Tabs>` navigator. */
-export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+/**
+ * Expo Router forked from React Navigation in SDK 56, so the two
+ * `BottomTabBarProps` types are no longer structurally compatible. Derive the
+ * prop type from expo-router's own `Tabs` so it tracks whatever the router
+ * expects instead of pinning either package's copy.
+ */
+export type TabBarProps = Parameters<
+  NonNullable<ComponentProps<typeof Tabs>['tabBar']>
+>[0];
+
+export function CustomTabBar({ state, navigation }: TabBarProps) {
   const { colors } = useThemeMode();
   const insets = useSafeAreaInsets();
   const activeName = state.routes[state.index]?.name;

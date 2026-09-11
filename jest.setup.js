@@ -25,5 +25,7 @@ jest.mock('expo-secure-store', () => ({
   isAvailableAsync: jest.fn().mockResolvedValue(true),
 }));
 
-// Silence the RN animation-frame warning that jest-expo surfaces on unmount.
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({}), { virtual: true });
+// NOTE: the old NativeAnimatedHelper mock is gone. That internal path no longer
+// exists in React Native 0.86, and @react-native/jest-preset's moduleNameMapper
+// resolves it to a concrete file before `virtual: true` can apply, so the mock
+// became a hard resolve error rather than a no-op.

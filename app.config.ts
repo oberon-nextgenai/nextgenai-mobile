@@ -73,6 +73,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-apple-authentication',
     'expo-asset',
     'expo-audio',
+    'expo-splash-screen',
+    'expo-status-bar',
     'expo-web-browser',
     // Notification channels are created at runtime (lib/push/pushTokens.ts);
     // the plugin is what wires the native module into the build.
