@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { createAudioPlayer, type AudioPlayer, type AudioStatus } from 'expo-audio';
 import { Text, type TextTone } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { fmtDateTime, fmtDuration } from '@/lib/formatters';
@@ -32,7 +32,7 @@ const TONE_FG: Record<string, TextTone> = {
 
 export function CallTranscriptModal({ call, onClose }: Props) {
   const { colors } = useThemeMode();
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<AudioPlayer | null>(null);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -44,14 +44,22 @@ export function CallTranscriptModal({ call, onClose }: Props) {
 
   useEffect(() => {
     return () => {
-      void soundRef.current?.unloadAsync().catch(() => undefined);
+      try {
+        soundRef.current?.remove();
+      } catch {
+        // already released
+      }
       soundRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     if (!call) {
-      void soundRef.current?.unloadAsync().catch(() => undefined);
+      try {
+        soundRef.current?.remove();
+      } catch {
+        // already released
+      }
       soundRef.current = null;
       setPlaying(false);
       setPositionMs(0);
@@ -65,33 +73,30 @@ export function CallTranscriptModal({ call, onClose }: Props) {
     try {
       if (!soundRef.current) {
         setAudioLoading(true);
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: recordingUrl },
-          { shouldPlay: true },
-          (status: AVPlaybackStatus) => {
-            if (!status.isLoaded) return;
-            setPositionMs(status.positionMillis ?? 0);
-            setDurationMs(status.durationMillis ?? 0);
-            setPlaying(status.isPlaying);
-            if (status.didJustFinish) {
-              setPlaying(false);
-              setPositionMs(0);
-              void soundRef.current?.setPositionAsync(0).catch(() => undefined);
-            }
-          },
-        );
+        const sound = createAudioPlayer({ uri: recordingUrl });
+        // expo-audio reports seconds; this UI works in milliseconds.
+        sound.addListener('playbackStatusUpdate', (status: AudioStatus) => {
+          if (!status.isLoaded) return;
+          setPositionMs(Math.round((status.currentTime ?? 0) * 1000));
+          setDurationMs(Math.round((status.duration ?? 0) * 1000));
+          setPlaying(status.playing);
+          if (status.didJustFinish) {
+            setPlaying(false);
+            setPositionMs(0);
+            void soundRef.current?.seekTo(0).catch(() => undefined);
+          }
+        });
+        sound.play();
         soundRef.current = sound;
         setAudioLoading(false);
         setPlaying(true);
         return;
       }
-      const status = await soundRef.current.getStatusAsync();
-      if (!status.isLoaded) return;
-      if (status.isPlaying) {
-        await soundRef.current.pauseAsync();
+      if (soundRef.current.playing) {
+        soundRef.current.pause();
         setPlaying(false);
       } else {
-        await soundRef.current.playAsync();
+        soundRef.current.play();
         setPlaying(true);
       }
     } catch (e) {

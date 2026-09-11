@@ -1,12 +1,12 @@
 /**
- * Conservative call-mode timing / VAD thresholds for expo-av metering.
+ * Conservative call-mode timing / VAD thresholds for expo-audio metering.
  *
  * Metering is approximate dBFS (typically ~-160…0). Speaker playback can leak into
  * the mic — barge-in uses a higher threshold and is best-effort only. Headphones
  * improve reliability; do not treat this as production-grade AEC.
  */
 export const CALL_MODE = {
-  /** Progress updates from expo-av Recording (~100 ms). */
+  /** Metering poll interval against the expo-audio recorder (~100 ms). */
   METER_INTERVAL_MS: 100,
 
   /** Crossing above this (with hold) starts an utterance while listening. */

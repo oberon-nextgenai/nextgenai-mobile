@@ -1,24 +1,36 @@
-import { Audio, type AVPlaybackStatus } from 'expo-av';
+import {
+  AudioRecorder,
+  RecordingPresets,
+  createAudioPlayer,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  type AudioPlayer,
+  type AudioStatus,
+} from 'expo-audio';
 import { CALL_MODE } from './callModeConfig';
 
 /**
- * Thin isolation boundary around expo-av for Prime voice (record + playback).
+ * Thin isolation boundary around expo-audio for Prime voice (record + playback).
  *
- * expo-av is deprecated and removed in newer Expo SDKs; keeping every expo-av call
- * behind this module means migrating to expo-audio / a native duplex stack later is
- * a change to THIS file only.
+ * Every audio call in the app goes through this module, so swapping the library
+ * again — or moving to a native duplex stack — stays a change to THIS file only.
  *
  * Call-mode limits (documented):
  * - Metering VAD is best-effort; speaker echo can false-trigger barge-in.
  * - On barge-in we discard the monitor recording and start a fresh user capture —
  *   the first syllable may be clipped.
- * - No production-grade echo cancellation on this Expo 53 / expo-av stack.
+ * - No production-grade echo cancellation on this stack.
  *
  * Playback uses a base64 data URI so we don't depend on expo-file-system for a temp file.
+ *
+ * Metering note: expo-av pushed levels through a recording-status callback with a
+ * configurable interval. expo-audio has no push equivalent, so we poll getStatus()
+ * on that same interval and feed the VAD from there — same cadence, same dB scale.
  */
 
-let recording: Audio.Recording | null = null;
-let sound: Audio.Sound | null = null;
+let recorder: AudioRecorder | null = null;
+let meterTimer: ReturnType<typeof setInterval> | null = null;
+let player: AudioPlayer | null = null;
 let playbackSettler: ((result: 'completed' | 'interrupted') => void) | null = null;
 let callSessionActive = false;
 
@@ -27,11 +39,11 @@ export type MeterCallback = (meteringDb: number | null) => void;
 /** Enter call-friendly audio routing (mic + play in silent mode). */
 export async function prepareCallAudioMode(): Promise<void> {
   callSessionActive = true;
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: true,
-    playsInSilentModeIOS: true,
-    staysActiveInBackground: false,
-    playThroughEarpieceAndroid: false,
+  await setAudioModeAsync({
+    allowsRecording: true,
+    playsInSilentMode: true,
+    shouldPlayInBackground: false,
+    shouldRouteThroughEarpiece: false,
   });
 }
 
@@ -41,10 +53,10 @@ export async function teardownCallAudioMode(): Promise<void> {
   await cancelRecording();
   await stopPlayback();
   try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
     });
   } catch {
     // ignore — mode may already be default
@@ -52,13 +64,20 @@ export async function teardownCallAudioMode(): Promise<void> {
 }
 
 export async function requestMicPermission(): Promise<boolean> {
-  const perm = await Audio.requestPermissionsAsync();
+  const perm = await requestRecordingPermissionsAsync();
   return perm.granted;
+}
+
+function clearMeterTimer(): void {
+  if (meterTimer) {
+    clearInterval(meterTimer);
+    meterTimer = null;
+  }
 }
 
 /**
  * Start a single metered recording. Replaces any prior recorder.
- * `onMeter` is invoked ~every `intervalMs` with expo-av metering (dB) when available.
+ * `onMeter` is invoked ~every `intervalMs` with metering (dB) when available.
  */
 export async function startMeteredRecording(
   onMeter: MeterCallback,
@@ -67,25 +86,35 @@ export async function startMeteredRecording(
   await cancelRecording();
 
   if (callSessionActive) {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      playThroughEarpieceAndroid: false,
+    await setAudioModeAsync({
+      allowsRecording: true,
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      shouldRouteThroughEarpiece: false,
     });
   } else {
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
   }
 
-  const { recording: rec } = await Audio.Recording.createAsync(
-    Audio.RecordingOptionsPresets.HIGH_QUALITY,
-    (status) => {
+  const rec = new AudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+    isMeteringEnabled: true,
+  });
+  await rec.prepareToRecordAsync();
+  rec.record();
+  recorder = rec;
+
+  meterTimer = setInterval(() => {
+    const active = recorder;
+    if (!active) return;
+    try {
+      const status = active.getStatus();
       if (!status.isRecording) return;
       onMeter(typeof status.metering === 'number' ? status.metering : null);
-    },
-    intervalMs,
-  );
-  recording = rec;
+    } catch {
+      // recorder was torn down between tick and read
+    }
+  }, intervalMs);
 }
 
 /** @deprecated Prefer startMeteredRecording for call mode. Kept for simple one-shots. */
@@ -95,12 +124,13 @@ export async function startRecording(): Promise<void> {
 
 /** Stops the recording and returns the local file URI (or null if nothing was recorded). */
 export async function stopRecording(): Promise<string | null> {
-  if (!recording) return null;
-  const rec = recording;
-  recording = null;
+  if (!recorder) return null;
+  const rec = recorder;
+  recorder = null;
+  clearMeterTimer();
   try {
-    await rec.stopAndUnloadAsync();
-    return rec.getURI();
+    await rec.stop();
+    return rec.uri;
   } catch {
     return null;
   }
@@ -108,18 +138,19 @@ export async function stopRecording(): Promise<string | null> {
 
 /** Discards an in-progress recording without returning it (e.g. barge monitor / cleanup). */
 export async function cancelRecording(): Promise<void> {
-  if (!recording) return;
-  const rec = recording;
-  recording = null;
+  if (!recorder) return;
+  const rec = recorder;
+  recorder = null;
+  clearMeterTimer();
   try {
-    await rec.stopAndUnloadAsync();
+    await rec.stop();
   } catch {
-    // already stopped/unloaded
+    // already stopped
   }
 }
 
 export function isRecording(): boolean {
-  return recording !== null;
+  return recorder !== null;
 }
 
 /**
@@ -130,22 +161,22 @@ export async function playBase64Mp3(base64: string): Promise<'completed' | 'inte
   await stopPlayback();
 
   if (callSessionActive) {
-    // Keep allowsRecordingIOS so barge-in monitor can run alongside playback.
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      playThroughEarpieceAndroid: false,
+    // Keep allowsRecording so the barge-in monitor can run alongside playback.
+    await setAudioModeAsync({
+      allowsRecording: true,
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      shouldRouteThroughEarpiece: false,
     });
   }
 
   const uri = `data:audio/mpeg;base64,${base64}`;
-  const { sound: snd } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
-  sound = snd;
+  const snd = createAudioPlayer({ uri });
+  player = snd;
 
   return new Promise<'completed' | 'interrupted'>((resolve) => {
     playbackSettler = resolve;
-    snd.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
+    snd.addListener('playbackStatusUpdate', (status: AudioStatus) => {
       if (!status.isLoaded) return;
       if (status.didJustFinish) {
         const settle = playbackSettler;
@@ -153,6 +184,7 @@ export async function playBase64Mp3(base64: string): Promise<'completed' | 'inte
         void stopPlaybackInternal(false).then(() => settle?.('completed'));
       }
     });
+    snd.play();
   });
 }
 
@@ -163,23 +195,23 @@ async function stopPlaybackInternal(signalInterrupted: boolean): Promise<void> {
     settle?.('interrupted');
   }
 
-  if (!sound) return;
-  const snd = sound;
-  sound = null;
+  if (!player) return;
+  const snd = player;
+  player = null;
   try {
-    snd.setOnPlaybackStatusUpdate(null);
+    snd.removeAllListeners('playbackStatusUpdate');
   } catch {
     // ignore
   }
   try {
-    await snd.stopAsync();
+    snd.pause();
   } catch {
     // not playing
   }
   try {
-    await snd.unloadAsync();
+    snd.remove();
   } catch {
-    // already unloaded
+    // already released
   }
 }
 

@@ -66,7 +66,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-notifications',
   ],
   experiments: {
-    typedRoutes: true,
+    // TODO(ND-1527): re-enable at SDK 54. expo-router 5.1.11 typegen emits a
+    // routeless stub, so typed Href literals fail to compile.
+    typedRoutes: false,
   },
   extra: {
     variant,

@@ -35,7 +35,7 @@ export function createVadState(): VadState {
 /**
  * Advance VAD state from one metering sample.
  *
- * `meteringDb` may be null when expo-av has not yet published a level — treat as silence.
+ * `meteringDb` may be null when the recorder has not yet published a level — treat as silence.
  * Monitor audio used in `barge` mode must never be uploaded for transcription.
  */
 export function processVadSample(

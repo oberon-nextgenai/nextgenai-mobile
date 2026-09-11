@@ -34,7 +34,7 @@ export interface UsePrimeVoice {
 }
 
 /**
- * Hands-free call voice for Prime on mobile (expo-av / metering VAD).
+ * Hands-free call voice for Prime on mobile (expo-audio / metering VAD).
  *
  * Limitations (not production-grade duplex):
  * - Speaker echo can false-trigger barge-in; headphones recommended.

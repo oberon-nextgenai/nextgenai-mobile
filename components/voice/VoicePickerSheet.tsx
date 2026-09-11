@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { Input } from '@/components/ui/Input';
 import { Chip } from '@/components/ui/Chip';
 import { Button } from '@/components/ui/Button';
@@ -25,7 +25,7 @@ export function VoicePickerSheet({ orgId, selectedVoiceId, onPick, onClose }: Pr
   const [search, setSearch] = useState('');
   const [gender, setGender] = useState<Gender>('all');
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<AudioPlayer | null>(null);
 
   const voices = useVoices({
     orgId,
@@ -34,7 +34,11 @@ export function VoicePickerSheet({ orgId, selectedVoiceId, onPick, onClose }: Pr
 
   useEffect(() => {
     return () => {
-      void soundRef.current?.unloadAsync().catch(() => undefined);
+      try {
+        soundRef.current?.remove();
+      } catch {
+        // already released
+      }
       soundRef.current = null;
     };
   }, []);
@@ -65,22 +69,24 @@ export function VoicePickerSheet({ orgId, selectedVoiceId, onPick, onClose }: Pr
     if (!v.sampleAudioUrl) return;
     try {
       if (soundRef.current) {
-        await soundRef.current.unloadAsync().catch(() => undefined);
+        try {
+          soundRef.current.remove();
+        } catch {
+          // already released
+        }
         soundRef.current = null;
       }
       if (playingId === v._id) {
         setPlayingId(null);
         return;
       }
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: v.sampleAudioUrl },
-        { shouldPlay: true },
-        (status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            setPlayingId(null);
-          }
-        },
-      );
+      const sound = createAudioPlayer({ uri: v.sampleAudioUrl });
+      sound.addListener('playbackStatusUpdate', (status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setPlayingId(null);
+        }
+      });
+      sound.play();
       soundRef.current = sound;
       setPlayingId(v._id);
     } catch {
