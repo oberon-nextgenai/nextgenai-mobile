@@ -28,9 +28,10 @@ function grep(pattern: string): string[] {
 
 describe('NativeWind interop for Reanimated components', () => {
   it('has no locally-created animated Pressable', () => {
-    const offenders = grep('createAnimatedComponent(Pressable)').filter(
-      (f) => f !== 'lib/nativewindInterop.ts',
-    );
+    // Assembled at runtime so this file does not contain the literal it
+    // searches for — `git grep` would otherwise match this spec itself.
+    const needle = 'createAnimatedComponent(' + 'Pressable)';
+    const offenders = grep(needle).filter((f) => f !== 'lib/nativewindInterop.ts');
     expect(offenders).toEqual([]);
   });
 

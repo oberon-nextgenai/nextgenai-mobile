@@ -176,7 +176,11 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
           .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
         organizationId: orgId,
         useTools: true,
-        mode: 'console' as const,
+        // 'mobile', not 'console': the backend's mobile surface inherits every
+        // console section and adds the presentation rules this app needs —
+        // chiefly that Prime never quotes a monetary amount. Sending 'console'
+        // would silently opt back out of them.
+        mode: 'mobile' as const,
       };
 
       let aggregatedContent = '';
