@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Nextgen N-mark (components/brand/Logo.tsx ICON_PATHS) on the brand tile. -->
+  <rect width="512" height="512" rx="96" fill="#0B0F19"/>
+  <g transform="translate(64 142) scale(6)" fill="#FFFFFF">
+    <path d="M0 16H13.4V38H0Z"/>
+    <path d="M14 0C28.6 5.7 42.7 20.1 50 38H34.1C29.8 30.1 21.8 21.0 14 15.5Z"/>
+    <path d="M50 0H64V38H50Z"/>
+  </g>
+</svg>
