@@ -14,11 +14,12 @@ import { useChannelMix, useDashboard } from '@/api/hooks/analyticsHooks';
 import { ChannelMixCard } from '@/components/analytics/ChannelMixCard';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
-import { fmtCurrency, fmtNumber, fmtPct } from '@/lib/formatters';
+import { fmtMinutes, fmtNumber, fmtPct } from '@/lib/formatters';
+import { totalVoiceMinutes } from '@/lib/voiceMinutes';
 
 /**
  * Outcomes & Analytics — the workforce-level read: what the AI workforce
- * achieved over the window, and what it cost to achieve it.
+ * achieved over the window, and what it took to achieve it.
  *
  * The governing rule here is that every figure on screen traces to a field the
  * dashboard endpoint actually returned. Tiles whose source metric is absent are
@@ -104,7 +105,7 @@ export default function OutcomesScreen() {
     const rate = metrics.callSuccessRate;
     const resolved = metrics.successfulCalls;
     const handled = metrics.totalCalls;
-    const cost = metrics.totalCost;
+    const minutes = totalVoiceMinutes(metrics.averageCallDurationMinutes, handled);
     const unresolved = metrics.failedCalls;
 
     // `callSuccessRate` arrives as a percentage already (61.1, not 0.611) —
@@ -134,15 +135,16 @@ export default function OutcomesScreen() {
       });
     }
 
-    // Cost per outcome is spend divided by the interactions that actually
-    // resolved — both operands come from the payload, and the tile is skipped
-    // outright if either is missing or nothing resolved.
-    if (cost != null && resolved != null && resolved > 0) {
+    // Effort per outcome is talk time divided by the interactions that
+    // actually resolved — both operands come from the payload, and the tile is
+    // skipped outright if either is missing or nothing resolved. Minutes, not
+    // money: see the note in `lib/formatters.ts`.
+    if (minutes != null && resolved != null && resolved > 0) {
       out.push({
-        key: 'cost',
-        label: 'Cost per resolution',
-        value: fmtCurrency(cost / resolved),
-        caption: `${fmtCurrency(cost)} spent`,
+        key: 'effort',
+        label: 'Minutes per resolution',
+        value: fmtMinutes(minutes / resolved),
+        caption: `${fmtMinutes(minutes)} of talk time`,
         tone: 'neutral',
       });
     }
@@ -164,7 +166,7 @@ export default function OutcomesScreen() {
   const heading = useMemo(() => {
     const handled = metrics?.totalCalls;
     const rate = metrics?.callSuccessRate;
-    const cost = metrics?.totalCost;
+    const minutes = totalVoiceMinutes(metrics?.averageCallDurationMinutes, handled);
 
     const title =
       handled != null
@@ -172,12 +174,12 @@ export default function OutcomesScreen() {
         : 'Outcomes';
 
     let subtitle: string | undefined;
-    if (rate != null && cost != null) {
-      subtitle = `Your workforce resolved ${fmtPct(rate)} of what it handled, at ${fmtCurrency(cost)}.`;
+    if (rate != null && minutes != null) {
+      subtitle = `Your workforce resolved ${fmtPct(rate)} of what it handled, across ${fmtMinutes(minutes)} of talk time.`;
     } else if (rate != null) {
       subtitle = `Your workforce resolved ${fmtPct(rate)} of what it handled.`;
-    } else if (cost != null) {
-      subtitle = `${fmtCurrency(cost)} spent across the workforce.`;
+    } else if (minutes != null) {
+      subtitle = `${fmtMinutes(minutes)} of talk time across the workforce.`;
     }
 
     return { title, subtitle };

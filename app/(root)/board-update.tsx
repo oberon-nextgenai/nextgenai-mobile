@@ -55,11 +55,12 @@ const BOARD_UPDATE_PROMPT = [
   'Draft a board update on our AI workforce for this organization.',
   'Read the live agent, analytics and escalation data first — every figure must come from that data, never an estimate.',
   'Return it with these sections, in this order:',
-  'HEADLINE (the key figures: agents in production, interactions handled, resolution rate, spend),',
+  'HEADLINE (the key figures: agents in production, interactions handled, resolution rate, voice minutes),',
   'WHAT CHANGED (movements versus the previous period, each written with a signed delta such as +0.6 pts or -3%),',
   'RISKS (anything that needs board attention, most serious first),',
   'ASKS (what you need from the board).',
   'Omit any section you cannot support with real figures rather than filling it in.',
+  'Never quote a monetary amount — no spend, cost, price or budget figures. Report consumption as voice minutes and volume as counts.',
 ].join(' ');
 
 /** A value like "+0.6 pts" or "-3%" — the deck's inline coloured delta. */

@@ -24,7 +24,7 @@ const SUGGESTED_PROMPTS = [
   'Summarize what happened overnight',
   'Which agents need my attention?',
   'Draft a board update',
-  'Show me the biggest cost drivers',
+  'Where is talk time going?',
 ];
 
 /** Empty-state entrance beat — same cadence the Brief screen uses. */

@@ -8,7 +8,8 @@ import { MoreMenuRow } from '@/components/executive/MoreMenuRow';
 import { Card } from '@/components/ui/Card';
 import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
-import { fmtCurrency, fmtNumber } from '@/lib/formatters';
+import { fmtMinutes, fmtNumber } from '@/lib/formatters';
+import { totalVoiceMinutes } from '@/lib/voiceMinutes';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { useTabRole } from '@/hooks/useTabRole';
 import { useAuthStore } from '@/store/auth';
@@ -94,6 +95,11 @@ export default function MoreScreen() {
   // One dashboard read covers both depth rows: spend for Outcomes, volume for
   // Analytics. Its own cache key, so it does not disturb either screen.
   const dashboard = useDashboard(activeOrgId, SPEND_PERIOD);
+  // Minutes, not money — the Outcomes row quotes talk time.
+  const outcomeMinutes = totalVoiceMinutes(
+    dashboard.data?.metrics?.averageCallDurationMinutes,
+    dashboard.data?.metrics?.totalCalls,
+  );
 
   const beneath = useTabBeneath();
   const go = (path: string) => () => router.push(path as never);
@@ -216,9 +222,9 @@ export default function MoreScreen() {
               icon="trending-up-outline"
               label="Outcomes"
               description={
-                metrics?.totalCost != null
-                  ? `${fmtCurrency(metrics.totalCost)} spend · ${SPEND_LABEL}`
-                  : 'What the workforce achieved, and at what cost'
+                outcomeMinutes != null
+                  ? `${fmtMinutes(outcomeMinutes)} · ${SPEND_LABEL}`
+                  : 'What the workforce achieved, and what it took'
               }
               onPress={go('/(root)/outcomes')}
             />

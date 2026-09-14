@@ -30,9 +30,11 @@ const CLASS_COPY: Record<
     description: 'Decisions that need you now. Always delivered, including during quiet hours.',
     icon: 'alert-circle-outline',
   },
+  // The `cost` key is the server's notification class and stays as-is; only
+  // what the user reads changes — this app quotes no monetary amounts.
   cost: {
-    label: 'Cost anomalies',
-    description: 'An agent spending well above its forecast.',
+    label: 'Usage anomalies',
+    description: 'An agent running well above its forecast.',
     icon: 'trending-up-outline',
   },
   sla_risk: {

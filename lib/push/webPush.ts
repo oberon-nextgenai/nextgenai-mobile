@@ -48,7 +48,11 @@ export function webNotificationPermission(): NotificationPermission | null {
 }
 
 /** VAPID keys are URL-safe base64; `PushManager.subscribe` wants raw bytes. */
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+// `Uint8Array<ArrayBuffer>`, not a bare `Uint8Array`: since TS 5.7 the bare
+// form widens to `ArrayBufferLike`, which admits `SharedArrayBuffer` and so no
+// longer satisfies `BufferSource` at the `pushManager.subscribe` call below.
+// The value here is always plain-buffer backed — this states that.
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
   const normalized = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
   const raw = atob(normalized);

@@ -214,7 +214,6 @@ export default function ApprovalsScreen() {
               title={escalation.title}
               agentName={escalation.agentName ?? 'Unattributed'}
               reason={escalation.context}
-              amountAtRisk={escalation.impactAmount > 0 ? escalation.impactAmount : undefined}
               slaMinutesRemaining={slaMinutesRemaining(escalation.slaDueAt, now)}
               onReview={() =>
                 router.push(`/(root)/(tabs)/approvals/${escalation._id}` as never)

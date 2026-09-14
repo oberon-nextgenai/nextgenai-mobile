@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { MetricCard } from './MetricCard';
-import { fmtNumber, fmtPct, fmtDuration, fmtCurrency } from '@/lib/formatters';
+import { fmtNumber, fmtPct, fmtDuration, fmtMinutes } from '@/lib/formatters';
+import { totalVoiceMinutes } from '@/lib/voiceMinutes';
 import type { AnalyticsMetric, DashboardCharts } from '@/api/services/types';
 
 interface KpiStripProps {
@@ -87,13 +88,15 @@ export function KpiStrip({ metrics, charts }: KpiStripProps) {
         />
       </View>
 
-      {/* Cost + eval row */}
+      {/* Consumption + eval row */}
       <View className="flex-row gap-2.5">
         <MetricCard
           variant="compact"
-          label="Total Cost"
-          value={fmtCurrency(metrics.totalCost)}
-          icon="cash-outline"
+          label="Voice minutes"
+          value={fmtMinutes(
+            totalVoiceMinutes(metrics.averageCallDurationMinutes, metrics.totalCalls),
+          )}
+          icon="time-outline"
         />
         {hasEval ? (
           <MetricCard

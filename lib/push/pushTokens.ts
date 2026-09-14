@@ -33,9 +33,9 @@ const ANDROID_CHANNELS: {
   },
   {
     id: 'alerts',
-    name: 'Cost, SLA and workflow alerts',
+    name: 'Usage, SLA and workflow alerts',
     importance: Notifications.AndroidImportance.DEFAULT,
-    description: 'Spend anomalies, SLA risk and failed runs.',
+    description: 'Usage anomalies, SLA risk and failed runs.',
   },
   {
     id: 'brief',

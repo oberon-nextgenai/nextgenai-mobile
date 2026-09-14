@@ -18,7 +18,8 @@ import { useAgent } from '@/api/hooks/agentHooks';
 import { useAgentDetails } from '@/api/hooks/analyticsHooks';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
-import { fmtCurrency, fmtNumber, fmtPct, fmtDuration } from '@/lib/formatters';
+import { fmtMinutes, fmtNumber, fmtPct, fmtDuration } from '@/lib/formatters';
+import { totalVoiceMinutes } from '@/lib/voiceMinutes';
 import type { Agent } from '@/api/services/types';
 
 /**
@@ -59,6 +60,8 @@ export default function WorkforceAgentScreen() {
   const agent = agentQuery.data;
   const detailsQuery = useAgentDetails(activeOrgId, agent?.vapiAgentId);
   const details = detailsQuery.data;
+  // Talk time over the window, not spend.
+  const agentMinutes = totalVoiceMinutes(details?.averageDurationMinutes, details?.totalCalls);
 
   const shell = (children: React.ReactNode) => (
     <Screen background="nebula" edges={{ top: true, bottom: false }}>
@@ -163,10 +166,10 @@ export default function WorkforceAgentScreen() {
             index={2}
           />
           <StatTile
-            label="Total cost"
-            value={fmtCurrency(details?.totalCost)}
-            count={{ to: details?.totalCost, format: fmtCurrency }}
-            tone="warning"
+            label="Voice minutes"
+            value={fmtMinutes(agentMinutes)}
+            count={{ to: agentMinutes, format: fmtMinutes }}
+            tone="neutral"
             index={3}
           />
         </View>

@@ -23,20 +23,6 @@ function kindLabel(kind: string): string {
   return kind.replace(/_/g, ' ');
 }
 
-/**
- * Money at risk, in the queue's idiom — `$284,000 at risk`.
- *
- * Only stamps a `$` for USD; anything else carries its own code rather than
- * being silently re-denominated.
- */
-function riskLabel(escalation: Escalation): string {
-  const amount = Math.round(escalation.impactAmount).toLocaleString('en-US');
-  const currency = (escalation.currency || '').toUpperCase();
-  return currency && currency !== 'USD'
-    ? `${amount} ${currency} at risk`
-    : `$${amount} at risk`;
-}
-
 export default function ApprovalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { activeOrgId } = useActiveOrg();
@@ -119,7 +105,9 @@ export default function ApprovalDetailScreen() {
         className="mt-3 flex-row flex-wrap gap-2"
       >
         {escalation.impactAmount > 0 ? (
-          <Tag label={riskLabel(escalation)} tone="danger" />
+          // The fact of financial exposure, never its size: Prime Mobile
+          // renders no monetary amount. Severity and SLA carry the urgency.
+          <Tag label="financial exposure" tone="danger" />
         ) : null}
         <Tag label={kindLabel(escalation.kind)} />
         {escalation.accountName ? <Tag label={escalation.accountName} /> : null}

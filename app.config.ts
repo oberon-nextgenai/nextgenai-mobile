@@ -53,6 +53,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   web: {
     bundler: 'metro',
+    // 'static' is what makes app/+html.tsx the HTML shell — the default
+    // 'single' mode ignores it, which ships an index.html with no manifest or
+    // touch-icon links (generic globe on Add-to-Home-Screen, and no web push).
+    output: 'static',
   },
   plugins: [
     // Google Play requires targetSdk 36 (Android 16) since 31 Aug 2026. Expo SDK

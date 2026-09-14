@@ -8,9 +8,20 @@ jest.mock('@/api/hooks/executiveHooks', () => ({ useDailyBrief: jest.fn() }));
 jest.mock('@/api/hooks/briefingHooks', () => ({ useOperationalBriefings: jest.fn() }));
 
 const mockPush = jest.fn();
+// Asking Prime `navigate`s rather than `push`es — pushing stacks a second Prime
+// instance with its own empty conversation. The two are asserted separately so
+// a regression back to `push` fails rather than passing silently.
+const mockNavigate = jest.fn();
 jest.mock('expo-router', () => ({
-  router: { push: (...args: unknown[]) => mockPush(...args) },
-  useRouter: () => ({ push: (...args: unknown[]) => mockPush(...args), back: jest.fn() }),
+  router: {
+    push: (...args: unknown[]) => mockPush(...args),
+    navigate: (...args: unknown[]) => mockNavigate(...args),
+  },
+  useRouter: () => ({
+    push: (...args: unknown[]) => mockPush(...args),
+    navigate: (...args: unknown[]) => mockNavigate(...args),
+    back: jest.fn(),
+  }),
 }));
 
 jest.mock('@/store/org', () => ({
@@ -85,6 +96,7 @@ function setBriefings(briefings: OperationalBriefing[] = [], unavailable: unknow
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockNavigate.mockClear();
   setBrief();
   setBriefings();
 });
@@ -141,10 +153,14 @@ describe('BriefScreen with one operational briefing', () => {
 
     fireEvent.press(screen.getByText('Ask Prime'));
 
-    expect(mockPush).toHaveBeenCalledWith({
+    expect(mockNavigate).toHaveBeenCalledWith({
       pathname: '/(root)/(tabs)/prime',
       params: { prompt: 'Give me the full widget briefing for today.' },
     });
+    // Never pushed — a second Prime instance would open on an empty chat.
+    expect(mockPush).not.toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: '/(root)/(tabs)/prime' }),
+    );
   });
 
   it('drops the Live dot when the briefing came from the 06:00 cache', () => {

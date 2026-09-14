@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { useActiveOrg } from '@/store/org';
 import { useAgentsAnalytics } from '@/api/hooks/analyticsHooks';
-import { fmtNumber, fmtPct, fmtDuration, fmtCurrency } from '@/lib/formatters';
+import { fmtNumber, fmtPct, fmtDuration } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
 export default function AgentsAnalyticsScreen() {
@@ -68,9 +68,6 @@ export default function AgentsAnalyticsScreen() {
                     </Text>
                     <Text variant="mono.sm" tone="muted">
                       Avg dur · {fmtDuration(avgMinutes)}
-                    </Text>
-                    <Text variant="mono.sm" tone="muted">
-                      Cost · {fmtCurrency(a.totalCost)}
                     </Text>
                   </View>
                 </Card>

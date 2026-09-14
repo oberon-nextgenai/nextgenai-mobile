@@ -12,7 +12,7 @@ import { CallFilters, type CallDateRange, type CallStatusFilter } from '@/compon
 import { CallTranscriptModal } from '@/components/analytics/CallTranscriptModal';
 import { useActiveOrg } from '@/store/org';
 import { useCalls } from '@/api/hooks/analyticsHooks';
-import { fmtDateTime, fmtDuration, fmtCurrency } from '@/lib/formatters';
+import { fmtDateTime, fmtDuration } from '@/lib/formatters';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import type { AnalyticsCallSummary } from '@/api/services/types';
 
@@ -136,9 +136,6 @@ export default function CallsScreen() {
                       ) : null}
                       <Text variant="mono.sm" tone="muted">
                         Duration · {fmtDuration(minutes)}
-                      </Text>
-                      <Text variant="mono.sm" tone="muted">
-                        Cost · {fmtCurrency(c.cost)}
                       </Text>
                       {hasRecording ? (
                         <View className="flex-row items-center">

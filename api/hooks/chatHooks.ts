@@ -12,6 +12,9 @@ import {
   pickFallbackMarkdown,
 } from '@/lib/primeStructuredSchema';
 import { invalidateForTool } from '@/lib/toolInvalidations';
+// Prime Mobile renders no monetary amount; this is the belt over the one
+// channel that cannot be enumerated — the model's own words.
+import { sanitizeMoneyStructured, sanitizeMoneyText } from '@/lib/prime/sanitizeMoney';
 import { isEnvelopeFailure } from '@/lib/mcpEnvelope';
 import { useToolResults } from '@/store/toolResults';
 import { useNotifications } from '@/store/notifications';
@@ -244,7 +247,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
         setMessages((prev) =>
           prev.map((m) =>
             m.id === currentAssistantIdRef.current
-              ? { ...m, status: 'error', content: aggregatedContent || reason }
+              ? { ...m, status: 'error', content: sanitizeMoneyText(aggregatedContent) || reason }
               : m,
           ),
         );
@@ -283,7 +286,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
               if (m.id !== id) return m;
               return {
                 ...m,
-                content: aggregatedContent,
+                content: sanitizeMoneyText(aggregatedContent),
                 structured: finalStructured,
                 fallbackMarkdown: finalFallbackMarkdown,
                 format: currentFormat,
@@ -348,7 +351,11 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
           case 'content': {
             const chunk = (event as { content?: string }).content ?? '';
             aggregatedContent += chunk;
-            setStreamingContent(aggregatedContent);
+            // Scrub the WHOLE aggregate, never the chunk: an amount split across
+            // SSE frames ("$1,2" + "34.56") only exists once assembled. The raw
+            // aggregate stays intact as the accumulator — scrubbing it in place
+            // would drop a half-typed line before it could complete.
+            setStreamingContent(sanitizeMoneyText(aggregatedContent));
             break;
           }
           case 'structured': {
@@ -357,11 +364,14 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
               (event as { data?: unknown }).data ??
               event;
             const parsed = tryParsePrimeStructured(raw);
-            if (parsed) {
-              finalStructured = parsed;
+            // The scrub rejects a card outright when every section was money —
+            // then fall through to the payload's markdown, scrubbed the same.
+            const scrubbed = parsed ? sanitizeMoneyStructured(parsed) : null;
+            if (scrubbed) {
+              finalStructured = scrubbed;
             } else {
               const fallback = pickFallbackMarkdown(raw);
-              if (fallback) finalFallbackMarkdown = fallback;
+              if (fallback) finalFallbackMarkdown = sanitizeMoneyText(fallback);
             }
             break;
           }
@@ -528,21 +538,22 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
               }).message;
             if (!finalStructured && completeMsg?.structured) {
               const parsed = tryParsePrimeStructured(completeMsg.structured);
-              if (parsed) finalStructured = parsed;
+              const scrubbed = parsed ? sanitizeMoneyStructured(parsed) : null;
+              if (scrubbed) finalStructured = scrubbed;
               else {
                 const fb = pickFallbackMarkdown(completeMsg.structured);
-                if (fb) finalFallbackMarkdown = fb;
+                if (fb) finalFallbackMarkdown = sanitizeMoneyText(fb);
               }
             }
             if (!finalFallbackMarkdown && completeMsg?.fallbackMarkdown) {
-              finalFallbackMarkdown = completeMsg.fallbackMarkdown;
+              finalFallbackMarkdown = sanitizeMoneyText(completeMsg.fallbackMarkdown);
             }
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === currentAssistantIdRef.current
                   ? {
                       ...m,
-                      content: aggregatedContent,
+                      content: sanitizeMoneyText(aggregatedContent),
                       structured: finalStructured,
                       fallbackMarkdown: finalFallbackMarkdown,
                       format: currentFormat,
@@ -564,7 +575,10 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             onTurnEndRef.current?.('complete');
             // Hand the backend-derived speakable text to the voice layer (once).
             if (completeMsg?.speakableText) {
-              onAssistantCompleteRef.current?.(completeMsg.speakableText);
+              // Voice must not read aloud an amount the screen withholds.
+              onAssistantCompleteRef.current?.(
+                sanitizeMoneyText(completeMsg.speakableText),
+              );
             }
             break;
           }
@@ -587,7 +601,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === currentAssistantIdRef.current
-                  ? { ...m, status: 'error', content: aggregatedContent || msg }
+                  ? { ...m, status: 'error', content: sanitizeMoneyText(aggregatedContent) || msg }
                   : m,
               ),
             );
@@ -641,7 +655,7 @@ export function usePrimeChat(orgId: string | null, options: UsePrimeChatOptions 
                   ? {
                       ...m,
                       status: 'error',
-                      content: aggregatedContent || errMsg,
+                      content: sanitizeMoneyText(aggregatedContent) || errMsg,
                     }
                   : m,
               ),

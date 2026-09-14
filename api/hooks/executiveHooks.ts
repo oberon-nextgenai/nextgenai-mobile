@@ -22,7 +22,7 @@ export interface WorkforceAgent {
   role: string;
   status: WorkforceStatus;
   performancePct?: number;
-  costPerRun?: number;
+  minutesPerRun?: number;
   /**
    * Per-agent performance series for the row sparkline.
    *
@@ -110,10 +110,9 @@ export function useWorkforce(orgId: string | null) {
         role: roleLabel(agent),
         status: deriveStatus(agent, successRate),
         performancePct,
-        costPerRun:
-          row && row.totalCost != null && (row.totalCalls ?? 0) > 0
-            ? row.totalCost / (row.totalCalls as number)
-            : undefined,
+        // Average talk time per run. The row reports this directly, where the
+        // spend figure it replaced had to be divided out of a total.
+        minutesPerRun: row?.averageDurationMinutes,
       };
     });
   }, [list.data, analytics.data]);
@@ -171,9 +170,13 @@ export interface DailyBrief {
     totalAgents: number;
     tasksResolved: number;
     attention: number;
-    spendToday: number;
     /**
-     * Human-readable window that `tasksResolved` and `spendToday` actually
+     * Talk time over the window, in minutes. This replaced a `spendToday`
+     * figure: Prime Mobile quotes consumption in minutes, never money.
+     */
+    voiceMinutes: number;
+    /**
+     * Human-readable window that `tasksResolved` and `voiceMinutes` actually
      * cover, for the tile caption. Pinned contract — the Brief screen renders
      * this verbatim. See `BRIEF_WINDOW_LABEL`.
      */
@@ -292,7 +295,15 @@ export function useDailyBrief(orgId: string | null) {
     ).length;
 
     const tasksResolved = m?.successfulCalls ?? m?.totalCalls ?? 0;
-    const spendToday = m?.totalCost ?? 0;
+
+    // Talk time, not spend. Both factors come off the same dashboard payload
+    // that used to supply `totalCost`, so this costs no extra request: the
+    // endpoint reports an average duration, and the total is that average over
+    // the calls it was averaged across.
+    const voiceMinutes =
+      m?.averageCallDurationMinutes != null && m?.totalCalls != null
+        ? m.averageCallDurationMinutes * m.totalCalls
+        : 0;
 
     // Distinguish "nothing happened" from "we were told nothing". The dashboard
     // endpoint answers a swallowed server error with an all-zero metrics
@@ -325,7 +336,7 @@ export function useDailyBrief(orgId: string | null) {
         totalAgents,
         tasksResolved,
         attention,
-        spendToday,
+        voiceMinutes,
         windowLabel: BRIEF_WINDOW_LABEL,
         attentionWindowLabel: ATTENTION_WINDOW_LABEL,
       },

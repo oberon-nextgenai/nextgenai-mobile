@@ -140,7 +140,7 @@ export default function WorkforceScreen() {
               role={agent.role}
               status={agent.status}
               performancePct={agent.performancePct}
-              costPerRun={agent.costPerRun}
+              minutesPerRun={agent.minutesPerRun}
               trend={agent.trend}
               onPress={() => router.push(`/(root)/(tabs)/workforce/${agent.id}` as never)}
             />

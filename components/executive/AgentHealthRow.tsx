@@ -68,7 +68,7 @@ interface AgentHealthRowProps {
   department?: string;
   status: AgentStatus;
   performancePct?: number;
-  costPerRun?: number;
+  minutesPerRun?: number;
   trend?: number[];
   onPress?: () => void;
 }
@@ -87,7 +87,8 @@ function Metric({ label, children }: { label: string; children: React.ReactNode 
 
 /**
  * A roster row, built to read as a colleague first and a metric second: the name
- * leads, the role and department follow in mono, and performance, cost and SLA
+ * leads, the role and department follow in mono, and performance, talk time
+ * and SLA
  * sit underneath as supporting evidence.
  *
  * That ordering is the deck's whole argument about an AI workforce — these are
@@ -100,7 +101,7 @@ export function AgentHealthRow({
   department,
   status,
   performancePct,
-  costPerRun,
+  minutesPerRun,
   trend,
   onPress,
 }: AgentHealthRowProps) {
@@ -116,7 +117,9 @@ export function AgentHealthRow({
     provenance,
     meta.label,
     performancePct != null ? `${Math.round(performancePct)} percent performance` : null,
-    costPerRun != null ? `${costPerRun.toFixed(2)} dollars per run` : null,
+    // Screen readers must not hear what the screen withholds — this line
+    // read out dollars per run until 2026-09-14.
+    minutesPerRun != null ? `${minutesPerRun.toFixed(1)} minutes per run` : null,
   ]
     .filter(Boolean)
     .join(', ');
@@ -167,9 +170,9 @@ export function AgentHealthRow({
                   {performancePct == null ? '—' : `${Math.round(performancePct)}%`}
                 </Text>
               </Metric>
-              <Metric label="Cost/run">
+              <Metric label="Min/run">
                 <Text variant="body.semibold">
-                  {costPerRun == null ? '—' : `$${costPerRun.toFixed(2)}`}
+                  {minutesPerRun == null ? '—' : `${minutesPerRun.toFixed(1)}m`}
                 </Text>
               </Metric>
               <Metric label="SLA">

@@ -12,13 +12,8 @@ interface EscalationCardProps {
   title: string;
   agentName: string;
   reason?: string;
-  amountAtRisk?: number;
   slaMinutesRemaining?: number;
   onReview?: () => void;
-}
-
-function formatMoney(amount: number): string {
-  return `$${Math.round(amount).toLocaleString('en-US')}`;
 }
 
 const SEVERITY_META: Record<
@@ -44,7 +39,6 @@ export function EscalationCard({
   title,
   agentName,
   reason,
-  amountAtRisk,
   slaMinutesRemaining,
   onReview,
 }: EscalationCardProps) {
@@ -76,8 +70,6 @@ export function EscalationCard({
         : colors.fgMuted;
 
   // Money emphasis: critical risk reads danger, otherwise amber warning.
-  const moneyTone: TextTone = severity === 'critical' ? 'danger' : 'warning';
-  const moneyColor = severity === 'critical' ? colors.danger : colors.warning;
 
   return (
     <Card
@@ -108,7 +100,9 @@ export function EscalationCard({
         {title}
       </Text>
 
-      {/* Metadata: which agent, how much is exposed. */}
+      {/* Metadata: which agent. The exposed amount is deliberately absent —
+          Prime Mobile renders no monetary figure, so triage reads severity and
+          SLA instead. See the note in `lib/formatters.ts`. */}
       <View className="flex-row items-center flex-wrap mt-2 gap-x-3 gap-y-1">
         <View className="flex-row items-center gap-1.5">
           <Ionicons name="person-circle" size={13} color={colors.fgSubtle} />
@@ -116,19 +110,6 @@ export function EscalationCard({
             {agentName}
           </Text>
         </View>
-
-        {amountAtRisk !== undefined ? (
-          <View className="flex-row items-center gap-1.5">
-            <Ionicons
-              name={severity === 'critical' ? 'alert' : 'cash'}
-              size={13}
-              color={moneyColor}
-            />
-            <Text variant="mono.label" tone={moneyTone}>
-              {`${formatMoney(amountAtRisk)} at risk`}
-            </Text>
-          </View>
-        ) : null}
       </View>
 
       {reason ? (

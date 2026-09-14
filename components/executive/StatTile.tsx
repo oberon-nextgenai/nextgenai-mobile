@@ -21,7 +21,7 @@ export interface StatTileCount {
 }
 
 interface StatTileProps {
-  /** Mono uppercase eyebrow — AGENTS ACTIVE, SPEND TODAY. */
+  /** Mono uppercase eyebrow — AGENTS ACTIVE, VOICE MINUTES. */
   label: string;
   /** The number itself, pre-formatted. Set in serif — this is what gets read. */
   value: string;

@@ -17,7 +17,7 @@ import { useDailyBrief } from '@/api/hooks/executiveHooks';
 import { useOperationalBriefings } from '@/api/hooks/briefingHooks';
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
-import { fmtCurrency } from '@/lib/formatters';
+import { fmtMinutes } from '@/lib/formatters';
 
 /**
  * The brief's one moment: the screen assembles top-to-bottom in a single sweep
@@ -93,7 +93,9 @@ export default function BriefScreen() {
   const openDashboard = () => router.push('/(root)/(tabs)/analytics' as never);
 
   const askPrime = (prompt?: string) =>
-    router.push(
+    // `navigate`, not `push` — pushing stacks a second Prime instance with its
+    // own empty conversation (the "chat reset" bug).
+    router.navigate(
       prompt
         ? ({ pathname: '/(root)/(tabs)/prime', params: { prompt } } as never)
         : ('/(root)/(tabs)/prime' as never),
@@ -233,9 +235,9 @@ export default function BriefScreen() {
             onPress={() => router.push('/(root)/(tabs)/workforce' as never)}
           />
           <StatTile
-            label="Spend"
-            value={fmtCurrency(metrics.spendToday)}
-            count={{ to: metrics.spendToday, format: fmtCurrency }}
+            label="Voice minutes"
+            value={fmtMinutes(metrics.voiceMinutes)}
+            count={{ to: metrics.voiceMinutes, format: fmtMinutes }}
             caption={metrics.windowLabel}
             tone="neutral"
             index={3}

@@ -13,7 +13,8 @@ import { TopAgentsRow } from '@/components/dashboard/TopAgentsRow';
 import { useActiveOrg } from '@/store/org';
 import { useDashboard } from '@/api/hooks/analyticsHooks';
 import { useThemeMode } from '@/hooks/useThemeMode';
-import { fmtCurrency } from '@/lib/formatters';
+import { fmtMinutes } from '@/lib/formatters';
+import { totalVoiceMinutes } from '@/lib/voiceMinutes';
 
 export default function DashboardScreen() {
   const { activeOrgId } = useActiveOrg();
@@ -76,8 +77,13 @@ export default function DashboardScreen() {
                 value: String(dashboard.data?.metrics?.liveActiveSessions ?? 0),
               },
               {
-                label: 'Total cost',
-                value: fmtCurrency(dashboard.data?.metrics?.totalCost ?? 0),
+                label: 'Voice minutes',
+                value: fmtMinutes(
+                  totalVoiceMinutes(
+                    dashboard.data?.metrics?.averageCallDurationMinutes,
+                    dashboard.data?.metrics?.totalCalls,
+                  ),
+                ),
               },
             ]}
           />
