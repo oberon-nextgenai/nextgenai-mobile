@@ -145,8 +145,27 @@ export function usePushDeepLinks(): void {
     // `expo-notifications` has no web implementation: calling into it throws
     // "not available on web", which took down the whole authenticated shell in
     // a browser and made the app impossible to preview with `expo start --web`.
-    // There is no push to respond to on web anyway, so this is a no-op there.
-    if (Platform.OS === 'web') return;
+    // The browser has its own path — `public/sw.js` posts to every open tab on
+    // a push, and again on notificationclick — so web listens there instead.
+    if (Platform.OS === 'web') {
+      if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+
+      const onMessage = (event: MessageEvent) => {
+        const data = event.data as { type?: string; path?: string } | null;
+        // sw.js posts TWO different things, and only one of them is a
+        // navigation. `escalation` fires when a push ARRIVES, so acting on it
+        // would yank the screen out from under someone who never tapped
+        // anything; the badge refresh it exists for is handled by the queries
+        // invalidating on focus. `navigate` fires on notificationclick — a
+        // deliberate tap — and carries a path already stripped of the
+        // `primeai://` scheme by the worker.
+        if (data?.type !== 'navigate' || typeof data.path !== 'string' || !data.path) return;
+        router.push(data.path as never);
+      };
+
+      navigator.serviceWorker.addEventListener('message', onMessage);
+      return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+    }
 
     // Cold start: the app was launched by tapping a notification.
     void Notifications.getLastNotificationResponseAsync().then(response => {
@@ -158,7 +177,61 @@ export function usePushDeepLinks(): void {
     });
 
     return () => subscription.remove();
-  }, [open]);
+    // `router` is used by the web branch above; `open` by the native one.
+  }, [open, router]);
+}
+
+/**
+ * Installs the service worker on web, once, on mount.
+ *
+ * Separate from subscribing: the worker should exist for an installed PWA even
+ * before anyone enables notifications, and having it already active means the
+ * first subscription does not race its activation. A no-op everywhere else.
+ */
+export function useWebServiceWorker(): void {
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    void ensureServiceWorker();
+  }, []);
+}
+
+export type EnableWebPushOutcome = 'enabled' | 'unsupported' | WebPushFailure;
+
+/**
+ * Turns on browser notifications from a user gesture.
+ *
+ * This is the only place that may prompt: browsers refuse
+ * `Notification.requestPermission()` outside a user gesture, and Safari allows
+ * exactly one prompt ever — so it must be spent on a deliberate tap, never on a
+ * mount effect. Call the returned function directly from an `onPress`.
+ */
+export function useEnableWebPush(): (organizationId: string) => Promise<EnableWebPushOutcome> {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    async (organizationId: string): Promise<EnableWebPushOutcome> => {
+      if (Platform.OS !== 'web' || !webPushSupported()) return 'unsupported';
+
+      const result = await subscribeWebPush({
+        getVapidPublicKey: fetchWebPushPublicKey,
+        requestPermission: true,
+      });
+      if (!result.ok) return result.reason;
+
+      await registerDevice({
+        organizationId,
+        pushToken: result.subscription.endpoint,
+        platform: 'web',
+        webPushKeys: result.subscription.keys,
+        appVersion: Constants.expoConfig?.version,
+        deviceName: deviceLabel(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.devices });
+      return 'enabled';
+    },
+    [queryClient],
+  );
 }
 
 /** The devices registered to the signed-in user, for the notification settings screen. */
@@ -195,6 +268,13 @@ export function useUpdateDevicePreferences() {
  */
 export async function unregisterThisDevice(): Promise<void> {
   try {
+    if (Platform.OS === 'web') {
+      // Read the live subscription rather than re-running the permission dance:
+      // sign-out is not a user gesture for notifications.
+      const endpoint = await getWebPushEndpoint();
+      if (endpoint) await unregisterDevice(endpoint);
+      return;
+    }
     const result = await getExpoPushToken();
     if (result.ok) await unregisterDevice(result.token);
   } catch {

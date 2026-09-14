@@ -4,7 +4,11 @@ import { Redirect, Stack } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 import { useOrgStore } from '@/store/org';
 import { useMeQuery, useOrganizationsQuery } from '@/api/hooks/authHooks';
-import { usePushDeepLinks, usePushRegistration } from '@/api/hooks/pushHooks';
+import {
+  usePushDeepLinks,
+  usePushRegistration,
+  useWebServiceWorker,
+} from '@/api/hooks/pushHooks';
 import { useBiometricUnlock } from '@/hooks/useBiometricUnlock';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { BiometricGate } from '@/components/common/BiometricGate';
@@ -37,6 +41,9 @@ export default function RootAreaLayout() {
   // Registers this device for push and routes tapped notifications. Both are
   // hooks, so they must run before any early return — they no-op until there is
   // a session and an active organization.
+  // Install the service worker before anything subscribes, so an installed PWA
+  // has one even for a user who never enables notifications. No-op off web.
+  useWebServiceWorker();
   usePushRegistration();
   usePushDeepLinks();
 

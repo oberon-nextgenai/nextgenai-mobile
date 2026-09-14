@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, Switch, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Switch, View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Screen } from '@/components/common/Screen';
@@ -11,7 +11,14 @@ import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { TimeWindowPicker } from '@/components/ui/TimeWindowPicker';
-import { useDevices, useUpdateDevicePreferences } from '@/api/hooks/pushHooks';
+import Toast from 'react-native-toast-message';
+import { useActiveOrg } from '@/store/org';
+import {
+  useDevices,
+  useEnableWebPush,
+  useUpdateDevicePreferences,
+  type EnableWebPushOutcome,
+} from '@/api/hooks/pushHooks';
 import { NOTIFICATION_CLASSES, type Device, type NotificationClass } from '@/api/services/devices';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
@@ -62,10 +69,22 @@ function formatMinute(minute?: number): string | null {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+/** Why a browser refused to subscribe, in words the user can act on. */
+const ENABLE_FAILURE_COPY: Record<Exclude<EnableWebPushOutcome, 'enabled'>, string> = {
+  unsupported: 'This browser cannot receive notifications.',
+  not_web: 'This browser cannot receive notifications.',
+  permission_denied: 'Notifications are blocked. Allow them in your browser settings.',
+  no_vapid_key: 'Notifications are not configured on the server yet.',
+  subscribe_failed: 'Could not subscribe. Try again in a moment.',
+};
+
 export default function NotificationPreferencesScreen() {
   const { colors } = useThemeMode();
   const devicesQuery = useDevices();
   const update = useUpdateDevicePreferences();
+  const enableWebPush = useEnableWebPush();
+  const { activeOrgId } = useActiveOrg();
+  const [enabling, setEnabling] = useState(false);
 
   // Preferences are per device. This screen edits the one you are holding —
   // identified as the most recently seen, which is the device that just
@@ -106,11 +125,41 @@ export default function NotificationPreferencesScreen() {
   }
 
   if (!device) {
+    // On web the prompt may only be raised from a user gesture, so the button is
+    // not a convenience — it is the only way this browser can ever subscribe.
+    const canEnableHere = Platform.OS === 'web' && !!activeOrgId;
+
+    const onEnable = async () => {
+      if (!activeOrgId) return;
+      setEnabling(true);
+      try {
+        const outcome = await enableWebPush(activeOrgId);
+        if (outcome === 'enabled') {
+          await devicesQuery.refetch();
+          return;
+        }
+        Toast.show({ type: 'error', text1: ENABLE_FAILURE_COPY[outcome] });
+      } finally {
+        setEnabling(false);
+      }
+    };
+
     return shell(
       <EmptyState
         icon={<Ionicons name="notifications-off-outline" size={26} color={colors.fgMuted} />}
         title="This device isn't registered"
-        description="Allow notifications when prompted, then reopen the app to register it."
+        description={
+          canEnableHere
+            ? 'Turn on browser notifications to get escalations here. Install the app to your home screen first if you want them on the lock screen.'
+            : 'Allow notifications when prompted, then reopen the app to register it.'
+        }
+        action={
+          canEnableHere ? (
+            <Button onPress={onEnable} loading={enabling} disabled={enabling}>
+              Enable notifications
+            </Button>
+          ) : undefined
+        }
       />,
     );
   }
