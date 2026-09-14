@@ -16,7 +16,6 @@ import { useDecideEscalation, useEscalation } from '@/api/hooks/escalationHooks'
 import { useActiveOrg } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { fmtDateTime, fmtPct, fmtRelative } from '@/lib/formatters';
-import type { Escalation } from '@/api/services/escalations';
 
 /** `cost_anomaly` → `cost anomaly`. The Tag uppercases it. */
 function kindLabel(kind: string): string {
