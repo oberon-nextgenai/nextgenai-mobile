@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import 'react-native-url-polyfill/auto';
 import '@/global.css';
+// Side-effect import: registers `Animated.View` with NativeWind so its
+// `className` props resolve. Must run before any screen renders.
+import '@/lib/nativewindInterop';
 import { ActivityIndicator, Pressable, Text, View, AppState, AppStateStatus } from 'react-native';
 import { Stack, useRouter, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';

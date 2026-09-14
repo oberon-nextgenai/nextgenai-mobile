@@ -1,12 +1,9 @@
-import { Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
 import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 export interface CommandSearchButtonProps {
   onPress: () => void;

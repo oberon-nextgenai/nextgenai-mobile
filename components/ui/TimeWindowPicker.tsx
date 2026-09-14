@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
-import Animated from 'react-native-reanimated';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 /** Minutes from local midnight → `22:00`. Exported so callers render it the same way. */
 export function formatMinuteOfDay(minute: number): string {

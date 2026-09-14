@@ -1,11 +1,12 @@
 import { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, PressableProps, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
 import { Type } from '@/constants/Typography';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { PRESS_SPRING } from '@/hooks/usePressScale';
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 type Tone = 'accent' | 'success';
 type Size = 'sm' | 'md' | 'lg';
@@ -21,8 +22,6 @@ interface GradientButtonProps extends Omit<PressableProps, 'children'> {
   fullWidth?: boolean;
   className?: string;
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const SIZE: Record<Size, string> = {
   sm: 'px-3 py-2 rounded-xl',

@@ -1,4 +1,4 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -13,8 +13,7 @@ import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
 import type { AgentStatus } from './AgentHealthRow';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 interface AgentHealthBarProps {
   healthy: number;

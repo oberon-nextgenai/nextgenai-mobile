@@ -1,14 +1,12 @@
 import { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { Text, View } from 'react-native';
 import { cn } from '@/lib/cn';
 import { Type } from '@/constants/Typography';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
 import { Sparkline } from '@/components/ui/Sparkline';
 import { CountUp } from '@/components/ui/CountUp';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 export type StatTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
 

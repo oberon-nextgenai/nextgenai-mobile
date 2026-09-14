@@ -1,11 +1,9 @@
-import { ScrollView, Pressable, Text, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { ScrollView, Text, View } from 'react-native';
 import { cn } from '@/lib/cn';
 import { Type } from '@/constants/Typography';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 export interface FilterOption<T extends string = string> {
   value: T;

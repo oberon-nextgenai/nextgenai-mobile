@@ -1,9 +1,9 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated from 'react-native-reanimated';
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 import { Screen } from '@/components/common/Screen';
 import { Card } from '@/components/ui/Card';
 import { IconButton } from '@/components/ui/IconButton';
@@ -12,8 +12,6 @@ import { Text } from '@/components/ui/Text';
 import { useActiveOrg, useOrgStore } from '@/store/org';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /** Past this many, scanning beats scrolling — so the filter appears. */
 const SEARCH_THRESHOLD = 8;

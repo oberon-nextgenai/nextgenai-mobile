@@ -1,11 +1,9 @@
 import { ReactNode } from 'react';
-import { Pressable, PressableProps, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { PressableProps, View } from 'react-native';
 import { cn } from '@/lib/cn';
 import { Text, type TextTone } from '@/components/ui/Text';
 import { usePressScale } from '@/hooks/usePressScale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 export type PillTone =
   | 'neutral'

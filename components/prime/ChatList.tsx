@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
+import { FadeInDown, FadeOut } from 'react-native-reanimated';
 import { Elevation } from '@/constants/Colors';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
 import type { PrimeMessage } from '@/api/hooks/chatHooks';
 import type { PrimeAction } from '@/lib/primeStructuredSchema';
 import { MessageBubble } from './MessageBubble';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 /** Within this many px of the end still counts as "reading the latest". */
 const NEAR_BOTTOM_PX = 80;

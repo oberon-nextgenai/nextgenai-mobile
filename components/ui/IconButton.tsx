@@ -1,11 +1,9 @@
-import { Pressable, PressableProps, View } from 'react-native';
+import { PressableProps, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 interface IconButtonProps extends Omit<PressableProps, 'children'> {
   icon: keyof typeof Ionicons.glyphMap;

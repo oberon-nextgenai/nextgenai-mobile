@@ -1,13 +1,11 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated from 'react-native-reanimated';
 import { Card } from '@/components/ui/Card';
 import { Text, type TextTone } from '@/components/ui/Text';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 type Severity = 'critical' | 'attention' | 'info';
 

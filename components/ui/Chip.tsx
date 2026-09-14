@@ -1,11 +1,9 @@
 import { ReactNode } from 'react';
-import { Pressable } from 'react-native';
-import Animated from 'react-native-reanimated';
+
 import { cn } from '@/lib/cn';
 import { Text } from '@/components/ui/Text';
 import { usePressScale } from '@/hooks/usePressScale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 interface ChipProps {
   label: string;

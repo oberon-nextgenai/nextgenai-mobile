@@ -1,7 +1,6 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import Animated from 'react-native-reanimated';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
@@ -13,14 +12,13 @@ import type {
   PrimeAction,
 } from '@/lib/primeStructuredSchema';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 interface StructuredCardProps {
   data: PrimeStructuredResponse;
   fallbackMarkdown?: string | null;
   onActionTap?: (action: PrimeAction) => void;
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /** A ready-to-send reply — tapping it speaks for the user, so it gets a felt tap. */
 function ActionChip({ label, onPress }: { label: string; onPress?: () => void }) {

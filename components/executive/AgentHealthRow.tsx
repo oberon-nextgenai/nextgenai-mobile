@@ -1,13 +1,11 @@
-import { Pressable, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, type TextTone } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Sparkline } from '@/components/ui/Sparkline';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { usePressScale } from '@/hooks/usePressScale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 export type AgentStatus = 'healthy' | 'attention' | 'paused' | 'critical';
 

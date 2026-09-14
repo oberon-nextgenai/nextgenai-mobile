@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 import { format, isToday } from 'date-fns';
 import { Screen } from '@/components/common/Screen';
 import { AppHeader } from '@/components/common/AppHeader';
@@ -81,8 +82,6 @@ function Field({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
  * A conversation row.

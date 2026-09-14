@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, PressableProps, View } from 'react-native';
-import Animated, {
+import { ActivityIndicator, PressableProps, View } from 'react-native';
+import {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn';
 import { Text } from '@/components/ui/Text';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { PRESS_SPRING } from '@/hooks/usePressScale';
+import { AnimatedPressable } from '@/lib/nativewindInterop';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'outline-danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -24,8 +25,6 @@ interface ButtonProps extends Omit<PressableProps, 'children'> {
   fullWidth?: boolean;
   className?: string;
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const CONTAINER: Record<Variant, string> = {
   primary: 'bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark',
