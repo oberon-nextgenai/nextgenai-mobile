@@ -131,7 +131,12 @@ export const PATHS = {
     register: '/api/devices/register',
     list: '/api/devices',
     preferences: '/api/devices/preferences',
-    unregister: (token: string) => `/api/devices/${encodeURIComponent(token)}`,
+    /**
+     * Body, not path. A web subscription endpoint is a URL; encoding one into a
+     * path segment survives Nest but not every proxy in front of it.
+     */
+    unregister: '/api/devices',
+    webPushPublicKey: '/api/devices/web-push/public-key',
   },
   orgs: {
     list: '/api/orgs',

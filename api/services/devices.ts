@@ -4,19 +4,26 @@ import { PATHS } from '@/api/client/paths';
 /**
  * Device registry for push notifications.
  *
- * Mirrors `oberon-nextgenai-api/src/modules/devices`. Delivery goes through the
- * Expo Push API server-side, so the only thing the client owns is its token and
- * its preferences.
- *
- * Note: obtaining the token requires `expo-notifications`, which is not yet a
- * dependency. These calls are ready for it; see `registerDevice`.
+ * Mirrors `oberon-nextgenai-api/src/modules/devices`. Two transports server-side:
+ * Expo Push for ios/android device tokens, and Web Push for the installed PWA.
+ * Either way the client owns only its address and its preferences.
  */
 
 /** The five classes the backend fans out. Each is separately mutable by the user. */
 export const NOTIFICATION_CLASSES = ['critical', 'cost', 'sla_risk', 'workflow', 'brief'] as const;
 export type NotificationClass = (typeof NOTIFICATION_CLASSES)[number];
 
-export type DevicePlatform = 'ios' | 'android';
+export type DevicePlatform = 'ios' | 'android' | 'web';
+
+/**
+ * The keys a browser hands back with a Push subscription. Web Push encrypts
+ * every payload to them, so a web registration without both is undeliverable —
+ * which is why the backend requires them whenever `platform` is `web`.
+ */
+export interface WebPushKeys {
+  p256dh: string;
+  auth: string;
+}
 
 export interface Device {
   _id: string;
@@ -38,9 +45,11 @@ export interface Device {
 
 export interface RegisterDeviceBody {
   organizationId: string;
-  /** Must be an Expo token — the backend rejects anything else. */
+  /** An Expo token on ios/android; the Push subscription endpoint on web. */
   pushToken: string;
   platform: DevicePlatform;
+  /** Required when `platform` is `web`, rejected otherwise. */
+  webPushKeys?: WebPushKeys;
   appVersion?: string;
   deviceName?: string;
   /** IANA zone, used to interpret the quiet-hours window. */
@@ -79,6 +88,20 @@ export async function updateDevicePreferences(
 
 /** Called on sign-out so a shared device stops receiving the previous user's alerts. */
 export async function unregisterDevice(pushToken: string): Promise<{ removed: boolean }> {
-  const { data } = await http.delete<{ removed: boolean }>(PATHS.devices.unregister(pushToken));
+  const { data } = await http.delete<{ removed: boolean }>(PATHS.devices.unregister, {
+    data: { pushToken },
+  });
   return data;
+}
+
+/**
+ * The server's VAPID public key, or `null` when web push is not configured.
+ *
+ * `null` is a normal answer, not an error: an environment with no VAPID keys
+ * should leave the browser unsubscribed rather than holding a subscription
+ * nothing can deliver to.
+ */
+export async function fetchWebPushPublicKey(): Promise<string | null> {
+  const { data } = await http.get<{ publicKey: string | null }>(PATHS.devices.webPushPublicKey);
+  return data.publicKey ?? null;
 }

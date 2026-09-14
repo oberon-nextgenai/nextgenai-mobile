@@ -8,13 +8,22 @@ import Toast from 'react-native-toast-message';
 import { QUERY_KEYS } from '@/lib/constants';
 import {
   fetchDevices,
+  fetchWebPushPublicKey,
   registerDevice,
   unregisterDevice,
   updateDevicePreferences,
   type Device,
+  type RegisterDeviceBody,
   type UpdateDevicePreferencesBody,
 } from '@/api/services/devices';
 import { deviceLabel, getExpoPushToken, routeForNotification } from '@/lib/push/pushTokens';
+import {
+  ensureServiceWorker,
+  getWebPushEndpoint,
+  subscribeWebPush,
+  webPushSupported,
+  type WebPushFailure,
+} from '@/lib/push/webPush';
 import { useActiveOrg } from '@/store/org';
 import { useAuthStore } from '@/store/auth';
 
@@ -31,6 +40,44 @@ Notifications.setNotificationHandler({
     shouldSetBadge: true,
   }),
 });
+
+/**
+ * The registration body for whichever transport this platform uses, or `null`
+ * when this device cannot receive push at all.
+ *
+ * Web never prompts here. Browsers only allow `Notification.requestPermission()`
+ * from a user gesture, and a mount effect is not one — so this silently reuses
+ * an existing grant and leaves asking to `useEnableWebPush`, which a button
+ * drives. Calling with `requestPermission: true` from here would be refused by
+ * the browser and would burn the one prompt Safari allows.
+ */
+async function buildRegistration(organizationId: string): Promise<RegisterDeviceBody | null> {
+  const shared = {
+    organizationId,
+    appVersion: Constants.expoConfig?.version,
+    deviceName: deviceLabel(),
+    // The device's own zone, so quiet hours mean 22:00 wherever they are.
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
+
+  if (Platform.OS === 'web') {
+    const result = await subscribeWebPush({
+      getVapidPublicKey: fetchWebPushPublicKey,
+      requestPermission: false,
+    });
+    if (!result.ok) return null;
+    return {
+      ...shared,
+      pushToken: result.subscription.endpoint,
+      platform: 'web',
+      webPushKeys: result.subscription.keys,
+    };
+  }
+
+  const result = await getExpoPushToken();
+  if (!result.ok) return null;
+  return { ...shared, pushToken: result.token, platform: result.platform };
+}
 
 /**
  * Registers this device for push and keeps the registration fresh.
@@ -54,22 +101,14 @@ export function usePushRegistration(): void {
     let cancelled = false;
 
     void (async () => {
-      const result = await getExpoPushToken();
-      if (!result.ok || cancelled) return;
+      const body = await buildRegistration(activeOrgId);
+      if (!body || cancelled) return;
 
-      const key = `${activeOrgId}:${result.token}`;
+      const key = `${activeOrgId}:${body.pushToken}`;
       if (registeredRef.current === key) return;
 
       try {
-        await registerDevice({
-          organizationId: activeOrgId,
-          pushToken: result.token,
-          platform: result.platform,
-          appVersion: Constants.expoConfig?.version,
-          deviceName: deviceLabel(),
-          // The device's own zone, so quiet hours mean 22:00 wherever they are.
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        });
+        await registerDevice(body);
         if (!cancelled) registeredRef.current = key;
       } catch {
         // Registration failing must not disturb the session. The next launch

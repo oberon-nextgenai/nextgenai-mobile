@@ -117,6 +117,28 @@ export async function subscribeWebPush(opts: SubscribeOptions): Promise<WebPushS
 }
 
 /**
+ * Install the service worker, independently of any push subscription.
+ *
+ * `subscribeWebPush` registers it too, but only after permission is granted —
+ * so without this the worker never installs for anyone who has not enabled
+ * notifications, and the installed PWA has no worker at all. Registering early
+ * also means the worker is already active when permission is finally granted,
+ * so the first subscription does not race its activation.
+ *
+ * Never throws: a failed registration costs notifications, not the app.
+ */
+export async function ensureServiceWorker(): Promise<boolean> {
+  if (Platform.OS !== 'web') return false;
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return false;
+  try {
+    await navigator.serviceWorker.register('/sw.js');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The endpoint of this browser's live subscription, if any — what sign-out
  * needs to unregister the device row without re-running the permission dance.
  */
