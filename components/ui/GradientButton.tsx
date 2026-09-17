@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, PressableProps, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
 import { Type } from '@/constants/Typography';
 import { useThemeMode } from '@/hooks/useThemeMode';
@@ -59,12 +59,25 @@ export function GradientButton({
   const gradient = tone === 'success' ? colors.successGradient : colors.accentGradient;
 
   const scale = useSharedValue(1);
-  const shadowOpacity = useSharedValue(0.18);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    shadowOpacity: shadowOpacity.value,
   }));
+
+  /**
+   * The shadow belongs on the styled view, not on the pressable around it.
+   * That view is the visible button — it owns the radius, so the shadow follows
+   * the rounded shape. The pressable's box also grows with any margin a caller
+   * passes via `className` (`mt-2` on sign-in), so a shadow there rendered
+   * above the button as well as below it.
+   */
+  const shadow = {
+    shadowColor: gradient[0],
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    shadowOpacity: 0.18,
+    elevation: 3,
+  } as const;
 
   return (
     <AnimatedPressable
@@ -74,23 +87,14 @@ export function GradientButton({
       accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
       onPressIn={(e) => {
         scale.value = withSpring(0.96, PRESS_SPRING);
-        shadowOpacity.value = withTiming(0.32, { duration: 80 });
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
         scale.value = withSpring(1, PRESS_SPRING);
-        shadowOpacity.value = withTiming(0.18, { duration: 140 });
         onPressOut?.(e);
       }}
-      style={[
-        animatedStyle,
-        {
-          shadowColor: gradient[0],
-          shadowOffset: { width: 0, height: 2 },
-          shadowRadius: 8,
-          elevation: 3,
-        },
-      ]}
+      style={animatedStyle}
+      contentProps={{ style: shadow }}
       className={cn('overflow-hidden', SIZE[size], fullWidth && 'w-full', isDisabled && 'opacity-60', className)}
     >
       <LinearGradient

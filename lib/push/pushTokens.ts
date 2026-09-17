@@ -1,7 +1,8 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import type * as Notifications from 'expo-notifications';
+import { getNotifications } from '@/lib/push/notifications';
 import type { DevicePlatform, NotificationClass } from '@/api/services/devices';
 
 /**
@@ -19,38 +20,50 @@ import type { DevicePlatform, NotificationClass } from '@/api/services/devices';
  * (`devices.service.ts` → `ANDROID_CHANNEL`), or Android silently drops back to
  * the default channel and every alert looks the same.
  */
-const ANDROID_CHANNELS: {
+type AndroidChannel = {
   id: string;
   name: string;
   importance: Notifications.AndroidImportance;
   description: string;
-}[] = [
-  {
-    id: 'critical',
-    name: 'Critical escalations',
-    importance: Notifications.AndroidImportance.MAX,
-    description: 'Decisions that need you now.',
-  },
-  {
-    id: 'alerts',
-    name: 'Usage, SLA and workflow alerts',
-    importance: Notifications.AndroidImportance.DEFAULT,
-    description: 'Usage anomalies, SLA risk and failed runs.',
-  },
-  {
-    id: 'brief',
-    name: 'Daily brief',
-    importance: Notifications.AndroidImportance.LOW,
-    description: 'Your morning read on the AI workforce.',
-  },
-];
+};
+
+/**
+ * Built from the module rather than declared as a constant: `AndroidImportance`
+ * is a runtime value, so reading it at module scope would force the very
+ * `expo-notifications` import that crashes Expo Go (`@/lib/push/notifications`).
+ */
+function androidChannels(notifications: typeof import('expo-notifications')): AndroidChannel[] {
+  return [
+    {
+      id: 'critical',
+      name: 'Critical escalations',
+      importance: notifications.AndroidImportance.MAX,
+      description: 'Decisions that need you now.',
+    },
+    {
+      id: 'alerts',
+      name: 'Usage, SLA and workflow alerts',
+      importance: notifications.AndroidImportance.DEFAULT,
+      description: 'Usage anomalies, SLA risk and failed runs.',
+    },
+    {
+      id: 'brief',
+      name: 'Daily brief',
+      importance: notifications.AndroidImportance.LOW,
+      description: 'Your morning read on the AI workforce.',
+    },
+  ];
+}
 
 export async function ensureAndroidChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
+  const notifications = getNotifications();
+  if (!notifications) return;
+
   await Promise.all(
-    ANDROID_CHANNELS.map(channel =>
-      Notifications.setNotificationChannelAsync(channel.id, {
+    androidChannels(notifications).map(channel =>
+      notifications.setNotificationChannelAsync(channel.id, {
         name: channel.name,
         importance: channel.importance,
         description: channel.description,
@@ -79,16 +92,21 @@ export type PushTokenResult =
 export async function getExpoPushToken(): Promise<PushTokenResult> {
   // Simulators and emulators cannot receive push. Checking first avoids an
   // unnecessary permission prompt during development.
+  // Expo Go on Android has no push at all, and importing the module there
+  // throws. That is a device which cannot receive notifications, not an error.
+  const notifications = getNotifications();
+  if (!notifications) return { ok: false, reason: 'unavailable' };
+
   if (!Device.isDevice) return { ok: false, reason: 'simulator' };
 
   try {
-    const existing = await Notifications.getPermissionsAsync();
+    const existing = await notifications.getPermissionsAsync();
     let granted = existing.granted;
 
     // Only prompt when we have not been refused before — re-asking after a
     // denial does nothing on iOS and just burns the one prompt we get.
     if (!granted && existing.canAskAgain) {
-      const requested = await Notifications.requestPermissionsAsync();
+      const requested = await notifications.requestPermissionsAsync();
       granted = requested.granted;
     }
 
@@ -104,7 +122,7 @@ export async function getExpoPushToken(): Promise<PushTokenResult> {
 
     if (!projectId) return { ok: false, reason: 'no_project_id' };
 
-    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+    const { data } = await notifications.getExpoPushTokenAsync({ projectId });
 
     return {
       ok: true,

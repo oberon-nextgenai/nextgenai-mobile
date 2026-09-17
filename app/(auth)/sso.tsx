@@ -34,16 +34,22 @@ export default function SSOScreen() {
 
   return (
     <Screen background="nebula" className="px-6">
+      {/* Outside the ScrollView so it stays pinned to the top: inside, it was part
+          of the centred block and pushed a screen's worth of dead space above it.
+          `Screen` already applies the safe-area inset. */}
+      <Pressable
+        onPress={() => router.back()}
+        className="self-start flex-row items-center py-2"
+      >
+        <Ionicons name="chevron-back" size={18} color={colors.fg} />
+        <Text variant="body.medium" className="ml-1">
+          Back
+        </Text>
+      </Pressable>
+
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 32 }}
       >
-        <Pressable onPress={() => router.back()} className="mb-6 self-start flex-row items-center">
-          <Ionicons name="chevron-back" size={18} color={colors.fg} />
-          <Text variant="body.medium" className="ml-1">
-            Back
-          </Text>
-        </Pressable>
-
         {/* Brand block — centred, matching the migrated sign-in screen. */}
         <View className="items-center mb-9">
           <AppMark size={44} variant="full" />
