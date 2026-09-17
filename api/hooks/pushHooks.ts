@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import { getNotifications } from '@/lib/push/notifications';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,7 +32,9 @@ import { useAuthStore } from '@/store/auth';
  * app is open is swallowed — which is exactly when a critical escalation is most
  * likely to land, since the CEO is already looking at the app.
  */
-Notifications.setNotificationHandler({
+const notifications = getNotifications();
+
+notifications?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
     shouldShowList: true,
@@ -167,12 +169,16 @@ export function usePushDeepLinks(): void {
       return () => navigator.serviceWorker.removeEventListener('message', onMessage);
     }
 
+    // Expo Go on Android cannot load the module at all (see
+    // `@/lib/push/notifications`), so there is nothing to listen to there.
+    if (!notifications) return;
+
     // Cold start: the app was launched by tapping a notification.
-    void Notifications.getLastNotificationResponseAsync().then(response => {
+    void notifications.getLastNotificationResponseAsync().then(response => {
       if (response) open(response.notification.request.content.data);
     });
 
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+    const subscription = notifications.addNotificationResponseReceivedListener(response => {
       open(response.notification.request.content.data);
     });
 

@@ -41,7 +41,15 @@ export function Screen({
     return (
       <KeyboardAvoidingView
         className={cn('flex-1', baseBg)}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        // Android needs an explicit behavior too. `undefined` makes
+        // KeyboardAvoidingView an inert passthrough, which left Android relying
+        // on the OS resizing the window under the keyboard — it does not here,
+        // so the focused field simply sat behind the keyboard (reset-password:
+        // the email input and the submit button were both covered). iOS was
+        // unaffected because it had 'padding' all along. 'height' is the
+        // Android counterpart: it shrinks the container so the ScrollView can
+        // bring the focused field into view.
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {content}
       </KeyboardAvoidingView>

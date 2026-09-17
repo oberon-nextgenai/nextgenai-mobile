@@ -31,13 +31,21 @@ describe('NativeWind interop for Reanimated components', () => {
     // Assembled at runtime so this file does not contain the literal it
     // searches for — `git grep` would otherwise match this spec itself.
     const needle = 'createAnimatedComponent(' + 'Pressable)';
-    const offenders = grep(needle).filter((f) => f !== 'lib/nativewindInterop.ts');
+    const offenders = grep(needle).filter((f) => f !== 'lib/nativewindInterop.tsx');
     expect(offenders).toEqual([]);
   });
 
-  it('registers the shared AnimatedPressable and Animated.View', () => {
-    const src = require('node:fs').readFileSync('lib/nativewindInterop.ts', 'utf8');
+  it('registers Animated.View', () => {
+    const src = require('node:fs').readFileSync('lib/nativewindInterop.tsx', 'utf8');
     expect(src).toContain('cssInterop(Animated.View');
-    expect(src).toContain('cssInterop(AnimatedPressable');
+  });
+
+  it('styles via a plain inner view, not cssInterop on the animated component', () => {
+    // Measured on an Android device: with the animated component registered via
+    // `cssInterop`, a size="md" GradientButton (px-4 py-3) laid out 21pt tall —
+    // bare text height, every class dropped — while plain views on the same
+    // screen styled correctly. `className` must reach a plain View.
+    const src = require('node:fs').readFileSync('lib/nativewindInterop.tsx', 'utf8');
+    expect(src).toMatch(/<View[^>]*className=\{className\}/);
   });
 });

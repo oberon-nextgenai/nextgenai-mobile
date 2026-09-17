@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import Svg, { Defs, RadialGradient, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { useThemeMode } from '@/hooks/useThemeMode';
 
@@ -21,13 +21,16 @@ export function RadialBackground() {
     <Svg
       style={StyleSheet.absoluteFill}
       // `absoluteFill` only sets inset; it gives the element no intrinsic size.
-      // react-native-svg measures the host view on native, but on react-native-web
-      // the <svg> gets no width/height and collapses to the browser default of
-      // 300x150 -- which shows up as a light rectangle in the corner of every
-      // screen, since Screen.tsx renders this behind all of them. Sizing it
-      // explicitly is correct on both platforms.
-      width="100%"
-      height="100%"
+      // On react-native-web the <svg> then collapses to the browser default of
+      // 300x150, which showed up as a light rectangle in the corner of every
+      // screen, since Screen.tsx renders this behind all of them.
+      //
+      // Web-only on purpose: react-native-svg measures the host view on native,
+      // and percentage width/height resolve against a different box on Android,
+      // leaving the SVG short of the screen edge -- a hard vertical seam down
+      // the right-hand side. Let native keep the host-view measurement it has
+      // always used and that has always been correct there.
+      {...(Platform.OS === 'web' ? { width: '100%', height: '100%' } : null)}
       pointerEvents="none"
       // fill the parent regardless of aspect ratio
       preserveAspectRatio="xMidYMid slice"
