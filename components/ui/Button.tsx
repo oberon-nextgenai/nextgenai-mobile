@@ -4,7 +4,6 @@ import {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { cn } from '@/lib/cn';
 import { Text } from '@/components/ui/Text';
@@ -74,14 +73,27 @@ export function Button({
         : colors.fg;
 
   const scale = useSharedValue(1);
-  const shadowOpacity = useSharedValue(variant === 'primary' ? 0.18 : 0);
-  const restShadow = variant === 'primary' ? 0.18 : 0;
-  const pressedShadow = variant === 'primary' ? 0.32 : 0.1;
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    shadowOpacity: shadowOpacity.value,
   }));
+
+  /**
+   * On the styled view, not the pressable around it: that view is the visible
+   * button and owns the radius, so the shadow follows the rounded shape. The
+   * pressable's box also grows with any margin a caller passes through
+   * `className`, which put a shadow above the button as well as below it.
+   */
+  const shadow =
+    variant === 'primary'
+      ? {
+          shadowColor: colors.accent,
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 6,
+          shadowOpacity: 0.18,
+          elevation: 2,
+        }
+      : undefined;
 
   return (
     <AnimatedPressable
@@ -89,25 +101,14 @@ export function Button({
       disabled={isDisabled}
       onPressIn={(e) => {
         scale.value = withSpring(0.96, PRESS_SPRING);
-        shadowOpacity.value = withTiming(pressedShadow, { duration: 80 });
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
         scale.value = withSpring(1, PRESS_SPRING);
-        shadowOpacity.value = withTiming(restShadow, { duration: 140 });
         onPressOut?.(e);
       }}
-      style={[
-        animatedStyle,
-        variant === 'primary'
-          ? {
-              shadowColor: colors.accent,
-              shadowOffset: { width: 0, height: 2 },
-              shadowRadius: 6,
-              elevation: 2,
-            }
-          : null,
-      ]}
+      style={animatedStyle}
+      contentProps={shadow ? { style: shadow } : undefined}
       className={cn(
         'flex-row items-center justify-center',
         CONTAINER[variant],
